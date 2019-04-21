@@ -16,7 +16,7 @@ import com.github.steveice10.mc.protocol.packet.ingame.server.entity.player.Serv
 import com.github.steveice10.mc.protocol.packet.ingame.server.entity.player.ServerPlayerPositionRotationPacket
 import com.github.steveice10.mc.protocol.packet.ingame.server.entity.player.ServerPlayerSetExperiencePacket
 import com.github.steveice10.mc.protocol.packet.ingame.server.entity.spawn.*
-import com.github.steveice10.mc.protocol.packet.ingame.server.world.ServerNotifyClientPacket
+import com.github.steveice10.mc.protocol.packet.ingame.server.world.*
 import com.github.steveice10.packetlib.Session
 import com.github.steveice10.packetlib.event.session.*
 import com.github.steveice10.packetlib.packet.Packet
@@ -51,10 +51,7 @@ interface IBot : CoroutineScope {
     val spawned get() = position != null && entity?.eid != null && connected
     val alive get() = health ?: 0.0f > 0.0f && spawned
 
-    val dimension: Int?
-    val rainy: Boolean?
-    val skyDarkness: Double?
-    val entities: Map<Int, Entity>
+    var world: World?
     val playerList: Map<UUID, PlayerListItem>
 
     fun send(packet: Packet)
@@ -80,10 +77,7 @@ class McBot : IBot, SessionListener {
     override var experience: Experience? = null
     override var inventory: McWindow? = null
 
-    override var dimension: Int? = null
-    override var rainy: Boolean? = null
-    override var skyDarkness: Double? = null
-    override val entities = mutableMapOf<Int, Entity>()
+    override var world: World? = null
     override val playerList = mutableMapOf<UUID, PlayerListItem>()
 
     override var gameMode: GameMode?
@@ -109,14 +103,13 @@ class McBot : IBot, SessionListener {
         saturation = null
         inventory = null
 
-        dimension = null
-        rainy = null
-        skyDarkness = null
-        entities.clear()
+        world = null
         playerList.clear()
     }
 
-    private fun getEntityOrCreate(eid: Int) = entities.getOrPut(eid) { Entity(eid) }
+    private fun getEntityOrCreate(eid: Int): Entity {
+        return world!!.entities.getOrPut(eid) { Entity(eid) }
+    }
 
     fun useConnection(connection: Session, profile: GameProfile): McBot {
         if (this.connection != null) TODO("already connected") // bail? close existing?
@@ -157,13 +150,13 @@ class McBot : IBot, SessionListener {
         when (packet) {
             is ServerChatPacket -> logger.info("[CHAT] ${packet.message.fullText}")
             is ServerJoinGamePacket -> {
+                world = World(packet.dimension)
                 entity = getEntityOrCreate(packet.entityId).apply { uuid = profile?.id }
                 gameMode = packet.gameMode
-                dimension = packet.dimension
             }
             is ServerRespawnPacket -> {
+                world = World(packet.dimension)
                 gameMode = packet.gameMode
-                dimension = packet.dimension
                 health = null
                 food = null
                 saturation = null
@@ -285,8 +278,10 @@ class McBot : IBot, SessionListener {
                 }
             }
             is ServerEntityDestroyPacket -> {
-                for (eid in packet.entityIds) {
-                    entities.remove(eid)?.apply { playerList[uuid]?.entity = null }
+                world?.entities?.also { entities ->
+                    for (eid in packet.entityIds) {
+                        entities.remove(eid)?.apply { playerList[uuid]?.entity = null }
+                    }
                 }
             }
             is ServerEntityTeleportPacket -> {
@@ -337,24 +332,44 @@ class McBot : IBot, SessionListener {
                 entity.passengers = passengers
                 passengers.forEach { it.vehicle = entity }
             }
+
+            is ServerChunkDataPacket -> {
+                val column = packet.column
+                world?.updateColumn(column.x, column.z, column)
+            }
+            is ServerUnloadChunkPacket -> {
+                world?.unloadColumn(packet.x, packet.z)
+            }
+            is ServerBlockChangePacket -> {
+                val change = packet.record
+                world?.setBlock(change.position, change.block)
+            }
+            is ServerMultiBlockChangePacket -> {
+                for (change in packet.records) {
+                    world?.setBlock(change.position, change.block)
+                }
+            }
+            is ServerBlockValuePacket -> {
+                packet.apply {
+                    world?.setBlockData(position, blockId, type, value)
+                }
+            }
+
             is ServerNotifyClientPacket -> {
                 when (packet.notification) {
-                    ClientNotification.START_RAIN -> rainy = false
-                    ClientNotification.STOP_RAIN -> rainy = true
+                    ClientNotification.START_RAIN -> world?.rainy = false
+                    ClientNotification.STOP_RAIN -> world?.rainy = true
                     else -> Unit
                 }
                 val value = packet.value
                 when (value) {
                     is GameMode -> gameMode = value
-                    is ThunderStrengthValue -> skyDarkness = value.strength.toDouble()
+                    is ThunderStrengthValue -> world?.skyDarkness = value.strength.toDouble()
                     // TODO track other world states
                 }
             }
 
-            // TODO held_item_slot window_items open_window close_window set_slot transaction
-            // TODO difficulty
-            // TODO entity entity_equipment entity_metadata entity_status entity_update_attributes entity_effect remove_entity_effect
-
+            is ServerKeepAlivePacket -> Unit // handled by MCProtocolLib's Client
             else -> logger.fine("Got packet: ${packet::class.qualifiedName}")
         }
     }

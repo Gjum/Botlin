@@ -1,7 +1,10 @@
 package com.github.gjum.minecraft.botlin
 
 import com.github.steveice10.mc.auth.data.GameProfile
+import com.github.steveice10.mc.protocol.data.game.chunk.Chunk
+import com.github.steveice10.mc.protocol.data.game.chunk.Column
 import com.github.steveice10.mc.protocol.data.game.entity.metadata.EntityMetadata
+import com.github.steveice10.mc.protocol.data.game.entity.metadata.Position
 import com.github.steveice10.mc.protocol.data.game.entity.player.GameMode
 import com.github.steveice10.mc.protocol.data.game.entity.type.GlobalEntityType
 import com.github.steveice10.mc.protocol.data.game.entity.type.MobType
@@ -9,24 +12,13 @@ import com.github.steveice10.mc.protocol.data.game.entity.type.PaintingType
 import com.github.steveice10.mc.protocol.data.game.entity.type.`object`.HangingDirection
 import com.github.steveice10.mc.protocol.data.game.entity.type.`object`.ObjectData
 import com.github.steveice10.mc.protocol.data.game.entity.type.`object`.ObjectType
+import com.github.steveice10.mc.protocol.data.game.world.block.BlockState
+import com.github.steveice10.mc.protocol.data.game.world.block.value.BlockValue
+import com.github.steveice10.mc.protocol.data.game.world.block.value.BlockValueType
 import com.github.steveice10.mc.protocol.data.message.Message
-import com.github.steveice10.opennbt.NBTIO
 import java.util.*
 
-typealias BlockFace = Int
-
 class Experience(val bar: Float, val level: Int, val total: Int)
-
-class Slot(
-    var blockId: Int,
-    var itemCount: Int,
-    var itemDamage: Int,
-    var nbtData: NBTIO?
-) {
-    val empty: Boolean get() = blockId <= 0
-    val name: String get() = "TODO" // XXX look up slot name in mc-data
-    val customName: String? get() = "TODO" // XXX look up custom name in NBT
-}
 
 sealed class EntityType {
     class ExpOrb(val exp: Int) : EntityType()
@@ -70,20 +62,51 @@ class PlayerListItem(val profile: GameProfile) {
     var entity: Entity? = null
 }
 
-/**
- * Stores block info the bot has discovered so far.
- */
-class World {
-    // XXX
+private val Int.div16 get() = this shr 4
+private val Int.mod16 get() = this and 0xf
+
+data class ChunkPos(val x: Int, val z: Int) {
+    companion object {
+        fun fromBlock(x: Int, z: Int) = ChunkPos(x.div16, z.div16)
+    }
 }
 
-@ExperimentalUnsignedTypes
-class BlockType(val id: UByte, val meta: UByte)
+class World(val dimension: Int) {
+    private val chunkColumns: MutableMap<ChunkPos, Column> = mutableMapOf()
+    val entities = mutableMapOf<Int, Entity>()
+    var rainy: Boolean? = null
+    var skyDarkness: Double? = null
 
-@ExperimentalUnsignedTypes
-class Block(val type: BlockType) {
-    var reinfLevel: ReinforcementLevel? = null
-    var reinfGroup: String? = null
+    fun getBlock(x: Int, y: Int, z: Int): BlockState? {
+        return getSection(x, y, z)?.blocks?.get(x.mod16, y.mod16, z.mod16)
+    }
+
+    private fun getColumn(x: Int, z: Int): Column? {
+        return chunkColumns[ChunkPos.fromBlock(x, z)]
+    }
+
+    private fun getSection(x: Int, y: Int, z: Int): Chunk? {
+        return getColumn(x, z)?.chunks?.get(y.div16)
+    }
+
+    fun setBlock(position: Position, block: BlockState) {
+        position.apply {
+            val section = getSection(x, y, z) ?: return
+            section.blocks.set(x.mod16, y.mod16, z.mod16, block)
+        }
+    }
+
+    fun setBlockData(position: Position, blockId: Int, type: BlockValueType, value: BlockValue) {
+        val column = getColumn(position.x, position.z) ?: return
+        // TODO column.tileEntities should be a coord-indexed map...
+    }
+
+    fun unloadColumn(x: Int, z: Int) {
+        chunkColumns.remove(ChunkPos(x, z))
+    }
+
+    fun updateColumn(x: Int, z: Int, column: Column) {
+        // TODO apply partial updates - i.e., when sections are missing
+        chunkColumns[ChunkPos(x, z)] = column
+    }
 }
-
-enum class ReinforcementLevel { Plain, Stone, Iron, Diamond }
