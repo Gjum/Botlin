@@ -1,6 +1,6 @@
 package com.github.gjum.minecraft.botlin
 
-import com.github.gjum.minecraft.botlin.Log.log
+import com.github.gjum.minecraft.botlin.Log.logger
 import com.github.steveice10.mc.auth.exception.request.RequestException
 import com.github.steveice10.mc.auth.service.AuthenticationService
 import com.github.steveice10.mc.protocol.MinecraftProtocol
@@ -9,7 +9,6 @@ import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Paths
 import java.util.*
-import java.util.logging.Level
 
 private class AuthTokenCache(val clientToken: String, val sessions: MutableMap<String, String>)
 
@@ -31,7 +30,7 @@ object Reauth {
             try {
                 configStr = String(Files.readAllBytes(Paths.get(authCachePath)))
             } catch (e: IOException) {
-                log("Could not read auth token cache from $authCachePath", Level.WARNING)
+                logger.info("Could not read auth token cache from $authCachePath")
             }
             if (configStr != "") {
                 authCache = Gson().fromJson(configStr, AuthTokenCache::class.java)
@@ -64,7 +63,7 @@ object Reauth {
             try {
                 Files.write(Paths.get(authCachePath), Gson().toJson(authCache).toByteArray())
             } catch (e: IOException) {
-                log("Could not write auth token cache to $authCachePath", Level.WARNING)
+                logger.warning("Could not write auth token cache to $authCachePath")
             }
         }
 

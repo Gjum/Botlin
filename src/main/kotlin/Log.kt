@@ -1,17 +1,18 @@
 package com.github.gjum.minecraft.botlin
 
-import java.util.logging.Level
+import java.io.IOException
+import java.util.logging.LogManager
 import java.util.logging.Logger
 
 object Log {
-    // "-Djava.util.logging.SimpleFormatter.format=%1$tT %4$s: %5$s%6$s (in %2$s)%n"
-
-    private val logger = Logger.getLogger(this::class.java.name)
-
-    fun log(msg: String, level: Level = Level.INFO) {
-        logger.log(level, msg)
-//        ZonedDateTime.now(UTC).run {
-//            println(String.format("%02d:%02d:%02d %s", hour, minute, second, msg))
-//        }
+    init {
+        val stream = Log::class.java.getResourceAsStream("/logging.properties")
+        try {
+            LogManager.getLogManager().readConfiguration(stream)
+        } catch (e: IOException) {
+            e.printStackTrace()
+        }
     }
+
+    val logger: Logger = Logger.getLogger(Log::class.java.name)
 }

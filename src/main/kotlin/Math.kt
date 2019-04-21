@@ -88,6 +88,9 @@ typealias Radians = Double
 typealias Degrees = Double
 typealias AngleByte = Byte
 
+fun Float.toRadians() = toDouble()
+fun Float.toDegrees() = toDouble()
+
 /**
  * yaw and pitch are Euler angles measured in radians.
  * yaw = pitch = 0 is looking straight south.
@@ -106,12 +109,13 @@ class Look(var yaw: Radians, var pitch: Radians) {
         pitch += d.pitch
     }
 
-    fun assign(yaw: Double, pitch: Double) {
+    fun assign(yaw: Radians, pitch: Radians): Look {
         this.yaw = yaw
         this.pitch = pitch
+        return this
     }
 
-    fun assign(other: Look) = other.let { this@Look.assign(yaw, pitch) }
+    fun assign(other: Look): Look = other.run { this@Look.assign(yaw, pitch) }
 
     fun turnToVec3(delta: Vec3d) = Look(yaw, pitch).also { it.setFromVec3(delta) }
 
@@ -157,8 +161,8 @@ class Look(var yaw: Radians, var pitch: Radians) {
          */
         fun fromVec3(delta: Vec3d) = origin.turnToVec3(delta)
 
-        fun fromNotchianByte(yaw: AngleByte, pitch: AngleByte): Look {
-            return Look(radFromByte(yaw), radFromByte(pitch))
+        fun fromDegrees(yaw: Float, pitch: Float): Look {
+            return Look(radFromDeg(yaw.toDouble()), radFromDeg(pitch.toDouble()))
         }
 
         fun radFromByte(angle: Byte): Radians = angle * PI / 128.0
