@@ -3,8 +3,11 @@ package com.github.gjum.minecraft.botlin
 import com.github.gjum.minecraft.botlin.Log.logger
 import com.github.gjum.minecraft.botlin.Reauth.reauth
 import com.github.steveice10.mc.protocol.MinecraftProtocol
+import com.github.steveice10.mc.protocol.data.message.Message
 import com.github.steveice10.mc.protocol.packet.ingame.client.ClientChatPacket
+import com.github.steveice10.mc.protocol.packet.ingame.server.window.ServerWindowPropertyPacket
 import com.github.steveice10.packetlib.Client
+import com.github.steveice10.packetlib.Session
 import com.github.steveice10.packetlib.tcp.TcpSessionFactory
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
@@ -23,6 +26,9 @@ object Main {
         var aToken = ""
         val cToken = UUID.randomUUID().toString()
         val bot = McBot()
+        bot.registerListeners(ChatLogger())
+        bot.registerListeners(MiscEventLogger())
+        bot.registerListeners(ReadyStateLogger(bot))
         try {
             Cli.start { cmdLine ->
                 val split = cmdLine.split(" +".toRegex())
@@ -109,5 +115,52 @@ object Main {
         val bot = McBot().useConnection(client.session, proto.profile)
         client.session.connect(waitForConnectionToEstablish)
         return bot
+    }
+}
+
+class ChatLogger : IChatListener {
+    override fun onChatReceived(msg: Message) = logger.info("[CHAT] ${msg.fullText}")
+}
+
+class MiscEventLogger : IInventoryListener, IPlayerListListener, IPlayerStateListener {
+    override fun onWindowReady(window: McWindow) = window.run {
+        logger.info("Window ready: $windowTitle with $slotCount slots")
+    }
+
+    override fun onWindowClosed() = logger.info("Window closed")
+
+    override fun onWindowPropertyChanged(property: ServerWindowPropertyPacket) = property.run {
+        logger.info("Window property changed: $rawProperty = $value")
+    }
+
+    override fun onSlotsChanged() = logger.info("Slots changed")
+
+    override fun onPlayerJoined(entry: PlayerListItem) = logger.info(
+        "Player joined: ${entry.displayName?.fullText ?: entry.profile.name}"
+    )
+
+    override fun onPlayerLeft(entry: PlayerListItem) = logger.info(
+        "Player left: ${entry.displayName?.fullText ?: entry.profile.name}"
+    )
+
+    override fun onPositionChanged(position: Vec3d) = logger.info(
+        "Position changed to $position"
+    )
+
+    override fun onPlayerEntityStatusChanged() = logger.info(
+        "Player entity status changed"
+    )
+}
+
+class ReadyStateLogger(val bot: IBot) : IReadyListener {
+    override fun onConnected(connection: Session) = logger.info("Connected to ${connection.remoteAddress}")
+
+    override fun onSpawned() = logger.info(
+        "Spawned at ${bot.position} ${bot.look} as eid ${bot.entity?.eid}"
+    )
+
+    override fun onDisconnected(reason: String?, cause: Throwable?) {
+        if (cause != null) logger.log(Level.FINE, cause.toString(), cause)
+        logger.warning("Disconnected from ${bot.remoteAddress} Reason: $reason")
     }
 }
