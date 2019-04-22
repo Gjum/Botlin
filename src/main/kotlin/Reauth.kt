@@ -13,6 +13,27 @@ import java.util.*
 private class AuthTokenCache(val clientToken: String, val sessions: MutableMap<String, String>)
 
 object Reauth {
+    /**
+     * If [accessToken] is given, tries to login with that token,
+     * refreshing it if necessary, using [UUID.randomUUID] if [clientToken] is unset,
+     * and failing with [RequestException] if unsuccessful.
+     *
+     * Otherwise, tries to load the [username]'s auth token and client token
+     * from [authCachePath], caches the successful result there if possible,
+     * or failing with [RequestException] if the authentication was unsuccessful.
+     *
+     * If no [accessToken] was given and [authCachePath] had no tokens for the [username],
+     * but [password] is given, tries to login with that password,
+     * using [UUID.randomUUID] if [clientToken] is unset,
+     * failing with [RequestException] if unsuccessful.
+     *
+     * Otherwise, does not authenticate, returning an "offline" account
+     * (signalled with [MinecraftProtocol.accessToken] == "").
+     *
+     * Note that if the access token from [authCachePath] is invalid,
+     * this method DOES NOT retry using the [password] even if given.
+     * This may change in the future. For now, manually remove [authCachePath].
+     */
     @Throws(RequestException::class)
     fun reauth(
         username: String,
