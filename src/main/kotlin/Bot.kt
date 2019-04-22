@@ -128,22 +128,25 @@ class McBot : IBot, SessionListener {
     }
 
     override fun disconnecting(event: DisconnectingEvent) {
-        event.apply { doDisconnect(session, reason, cause) }
+        event.apply { disconnect(reason, cause) }
     }
 
     override fun disconnected(event: DisconnectedEvent) {
-        event.apply { doDisconnect(session, reason, cause) }
+        event.apply { disconnect(reason, cause) }
     }
 
-    private fun doDisconnect(session: Session, reason: String?, cause: Throwable?) {
+    fun disconnect(reason: String?, cause: Throwable? = null) {
+        if (connection == null) return
         val message = Message.fromString(reason ?: "")
         if (endReason == null) {
             logger.fine(cause?.stackTrace?.joinToString("\n", transform = StackTraceElement::toString))
-            session.apply { logger.warning("Disconnected from $host:$port Reason: ${message.fullText}") }
+            connection?.apply { logger.warning("Disconnected from $host:$port Reason: ${message.fullText}") }
             // TODO emit event
         }
         // reset() // TODO do we already reset here or remember the failstate?
         endReason = message
+        // TODO submit upstream patch for TcpClientSession overriding all TcpSession#disconnect
+        connection?.disconnect(reason, cause, true)
         connection = null
     }
 

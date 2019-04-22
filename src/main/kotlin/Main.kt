@@ -21,6 +21,7 @@ object Main {
                 else -> logger.info("Unknown command: $command")
             }
         }
+        bot.disconnect("End of Main")
     }
 
     fun connect(
