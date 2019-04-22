@@ -53,6 +53,10 @@ class Entity(val eid: Int) {
             else if (sneaking == true) TODO("sneaking player height")
             else 1.64
         }
+
+    fun updateMetadata(metadata: Array<EntityMetadata>) {
+        this.metadata = metadata // XXX update, don't just set!
+    }
 }
 
 class PlayerListItem(val profile: GameProfile) {
@@ -79,6 +83,10 @@ class World(val dimension: Int) {
 
     fun getBlock(x: Int, y: Int, z: Int): BlockState? {
         return getSection(x, y, z)?.blocks?.get(x.mod16, y.mod16, z.mod16)
+    }
+
+    fun getBlockData(x: Int, y: Int, z: Int) {
+        TODO("getBlockData")
     }
 
     private fun getColumn(x: Int, z: Int): Column? {

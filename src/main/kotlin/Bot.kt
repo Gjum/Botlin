@@ -12,11 +12,14 @@ import com.github.steveice10.mc.protocol.packet.ingame.client.player.ClientPlaye
 import com.github.steveice10.mc.protocol.packet.ingame.client.world.ClientTeleportConfirmPacket
 import com.github.steveice10.mc.protocol.packet.ingame.server.*
 import com.github.steveice10.mc.protocol.packet.ingame.server.entity.*
-import com.github.steveice10.mc.protocol.packet.ingame.server.entity.player.ServerPlayerHealthPacket
-import com.github.steveice10.mc.protocol.packet.ingame.server.entity.player.ServerPlayerPositionRotationPacket
-import com.github.steveice10.mc.protocol.packet.ingame.server.entity.player.ServerPlayerSetExperiencePacket
+import com.github.steveice10.mc.protocol.packet.ingame.server.entity.player.*
 import com.github.steveice10.mc.protocol.packet.ingame.server.entity.spawn.*
+import com.github.steveice10.mc.protocol.packet.ingame.server.window.*
 import com.github.steveice10.mc.protocol.packet.ingame.server.world.*
+import com.github.steveice10.mc.protocol.packet.login.server.EncryptionRequestPacket
+import com.github.steveice10.mc.protocol.packet.login.server.LoginDisconnectPacket
+import com.github.steveice10.mc.protocol.packet.login.server.LoginSetCompressionPacket
+import com.github.steveice10.mc.protocol.packet.login.server.LoginSuccessPacket
 import com.github.steveice10.packetlib.Session
 import com.github.steveice10.packetlib.event.session.*
 import com.github.steveice10.packetlib.packet.Packet
@@ -222,6 +225,7 @@ class McBot : IBot, SessionListener {
                     }
                 }
             }
+
             is ServerSpawnPlayerPacket -> {
                 val entity = getEntityOrCreate(packet.entityId).apply {
                     type = EntityType.Player
@@ -332,6 +336,17 @@ class McBot : IBot, SessionListener {
                 entity.passengers = passengers
                 passengers.forEach { it.vehicle = entity }
             }
+            is ServerEntityMetadataPacket -> {
+                val entity = getEntityOrCreate(packet.entityId)
+                entity.updateMetadata(packet.metadata)
+            }
+            is ServerEntityPropertiesPacket -> TodoEntityPacket
+            is ServerEntityEquipmentPacket -> TodoEntityPacket
+            is ServerEntityEffectPacket -> TodoEntityPacket
+            is ServerEntityRemoveEffectPacket -> TodoEntityPacket
+            is ServerEntityStatusPacket -> TodoEntityPacket
+            is ServerEntityAnimationPacket -> TodoEntityPacket
+            is ServerEntityCollectItemPacket -> TodoEntityPacket
 
             is ServerChunkDataPacket -> {
                 val column = packet.column
@@ -355,6 +370,14 @@ class McBot : IBot, SessionListener {
                 }
             }
 
+            is ServerPlayerChangeHeldItemPacket -> TodoInventoryPacket
+            is ServerOpenWindowPacket -> TodoInventoryPacket
+            is ServerCloseWindowPacket -> TodoInventoryPacket
+            is ServerWindowItemsPacket -> TodoInventoryPacket
+            is ServerWindowPropertyPacket -> TodoInventoryPacket
+            is ServerSetSlotPacket -> TodoInventoryPacket
+            is ServerConfirmTransactionPacket -> TodoInventoryPacket
+
             is ServerNotifyClientPacket -> {
                 when (packet.notification) {
                     ClientNotification.START_RAIN -> world?.rainy = false
@@ -369,8 +392,12 @@ class McBot : IBot, SessionListener {
                 }
             }
 
-            is ServerKeepAlivePacket -> Unit // handled by MCProtocolLib's Client
-            else -> logger.fine("Got packet: ${packet::class.qualifiedName}")
+            is EncryptionRequestPacket -> HandledByProtoLib
+            is LoginSuccessPacket -> HandledByProtoLib
+            is LoginSetCompressionPacket -> HandledByProtoLib
+            is LoginDisconnectPacket -> HandledByProtoLib
+            is ServerKeepAlivePacket -> HandledByProtoLib
+            is ServerDisconnectPacket -> HandledByProtoLib
         }
     }
 
@@ -402,3 +429,7 @@ class McBot : IBot, SessionListener {
     override fun packetSending(event: PacketSendingEvent) = Unit
     override fun packetSent(event: PacketSentEvent) = Unit
 }
+
+private val HandledByProtoLib = Unit
+private val TodoInventoryPacket = Unit // TODO handle inventory packets
+private val TodoEntityPacket = Unit // TODO handle entity packets
