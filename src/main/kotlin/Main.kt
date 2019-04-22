@@ -8,28 +8,35 @@ import com.github.steveice10.packetlib.tcp.TcpSessionFactory
 object Main {
     @JvmStatic
     fun main(args: Array<String>) {
-        connect()
+        val bot = connect()
+        Cli.start { command ->
+            when (command) {
+                "list" -> {
+                    val namesSpaceSep = bot.playerList.values.joinToString(" ") {
+                        it.displayName?.fullText ?: it.profile.name
+                    }
+                    logger.info("Connected players: $namesSpaceSep")
+                }
+                "exit" -> Cli.stop()
+                else -> logger.info("Unknown command: $command")
+            }
+        }
     }
 
     fun connect(
         host: String = "localhost", port: Int = 25565,
         username: String = "Botlin", password: String = "",
-        waitConnectionToFinish: Boolean = false
-    ) {
+        waitForConnectionToEstablish: Boolean = true
+    ): McBot {
         logger.info("Authenticating")
-        val authResult = reauth(username, password)
-        val proto = authResult.protocol
-        if (proto == null) {
-            logger.info("Error during authentication: ${authResult.error?.message}")
-            return
-        }
+        val proto = reauth(username, password)
         val authMsg = if (proto.accessToken != "") "authenticated" else "unauthenticated"
         logger.info("Playing as ${proto.profile.name} $authMsg")
 
         val client = Client(host, port, proto, TcpSessionFactory())
         val bot = McBot().useConnection(client.session, proto.profile)
         logger.info("Connecting")
-        client.session.connect(waitConnectionToFinish)
-        // TODO why does main not exit after disconnect?
+        client.session.connect(waitForConnectionToEstablish)
+        return bot
     }
 }

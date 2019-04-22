@@ -12,16 +12,15 @@ import java.util.*
 
 private class AuthTokenCache(val clientToken: String, val sessions: MutableMap<String, String>)
 
-class AuthResult(val protocol: MinecraftProtocol?, val error: Throwable?)
-
 object Reauth {
+    @Throws(RequestException::class)
     fun reauth(
         username: String,
         password: String = "",
         accessToken: String = "",
         clientToken: String = "",
         authCachePath: String? = ".auth_tokens.json"
-    ): AuthResult {
+    ): MinecraftProtocol {
         var aToken = accessToken
         var cToken = clientToken
         var authCache: AuthTokenCache? = null
@@ -41,7 +40,7 @@ object Reauth {
 
         if (aToken == "" && password == "") {
             // cannot possibly authenticate
-            return AuthResult(MinecraftProtocol(username), null)
+            return MinecraftProtocol(username)
         }
 
         cToken = if (cToken != "") cToken else UUID.randomUUID().toString()
@@ -50,11 +49,7 @@ object Reauth {
         auth.password = password
         auth.accessToken = aToken
 
-        try {
-            auth.login()
-        } catch (e: RequestException) {
-            return AuthResult(null, e)
-        }
+        auth.login() // may throw RequestException
 
         // if token changed, write to auth cache file
         if (password != "" && auth.accessToken != aToken && authCachePath != null) {
@@ -67,6 +62,6 @@ object Reauth {
             }
         }
 
-        return AuthResult(MinecraftProtocol(auth.selectedProfile, auth.accessToken), null)
+        return MinecraftProtocol(auth.selectedProfile, auth.accessToken)
     }
 }
