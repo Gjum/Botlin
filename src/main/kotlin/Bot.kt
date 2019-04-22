@@ -7,7 +7,6 @@ import com.github.steveice10.mc.protocol.data.game.PlayerListEntryAction
 import com.github.steveice10.mc.protocol.data.game.entity.player.GameMode
 import com.github.steveice10.mc.protocol.data.game.world.notify.ClientNotification
 import com.github.steveice10.mc.protocol.data.game.world.notify.ThunderStrengthValue
-import com.github.steveice10.mc.protocol.data.message.Message
 import com.github.steveice10.mc.protocol.packet.ingame.client.player.ClientPlayerPositionRotationPacket
 import com.github.steveice10.mc.protocol.packet.ingame.client.world.ClientTeleportConfirmPacket
 import com.github.steveice10.mc.protocol.packet.ingame.server.*
@@ -26,7 +25,9 @@ import com.github.steveice10.packetlib.packet.Packet
 import kotlinx.coroutines.*
 import java.net.SocketAddress
 import java.util.*
+import java.util.logging.Level
 import kotlin.coroutines.EmptyCoroutineContext
+import kotlin.reflect.KClass
 
 /**
  * An enhanced client that tracks world state,
@@ -36,12 +37,14 @@ import kotlin.coroutines.EmptyCoroutineContext
  */
 interface IBot : CoroutineScope {
     var profile: GameProfile?
-    val endReason: Message?
+    val endReason: String?
     val connected: Boolean
     val localAddress: SocketAddress?
     val remoteAddress: SocketAddress?
     fun disconnect(reason: String?, cause: Throwable? = null)
     fun send(packet: Packet)
+    fun registerListeners(handler: Any)
+    fun unregisterListeners(handler: Any)
 
     val entity: Entity?
     val health: Float?
@@ -55,7 +58,13 @@ interface IBot : CoroutineScope {
     val eyePos: Vec3d? get() = entity?.eyePos
     val inventory: McWindow?
 
-    val spawned get() = position != null && entity?.eid != null && connected
+    val spawned: Boolean
+        get() = (position != null
+                && entity != null
+                && health != null
+                && experience != null
+                && connected)
+
     val alive get() = health ?: 0.0f > 0.0f && spawned
 
     var world: World?
@@ -72,7 +81,7 @@ class McBot : IBot, SessionListener {
     override val coroutineContext = EmptyCoroutineContext
 
     override var profile: GameProfile? = null
-    override var endReason: Message? = null
+    override var endReason: String? = null
     override val connected get() = connection != null && endReason == null && profile != null
 
     override var entity: Entity? = null
@@ -115,6 +124,41 @@ class McBot : IBot, SessionListener {
         playerList.clear()
     }
 
+    private val listeners = mutableMapOf<KClass<out Any>, MutableCollection<Any>>()
+
+    private fun <T : Any> emitEvent(listener: KClass<T>, block: T.() -> Unit) {
+        listeners[listener]?.forEach { handlerAny ->
+            try {
+                @Suppress("UNCHECKED_CAST")
+                val handler = handlerAny as T
+                block.invoke(handler)
+            } catch (e: Throwable) {
+                logger.log(Level.SEVERE, "Unhandled error in ${listener.simpleName} handler", e)
+            }
+        }
+    }
+
+    override fun registerListeners(handler: Any) {
+        for (listener in listenerInterfaces) {
+            if (listener.isInstance(handler)) {
+                val handlers = listeners.getOrPut(listener) { mutableListOf() }
+                handlers.add(handler)
+            }
+        }
+    }
+
+    override fun unregisterListeners(handler: Any) {
+        for (listener in listenerInterfaces) {
+            if (listener.isInstance(handler)) {
+                val handlers = listeners.getOrPut(listener) { mutableListOf() }
+                handlers.remove(handler)
+                if (handlers.isEmpty()) {
+                    listeners.remove(listener)
+                }
+            }
+        }
+    }
+
     private fun getEntityOrCreate(eid: Int): Entity {
         return world!!.entities.getOrPut(eid) { Entity(eid) }
     }
@@ -132,7 +176,7 @@ class McBot : IBot, SessionListener {
     }
 
     override fun connected(event: ConnectedEvent) {
-        // TODO emit connected event
+        emitEvent(IReadyListener::class) { onConnected(event.session) }
     }
 
     override fun disconnecting(event: DisconnectingEvent) {
@@ -148,14 +192,11 @@ class McBot : IBot, SessionListener {
      */
     override fun disconnect(reason: String?, cause: Throwable?) {
         if (connection == null) return
-        val message = Message.fromString(reason ?: "")
         if (endReason == null) {
-            logger.fine(cause?.stackTrace?.joinToString("\n", transform = StackTraceElement::toString))
-            connection?.apply { logger.warning("Disconnected from $host:$port Reason: ${message.fullText}") }
-            // TODO emit event
+            emitEvent(IReadyListener::class) { onDisconnected(reason, cause) }
         }
         // reset() // TODO do we already reset here or remember the failstate?
-        endReason = message
+        endReason = reason
         // TODO submit upstream patch for TcpClientSession overriding all TcpSession#disconnect
         connection?.disconnect(reason, cause, true)
         connection = null
@@ -165,7 +206,9 @@ class McBot : IBot, SessionListener {
         // TODO resume task when all state loaded
         val packet = event.getPacket<Packet>()
         when (packet) {
-            is ServerChatPacket -> logger.info("[CHAT] ${packet.message.fullText}")
+            is ServerChatPacket -> {
+                emitEvent(IChatListener::class) { onChatReceived(packet.message) }
+            }
             is ServerJoinGamePacket -> {
                 world = World(packet.dimension)
                 entity = getEntityOrCreate(packet.entityId).apply { uuid = profile?.id }
@@ -180,19 +223,24 @@ class McBot : IBot, SessionListener {
                 inventory = null
             }
             is ServerPlayerHealthPacket -> {
+                val wasSpawned = spawned
                 health = packet.health
                 food = packet.food
                 saturation = packet.saturation
+                if (!wasSpawned && spawned) emitEvent(IReadyListener::class) { onSpawned() }
             }
             is ServerPlayerSetExperiencePacket -> {
+                val wasSpawned = spawned
                 experience = Experience(
                     packet.slot,
                     packet.level,
                     packet.totalExperience
                 )
+                if (!wasSpawned && spawned) emitEvent(IReadyListener::class) { onSpawned() }
             }
             is ServerPlayerPositionRotationPacket -> {
                 send(ClientTeleportConfirmPacket(packet.teleportId))
+                val wasSpawned = spawned
 
                 if (packet.relativeElements.isEmpty()) {
                     entity?.position = Vec3d(packet.x, packet.y, packet.z)
@@ -200,8 +248,11 @@ class McBot : IBot, SessionListener {
                 } else {
                     // TODO parse flags field: absolute vs relative coords
                     // for now, crash cleanly, instead of continuing with wrong pos
-                    event.session.disconnect("physics.position_packet_flags_not_implemented ${packet.relativeElements}")
+                    return event.session.disconnect("physics.position_packet_flags_not_implemented ${packet.relativeElements}")
                 }
+
+                emitEvent(IPlayerStateListener::class) { onPositionChanged(position!!) }
+                if (!wasSpawned && spawned) emitEvent(IReadyListener::class) { onSpawned() }
 
                 startTicker()
             }
@@ -210,6 +261,8 @@ class McBot : IBot, SessionListener {
                 vehicle.apply {
                     position = Vec3d(packet.x, packet.y, packet.z)
                     look = Look.fromDegrees(packet.yaw, packet.pitch)
+                    entity?.position = position // TODO update client pos in relation to vehicle (typically up/down)
+                    emitEvent(IPlayerStateListener::class) { onPositionChanged(position!!) }
                 }
             }
             is ServerPlayerListEntryPacket -> {
@@ -223,7 +276,9 @@ class McBot : IBot, SessionListener {
                             displayName = item.displayName
                         }
                         if (!wasInListBefore) {
-                            // TODO emit player joined event
+                            emitEvent(IPlayerListListener::class) {
+                                onPlayerJoined(player)
+                            }
                         }
                     } else if (packet.action === PlayerListEntryAction.UPDATE_GAMEMODE) {
                         player.gameMode = item.gameMode
@@ -234,7 +289,9 @@ class McBot : IBot, SessionListener {
                     } else if (packet.action === PlayerListEntryAction.REMOVE_PLAYER) {
                         playerList.remove(item.profile.id)
                         if (wasInListBefore) {
-                            // TODO emit player left event
+                            emitEvent(IPlayerListListener::class) {
+                                onPlayerLeft(player)
+                            }
                         }
                     }
                 }
@@ -353,12 +410,17 @@ class McBot : IBot, SessionListener {
             is ServerEntityMetadataPacket -> {
                 val entity = getEntityOrCreate(packet.entityId)
                 entity.updateMetadata(packet.metadata)
+                if (entity === this.entity) {
+                    emitEvent(IPlayerStateListener::class) {
+                        onPlayerEntityStatusChanged()
+                    }
+                }
             }
-            is ServerEntityPropertiesPacket -> TodoEntityPacket
+            is ServerEntityPropertiesPacket -> TodoEntityPacket // TODO emit PlayerEntityStatusChanged
             is ServerEntityEquipmentPacket -> TodoEntityPacket
-            is ServerEntityEffectPacket -> TodoEntityPacket
-            is ServerEntityRemoveEffectPacket -> TodoEntityPacket
-            is ServerEntityStatusPacket -> TodoEntityPacket
+            is ServerEntityEffectPacket -> TodoEntityPacket // TODO emit PlayerEntityStatusChanged
+            is ServerEntityRemoveEffectPacket -> TodoEntityPacket // TODO emit PlayerEntityStatusChanged
+            is ServerEntityStatusPacket -> TodoEntityPacket // TODO emit PlayerEntityStatusChanged
             is ServerEntityAnimationPacket -> TodoEntityPacket
             is ServerEntityCollectItemPacket -> TodoEntityPacket
 
@@ -413,12 +475,14 @@ class McBot : IBot, SessionListener {
             is ServerKeepAlivePacket -> HandledByProtoLib
             is ServerDisconnectPacket -> HandledByProtoLib
         }
+        emitEvent(IPacketListener::class) { onServerPacketReceived(packet) }
     }
 
     private fun startTicker() {
         if (ticker != null) return
         ticker = launch {
             while (isActive) {
+                emitEvent(IClientTickListener::class) { onPreClientTick() }
 
                 if (position != null && look != null) {
                     send(
@@ -435,6 +499,7 @@ class McBot : IBot, SessionListener {
 
                 // TODO check chat buffer
 
+                emitEvent(IClientTickListener::class) { onPostClientTick() }
                 delay(50) // XXX too slow, could instead sleep until next tick ms
             }
         }
