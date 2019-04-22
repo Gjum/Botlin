@@ -24,8 +24,8 @@ import com.github.steveice10.packetlib.Session
 import com.github.steveice10.packetlib.event.session.*
 import com.github.steveice10.packetlib.packet.Packet
 import kotlinx.coroutines.*
+import java.net.SocketAddress
 import java.util.*
-import java.util.logging.Level.SEVERE
 import kotlin.coroutines.EmptyCoroutineContext
 
 /**
@@ -38,6 +38,10 @@ interface IBot : CoroutineScope {
     var profile: GameProfile?
     val endReason: Message?
     val connected: Boolean
+    val localAddress: SocketAddress?
+    val remoteAddress: SocketAddress?
+    fun disconnect(reason: String?, cause: Throwable? = null)
+    fun send(packet: Packet)
 
     val entity: Entity?
     val health: Float?
@@ -56,8 +60,6 @@ interface IBot : CoroutineScope {
 
     var world: World?
     val playerList: Map<UUID, PlayerListItem>
-
-    fun send(packet: Packet)
 }
 
 /**
@@ -92,6 +94,9 @@ class McBot : IBot, SessionListener {
             entity?.playerListItem?.gameMode = v
         }
 
+    override val localAddress get() = connection?.localAddress
+    override val remoteAddress get() = connection?.remoteAddress
+
     override fun send(packet: Packet) = connection?.send(packet) ?: Unit
 
     private fun reset() {
@@ -114,6 +119,9 @@ class McBot : IBot, SessionListener {
         return world!!.entities.getOrPut(eid) { Entity(eid) }
     }
 
+    /**
+     * Throws [NotImplementedError] if already connected.
+     */
     fun useConnection(connection: Session, profile: GameProfile): McBot {
         if (this.connection != null) TODO("already connected") // bail? close existing?
         reset()
@@ -124,7 +132,7 @@ class McBot : IBot, SessionListener {
     }
 
     override fun connected(event: ConnectedEvent) {
-        logger.info("Connected to ${event.session.remoteAddress}")
+        // TODO emit connected event
     }
 
     override fun disconnecting(event: DisconnectingEvent) {
@@ -135,7 +143,10 @@ class McBot : IBot, SessionListener {
         event.apply { disconnect(reason, cause) }
     }
 
-    fun disconnect(reason: String?, cause: Throwable? = null) {
+    /**
+     * Disconnects the client, blocking the current thread.
+     */
+    override fun disconnect(reason: String?, cause: Throwable?) {
         if (connection == null) return
         val message = Message.fromString(reason ?: "")
         if (endReason == null) {
