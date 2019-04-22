@@ -6,6 +6,10 @@ import java.util.logging.Logger
 
 object Log {
     init {
+        reload()
+    }
+
+    fun reload() {
         val stream = Log::class.java.getResourceAsStream("/logging.properties")
         try {
             LogManager.getLogManager().readConfiguration(stream)
