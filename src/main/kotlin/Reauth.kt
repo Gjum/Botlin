@@ -1,6 +1,7 @@
 package com.github.gjum.minecraft.botlin
 
 import com.github.gjum.minecraft.botlin.Log.logger
+import com.github.steveice10.mc.auth.exception.request.InvalidCredentialsException
 import com.github.steveice10.mc.auth.exception.request.RequestException
 import com.github.steveice10.mc.auth.service.AuthenticationService
 import com.github.steveice10.mc.protocol.MinecraftProtocol
@@ -14,25 +15,20 @@ private class AuthTokenCache(val clientToken: String, val sessions: MutableMap<S
 
 object Reauth {
     /**
-     * If [accessToken] is given, tries to login with that token,
-     * refreshing it if necessary, using [UUID.randomUUID] if [clientToken] is unset,
-     * and failing with [RequestException] if unsuccessful.
-     *
-     * Otherwise, tries to load the [username]'s auth token and client token
-     * from [authCachePath], caches the successful result there if possible,
-     * or failing with [RequestException] if the authentication was unsuccessful.
+     * If [accessToken] is given or can be read from [authCachePath],
+     * tries to authenticate with that token, refreshing it if necessary,
+     * using [UUID.randomUUID] if [clientToken] is unset.
      *
      * If no [accessToken] was given and [authCachePath] had no tokens for the [username],
-     * but [password] is given, tries to login with that password,
-     * using [UUID.randomUUID] if [clientToken] is unset,
-     * failing with [RequestException] if unsuccessful.
+     * but [password] is given, tries to authenticate with that password,
+     * using [UUID.randomUUID] if [clientToken] is unset.
      *
      * Otherwise, does not authenticate, returning an "offline" account
      * (signalled with [MinecraftProtocol.accessToken] == "").
      *
-     * Note that if the access token from [authCachePath] is invalid,
-     * this method DOES NOT retry using the [password] even if given.
-     * This may change in the future. For now, manually remove [authCachePath].
+     * If any [accessToken] or [password] was provided (via argument or [authCachePath]),
+     * caches the access token in [authCachePath] if authenticated successfully,
+     * or fails with [RequestException] if unsuccessful.
      */
     @Throws(RequestException::class)
     fun reauth(
@@ -70,10 +66,18 @@ object Reauth {
         auth.password = password
         auth.accessToken = aToken
 
-        auth.login() // may throw RequestException
+        try {
+            auth.login()
+        } catch (e: InvalidCredentialsException) {
+            if (password != "" && auth.accessToken != "") {
+                logger.fine("Auth: invalid token. Retrying with password")
+                auth.accessToken = ""
+                auth.login()
+            } else throw e
+        }
 
         // if token changed, write to auth cache file
-        if (password != "" && auth.accessToken != aToken && authCachePath != null) {
+        if (auth.accessToken != aToken && authCachePath != null) {
             authCache = authCache ?: AuthTokenCache(cToken, mutableMapOf())
             authCache.sessions[username] = auth.accessToken
             try {
