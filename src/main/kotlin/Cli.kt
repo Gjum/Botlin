@@ -11,7 +11,10 @@ import java.io.BufferedReader
 import java.io.InterruptedIOException
 import java.io.PrintStream
 import java.nio.charset.Charset
+import java.util.*
+import java.util.logging.Formatter
 import java.util.logging.Level
+import java.util.logging.LogRecord
 import kotlin.concurrent.thread
 
 object Cli {
@@ -115,5 +118,16 @@ object Cli {
         } catch (e: Exception) {
             logger.log(Level.SEVERE, "Error while stopping CLI: $e", e)
         }
+    }
+}
+
+class CliFormatter : Formatter() {
+    private val dat = Date() // reuse instance for performance
+
+    override fun format(record: LogRecord) = record.run {
+        dat.time = millis
+        val timeStr = String.format("%tT", dat)
+        val error = thrown?.run { " - $thrown" } ?: ""
+        "[$timeStr $level] $message$error\n"
     }
 }
