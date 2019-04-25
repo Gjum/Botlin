@@ -206,7 +206,7 @@ class McBot : IBot, SessionListener {
         // reset() // TODO do we already reset here or remember the failstate?
         endReason = reason
         // TODO submit upstream patch for TcpClientSession overriding all TcpSession#disconnect
-        connection?.disconnect(reason, cause, true)
+        connection?.disconnect(reason, cause, false)
         connection = null
     }
 
@@ -266,7 +266,7 @@ class McBot : IBot, SessionListener {
                 } else {
                     // TODO parse flags field: absolute vs relative coords
                     // for now, crash cleanly, instead of continuing with wrong pos
-                    connection?.disconnect("physics.position_packet_flags_not_implemented ${packet.relativeElements}")
+                    connection?.disconnect("TODO: Unknown position flags: ${packet.relativeElements}")
                     return
                 }
 
