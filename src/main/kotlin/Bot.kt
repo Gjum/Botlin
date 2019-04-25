@@ -5,8 +5,11 @@ import com.github.gjum.minecraft.botlin.Look.Companion.radFromDeg
 import com.github.steveice10.mc.auth.data.GameProfile
 import com.github.steveice10.mc.protocol.data.game.PlayerListEntryAction
 import com.github.steveice10.mc.protocol.data.game.entity.player.GameMode
+import com.github.steveice10.mc.protocol.data.game.entity.player.Hand
+import com.github.steveice10.mc.protocol.data.game.setting.ChatVisibility
 import com.github.steveice10.mc.protocol.data.game.world.notify.ClientNotification
 import com.github.steveice10.mc.protocol.data.game.world.notify.ThunderStrengthValue
+import com.github.steveice10.mc.protocol.packet.ingame.client.ClientSettingsPacket
 import com.github.steveice10.mc.protocol.packet.ingame.client.player.ClientPlayerPositionRotationPacket
 import com.github.steveice10.mc.protocol.packet.ingame.client.world.ClientTeleportConfirmPacket
 import com.github.steveice10.mc.protocol.packet.ingame.server.*
@@ -213,6 +216,7 @@ class McBot : IBot, SessionListener {
                 world = World(packet.dimension)
                 entity = getEntityOrCreate(packet.entityId).apply { uuid = profile?.id }
                 gameMode = packet.gameMode
+                send(ClientSettingsPacket("en_us", 10, ChatVisibility.FULL, true, emptyArray(), Hand.MAIN_HAND))
             }
             is ServerRespawnPacket -> {
                 world = World(packet.dimension)
