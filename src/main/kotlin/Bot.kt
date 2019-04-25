@@ -10,7 +10,10 @@ import com.github.steveice10.mc.protocol.data.game.world.notify.ClientNotificati
 import com.github.steveice10.mc.protocol.data.game.world.notify.ThunderStrengthValue
 import com.github.steveice10.mc.protocol.packet.ingame.client.ClientPluginMessagePacket
 import com.github.steveice10.mc.protocol.packet.ingame.client.ClientSettingsPacket
+import com.github.steveice10.mc.protocol.packet.ingame.client.player.ClientPlayerMovementPacket
+import com.github.steveice10.mc.protocol.packet.ingame.client.player.ClientPlayerPositionPacket
 import com.github.steveice10.mc.protocol.packet.ingame.client.player.ClientPlayerPositionRotationPacket
+import com.github.steveice10.mc.protocol.packet.ingame.client.player.ClientPlayerRotationPacket
 import com.github.steveice10.mc.protocol.packet.ingame.client.world.ClientTeleportConfirmPacket
 import com.github.steveice10.mc.protocol.packet.ingame.server.*
 import com.github.steveice10.mc.protocol.packet.ingame.server.entity.*
@@ -270,7 +273,16 @@ class McBot : IBot, SessionListener {
                     return
                 }
 
-                sendPlayerPosRot()
+                send(
+                    ClientPlayerPositionRotationPacket(
+                        (onGround ?: true),
+                        position!!.x,
+                        position!!.y,
+                        position!!.z,
+                        look!!.yawDegrees().toFloat(),
+                        look!!.pitchDegrees().toFloat()
+                    )
+                )
 
                 emitEvent(IPlayerStateListener::class) { onPositionChanged(position!!) }
                 if (!wasSpawned && spawned) emitEvent(IReadyListener::class) { onSpawned() }
@@ -502,30 +514,57 @@ class McBot : IBot, SessionListener {
         if (ticker != null) return
         ticker = launch {
             while (isActive) {
+                val prevPos = position
+                val prevLook = look
+
                 emitEvent(IClientTickListener::class) { onPreClientTick() }
 
                 if (position != null && look != null) {
-                    sendPlayerPosRot()
+                    if (position != prevPos) {
+                        if (look != prevLook) {
+                            send(
+                                ClientPlayerPositionRotationPacket(
+                                    (onGround ?: true),
+                                    position!!.x,
+                                    position!!.y,
+                                    position!!.z,
+                                    look!!.yawDegrees().toFloat(),
+                                    look!!.pitchDegrees().toFloat()
+                                )
+                            )
+                        } else {
+                            send(
+                                ClientPlayerPositionPacket(
+                                    (onGround ?: true),
+                                    position!!.x,
+                                    position!!.y,
+                                    position!!.z
+                                )
+                            )
+                        }
+                    } else {
+                        if (look != prevLook) {
+                            send(
+                                ClientPlayerRotationPacket(
+                                    (onGround ?: true),
+                                    look!!.yawDegrees().toFloat(),
+                                    look!!.pitchDegrees().toFloat()
+                                )
+                            )
+                        } else {
+                            send(ClientPlayerMovementPacket((onGround ?: true)))
+                        }
+                    }
                 }
 
                 // TODO check chat buffer
 
                 emitEvent(IClientTickListener::class) { onPostClientTick() }
+
                 delay(50) // XXX too slow, could instead sleep until next tick ms
             }
         }
     }
-
-    private fun sendPlayerPosRot() = send(
-        ClientPlayerPositionRotationPacket(
-            (onGround ?: true),
-            position!!.x,
-            position!!.y,
-            position!!.z,
-            look!!.yawDegrees().toFloat(),
-            look!!.pitchDegrees().toFloat()
-        )
-    )
 
     override fun packetSending(event: PacketSendingEvent) = Unit
     override fun packetSent(event: PacketSentEvent) = Unit
