@@ -127,8 +127,10 @@ class CliFormatter : Formatter() {
     override fun format(record: LogRecord) = record.run {
         dat.time = millis
         val timeStr = String.format("%tT", dat)
-        val error = thrown?.run { " - $thrown" } ?: ""
-        "${levelColor()}[$timeStr $level] $message$error$resetColor\n"
+        val levelStr = if (level == Level.INFO) "" else " $level"
+        val thrownStr = thrown?.toString() ?: ""
+        val error = if (message.endsWith(thrownStr)) "" else " - $thrownStr"
+        "${levelColor()}[$timeStr$levelStr] $message$error$resetColor\n"
     }
 }
 
