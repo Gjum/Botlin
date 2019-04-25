@@ -89,6 +89,6 @@ object Reauth {
             }
         }
 
-        return MinecraftProtocol(auth.selectedProfile, auth.accessToken)
+        return MinecraftProtocol(auth.selectedProfile.name, auth.clientToken, auth.accessToken)
     }
 }
