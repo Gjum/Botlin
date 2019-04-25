@@ -17,6 +17,8 @@ Command-line Minecraft client leveraging Kotlin [coroutines](https://kotlinlang.
 
 To get started with the available commands, run `help`.
 
+![Botlin example session](https://i.imgur.com/eJ2Iai2.png)
+
 ## License
 
 Botlin is licensed under the **[MIT license](http://www.opensource.org/licenses/mit-license.html)**.
