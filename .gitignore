@@ -5,3 +5,5 @@
 *.class
 *.jar
 .*
+*.log
+*.log.lck
