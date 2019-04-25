@@ -206,8 +206,16 @@ class McBot : IBot, SessionListener {
     }
 
     override fun packetReceived(event: PacketReceivedEvent) {
-        // TODO resume task when all state loaded
         val packet = event.getPacket<Packet>()
+        try {
+            processPacket(packet)
+        } catch (e: Throwable) {
+            logger.log(Level.SEVERE, "Failed to process received packet $packet", e)
+        }
+        emitEvent(IPacketListener::class) { onServerPacketReceived(packet) }
+    }
+
+    private fun processPacket(packet: Packet) {
         when (packet) {
             is ServerChatPacket -> {
                 emitEvent(IChatListener::class) { onChatReceived(packet.message) }
@@ -252,7 +260,8 @@ class McBot : IBot, SessionListener {
                 } else {
                     // TODO parse flags field: absolute vs relative coords
                     // for now, crash cleanly, instead of continuing with wrong pos
-                    return event.session.disconnect("physics.position_packet_flags_not_implemented ${packet.relativeElements}")
+                    connection?.disconnect("physics.position_packet_flags_not_implemented ${packet.relativeElements}")
+                    return
                 }
 
                 emitEvent(IPlayerStateListener::class) { onPositionChanged(position!!) }
@@ -479,7 +488,6 @@ class McBot : IBot, SessionListener {
             is ServerKeepAlivePacket -> HandledByProtoLib
             is ServerDisconnectPacket -> HandledByProtoLib
         }
-        emitEvent(IPacketListener::class) { onServerPacketReceived(packet) }
     }
 
     private fun startTicker() {
