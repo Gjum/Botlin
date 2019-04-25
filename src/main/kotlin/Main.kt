@@ -46,7 +46,9 @@ object Main {
             }
 
             Cli.start { cmdLine ->
-                val split = cmdLine.split(" +".toRegex())
+                val isSlashCommand = cmdLine.getOrNull(0)?.equals('/') == true
+                val cmdLineAdjusted = if (isSlashCommand) "say $cmdLine" else cmdLine
+                val split = cmdLineAdjusted.split(" +".toRegex())
                 val command = split.first()
                 when (command) {
                     "" -> Unit
@@ -90,7 +92,7 @@ object Main {
                         logger.info("Connected players: $namesSpaceSep")
                     }
                     "say" -> {
-                        val msg = cmdLine.substring(command.length + 1)
+                        val msg = cmdLineAdjusted.substring(command.length + 1)
                         bot.send(ClientChatPacket(msg))
                     }
                     else -> logger.info("Unknown command: $command")
