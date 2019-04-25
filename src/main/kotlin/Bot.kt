@@ -1,6 +1,5 @@
 package com.github.gjum.minecraft.botlin
 
-import com.github.gjum.minecraft.botlin.Log.logger
 import com.github.gjum.minecraft.botlin.Look.Companion.radFromDeg
 import com.github.steveice10.mc.auth.data.GameProfile
 import com.github.steveice10.mc.protocol.data.game.PlayerListEntryAction
@@ -30,6 +29,7 @@ import kotlinx.coroutines.*
 import java.net.SocketAddress
 import java.util.*
 import java.util.logging.Level
+import java.util.logging.Logger
 import kotlin.coroutines.EmptyCoroutineContext
 import kotlin.reflect.KClass
 
@@ -81,6 +81,8 @@ private val brandBytesVanilla = byteArrayOf(7, 118, 97, 110, 105, 108, 108, 97)
  * Implementation of [IBot].
  */
 class McBot : IBot, SessionListener {
+    private val logger: Logger = Logger.getLogger(this::class.java.name)
+
     private var connection: Session? = null
     private var ticker: Job? = null
 

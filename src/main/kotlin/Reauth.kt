@@ -1,6 +1,5 @@
 package com.github.gjum.minecraft.botlin
 
-import com.github.gjum.minecraft.botlin.Log.logger
 import com.github.steveice10.mc.auth.exception.request.InvalidCredentialsException
 import com.github.steveice10.mc.auth.exception.request.RequestException
 import com.github.steveice10.mc.auth.service.AuthenticationService
@@ -10,10 +9,13 @@ import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Paths
 import java.util.*
+import java.util.logging.Logger
 
 private class AuthTokenCache(val clientToken: String, val sessions: MutableMap<String, String>)
 
 object Reauth {
+    private val logger: Logger = Logger.getLogger(this::class.java.name)
+
     /**
      * If [accessToken] is given or can be read from [authCachePath],
      * tries to authenticate with that token, refreshing it if necessary,

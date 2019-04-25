@@ -1,6 +1,5 @@
 package com.github.gjum.minecraft.botlin
 
-import com.github.gjum.minecraft.botlin.Log.logger
 import org.jline.reader.EndOfFileException
 import org.jline.reader.LineReader
 import org.jline.reader.LineReaderBuilder
@@ -15,9 +14,12 @@ import java.util.*
 import java.util.logging.Formatter
 import java.util.logging.Level
 import java.util.logging.LogRecord
+import java.util.logging.Logger
 import kotlin.concurrent.thread
 
 object Cli {
+    private val logger: Logger = Logger.getLogger(this::class.java.name)
+
     /**
      * may be changed on the fly
      */

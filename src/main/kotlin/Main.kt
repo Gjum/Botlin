@@ -1,6 +1,5 @@
 package com.github.gjum.minecraft.botlin
 
-import com.github.gjum.minecraft.botlin.Log.logger
 import com.github.gjum.minecraft.botlin.Reauth.reauth
 import com.github.steveice10.mc.protocol.MinecraftProtocol
 import com.github.steveice10.mc.protocol.data.message.Message
@@ -13,8 +12,11 @@ import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import java.util.*
 import java.util.logging.Level
+import java.util.logging.Logger
 
 object Main {
+    private val logger: Logger = Logger.getLogger(this::class.java.name)
+
     @JvmStatic
     fun main(args: Array<String>) {
         val username = System.getenv("MINECRAFT_USERNAME") ?: "Botlin"
@@ -119,10 +121,13 @@ object Main {
 }
 
 class ChatLogger : IChatListener {
+    private val logger: Logger = Logger.getLogger(this::class.java.name)
     override fun onChatReceived(msg: Message) = logger.info("[CHAT] ${msg.toAnsi()}")
 }
 
 class MiscEventLogger : IInventoryListener, IPlayerListListener, IPlayerStateListener {
+    private val logger: Logger = Logger.getLogger(this::class.java.name)
+
     override fun onWindowReady(window: McWindow) = window.run {
         logger.info("Window ready: $windowTitle with $slotCount slots")
     }
@@ -152,7 +157,9 @@ class MiscEventLogger : IInventoryListener, IPlayerListListener, IPlayerStateLis
     )
 }
 
-class ReadyStateLogger(val bot: IBot) : IReadyListener {
+class ReadyStateLogger(private val bot: IBot) : IReadyListener {
+    private val logger: Logger = Logger.getLogger(this::class.java.name)
+
     override fun onConnected(connection: Session) = logger.info("Connected to ${connection.remoteAddress}")
 
     override fun onSpawned() = logger.info(

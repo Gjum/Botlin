@@ -22,8 +22,6 @@ object Log {
             e.printStackTrace()
         }
     }
-
-    val logger: Logger = Logger.getLogger(Log::class.java.name)
 }
 
 private val reRemoveAnsi = "\u001B\\[[0-9]+m".toRegex()
