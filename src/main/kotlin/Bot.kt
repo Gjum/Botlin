@@ -270,6 +270,8 @@ class McBot : IBot, SessionListener {
                     return
                 }
 
+                sendPlayerPosRot()
+
                 emitEvent(IPlayerStateListener::class) { onPositionChanged(position!!) }
                 if (!wasSpawned && spawned) emitEvent(IReadyListener::class) { onSpawned() }
 
@@ -503,16 +505,7 @@ class McBot : IBot, SessionListener {
                 emitEvent(IClientTickListener::class) { onPreClientTick() }
 
                 if (position != null && look != null) {
-                    send(
-                        ClientPlayerPositionRotationPacket(
-                            (onGround ?: true), // XXX set through physics
-                            position!!.x,
-                            position!!.y,
-                            position!!.z,
-                            look!!.yawDegrees().toFloat(),
-                            look!!.pitchDegrees().toFloat()
-                        )
-                    )
+                    sendPlayerPosRot()
                 }
 
                 // TODO check chat buffer
@@ -522,6 +515,17 @@ class McBot : IBot, SessionListener {
             }
         }
     }
+
+    private fun sendPlayerPosRot() = send(
+        ClientPlayerPositionRotationPacket(
+            (onGround ?: true),
+            position!!.x,
+            position!!.y,
+            position!!.z,
+            look!!.yawDegrees().toFloat(),
+            look!!.pitchDegrees().toFloat()
+        )
+    )
 
     override fun packetSending(event: PacketSendingEvent) = Unit
     override fun packetSent(event: PacketSentEvent) = Unit
