@@ -19,19 +19,32 @@ object Main {
 
     @JvmStatic
     fun main(args: Array<String>) {
-        val username = System.getenv("MINECRAFT_USERNAME") ?: "Botlin"
+        val username = args.getOrNull(0) ?: System.getenv("MINECRAFT_USERNAME") ?: "Botlin"
         val password = System.getenv("MINECRAFT_PASSWORD") ?: ""
-        start(username, password)
+        val host = args.getOrNull(1)
+        startCli(username, password, host)
     }
 
-    fun start(username: String, password: String = "") {
+    fun startCli(
+        username: String, password: String = "",
+        host: String? = null, port: Int = 25565
+    ) {
         var aToken = ""
         val cToken = UUID.randomUUID().toString()
         val bot = McBot()
         bot.registerListeners(ChatLogger())
         bot.registerListeners(MiscEventLogger())
         bot.registerListeners(ReadyStateLogger(bot))
+
         try {
+            host?.let {
+                val proto = reauth(username, password, aToken, cToken)
+                aToken = proto.accessToken ?: ""
+                val client = Client(host, port, proto, TcpSessionFactory())
+                bot.useConnection(client.session, proto.profile)
+                client.session.connect(false)
+            }
+
             Cli.start { cmdLine ->
                 val split = cmdLine.split(" +".toRegex())
                 val command = split.first()
