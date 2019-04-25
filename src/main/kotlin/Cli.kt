@@ -128,6 +128,19 @@ class CliFormatter : Formatter() {
         dat.time = millis
         val timeStr = String.format("%tT", dat)
         val error = thrown?.run { " - $thrown" } ?: ""
-        "[$timeStr $level] $message$error\n"
+        "${levelColor()}[$timeStr $level] $message$error$resetColor\n"
     }
+}
+
+private val resetColor = Formatting.RESET.ansi
+
+private fun LogRecord.levelColor() = when (level) {
+    Level.SEVERE -> Formatting.RED.ansi
+    Level.WARNING -> Formatting.YELLOW.ansi
+    Level.INFO -> ""
+    Level.CONFIG -> Formatting.GRAY.ansi
+    Level.FINE -> Formatting.GRAY.ansi
+    Level.FINER -> Formatting.GRAY.ansi
+    Level.FINEST -> Formatting.GRAY.ansi
+    else -> ""
 }
