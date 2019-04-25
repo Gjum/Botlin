@@ -9,6 +9,7 @@ import com.github.steveice10.mc.protocol.data.game.entity.player.Hand
 import com.github.steveice10.mc.protocol.data.game.setting.ChatVisibility
 import com.github.steveice10.mc.protocol.data.game.world.notify.ClientNotification
 import com.github.steveice10.mc.protocol.data.game.world.notify.ThunderStrengthValue
+import com.github.steveice10.mc.protocol.packet.ingame.client.ClientPluginMessagePacket
 import com.github.steveice10.mc.protocol.packet.ingame.client.ClientSettingsPacket
 import com.github.steveice10.mc.protocol.packet.ingame.client.player.ClientPlayerPositionRotationPacket
 import com.github.steveice10.mc.protocol.packet.ingame.client.world.ClientTeleportConfirmPacket
@@ -73,6 +74,8 @@ interface IBot : CoroutineScope {
     var world: World?
     val playerList: Map<UUID, PlayerListItem>
 }
+
+private val brandBytesVanilla = byteArrayOf(7, 118, 97, 110, 105, 108, 108, 97)
 
 /**
  * Implementation of [IBot].
@@ -224,6 +227,7 @@ class McBot : IBot, SessionListener {
                 world = World(packet.dimension)
                 entity = getEntityOrCreate(packet.entityId).apply { uuid = profile?.id }
                 gameMode = packet.gameMode
+                send(ClientPluginMessagePacket("MC|Brand", brandBytesVanilla))
                 send(ClientSettingsPacket("en_us", 10, ChatVisibility.FULL, true, emptyArray(), Hand.MAIN_HAND))
             }
             is ServerRespawnPacket -> {
