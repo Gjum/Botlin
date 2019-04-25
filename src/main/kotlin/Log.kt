@@ -26,6 +26,8 @@ object Log {
     val logger: Logger = Logger.getLogger(Log::class.java.name)
 }
 
+private val reRemoveAnsi = "\u001B\\[[0-9]+m".toRegex()
+
 class LogFormatter : Formatter() {
     private val dat = Date() // reuse instance for performance
 
@@ -34,7 +36,8 @@ class LogFormatter : Formatter() {
         val timeStr = String.format("%tFT%1\$tT", dat)
         val source = sourceClassName?.run { "$sourceClassName $sourceMethodName" } ?: loggerName
         val trace = thrown?.stringifyStackTrace() ?: ""
-        "[$timeStr $level] $message (in $source)$trace\n"
+        val messageClean = message.replace(reRemoveAnsi, "")
+        "[$timeStr $level] $messageClean (in $source)$trace\n"
     }
 }
 

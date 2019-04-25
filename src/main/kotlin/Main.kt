@@ -70,7 +70,7 @@ object Main {
                     }
                     "list" -> {
                         val namesSpaceSep = bot.playerList.values.joinToString(" ") {
-                            it.displayName?.fullText ?: it.profile.name
+                            it.displayName?.toAnsi() ?: it.profile.name
                         }
                         logger.info("Connected players: $namesSpaceSep")
                     }
@@ -119,7 +119,7 @@ object Main {
 }
 
 class ChatLogger : IChatListener {
-    override fun onChatReceived(msg: Message) = logger.info("[CHAT] ${msg.fullText}")
+    override fun onChatReceived(msg: Message) = logger.info("[CHAT] ${msg.toAnsi()}")
 }
 
 class MiscEventLogger : IInventoryListener, IPlayerListListener, IPlayerStateListener {
@@ -136,11 +136,11 @@ class MiscEventLogger : IInventoryListener, IPlayerListListener, IPlayerStateLis
     override fun onSlotsChanged() = logger.info("Slots changed")
 
     override fun onPlayerJoined(entry: PlayerListItem) = logger.info(
-        "Player joined: ${entry.displayName?.fullText ?: entry.profile.name}"
+        "Player joined: ${entry.displayName?.toAnsi() ?: entry.profile.name}"
     )
 
     override fun onPlayerLeft(entry: PlayerListItem) = logger.info(
-        "Player left: ${entry.displayName?.fullText ?: entry.profile.name}"
+        "Player left: ${entry.displayName?.toAnsi() ?: entry.profile.name}"
     )
 
     override fun onPositionChanged(position: Vec3d) = logger.info(
