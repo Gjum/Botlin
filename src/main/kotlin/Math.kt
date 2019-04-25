@@ -16,7 +16,7 @@ fun Int.euclideanMod(denominator: Int): Int =
 fun Double.euclideanMod(denominator: Double): Double =
     (this % denominator).let { if (this < 0) it + denominator else it }
 
-class Vec3d(var x: Double, var y: Double, var z: Double) {
+data class Vec3d(var x: Double, var y: Double, var z: Double) {
     override fun toString() = "[${x.round(1)} ${y.round(1)} ${z.round(1)}]"
 
     operator fun times(scalar: Double) = Vec3d(x * scalar, y * scalar, z * scalar)
@@ -50,7 +50,7 @@ class Vec3d(var x: Double, var y: Double, var z: Double) {
     }
 }
 
-class Vec3i(var x: Int, var y: Int, var z: Int) {
+data class Vec3i(var x: Int, var y: Int, var z: Int) {
     override fun toString() = "[$x $y $z]"
 
     operator fun times(scalar: Int) = Vec3i(x * scalar, y * scalar, z * scalar)
@@ -97,7 +97,7 @@ fun Float.toDegrees() = toDouble()
  * yaw = -pi/2 is looking straight east.
  * pitch = -pi/2 is looking straight up.
  */
-class Look(var yaw: Radians, var pitch: Radians) {
+data class Look(var yaw: Radians, var pitch: Radians) {
     override fun toString() = "(${yawDegrees().roundToInt() % 360}deg, ${pitchDegrees().roundToInt() % 360}deg)"
 
     operator fun plus(other: Look) = other.let { Look(yaw + it.yaw, pitch + it.pitch) }
