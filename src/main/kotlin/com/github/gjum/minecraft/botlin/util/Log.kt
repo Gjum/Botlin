@@ -1,4 +1,4 @@
-package com.github.gjum.minecraft.botlin
+package com.github.gjum.minecraft.botlin.util
 
 import java.io.IOException
 import java.io.PrintWriter
@@ -7,7 +7,6 @@ import java.util.*
 import java.util.logging.Formatter
 import java.util.logging.LogManager
 import java.util.logging.LogRecord
-import java.util.logging.Logger
 
 object Log {
     init {

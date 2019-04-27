@@ -1,5 +1,8 @@
 package com.github.gjum.minecraft.botlin
 
+import com.github.gjum.minecraft.botlin.state.McWindow
+import com.github.gjum.minecraft.botlin.state.PlayerListItem
+import com.github.gjum.minecraft.botlin.util.Vec3d
 import com.github.steveice10.mc.protocol.data.message.Message
 import com.github.steveice10.mc.protocol.packet.ingame.server.window.ServerWindowPropertyPacket
 import com.github.steveice10.packetlib.Session

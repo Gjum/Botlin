@@ -1,4 +1,4 @@
-package com.github.gjum.minecraft.botlin
+package com.github.gjum.minecraft.botlin.util
 
 import org.jline.reader.EndOfFileException
 import org.jline.reader.LineReader

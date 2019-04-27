@@ -1,6 +1,8 @@
 package com.github.gjum.minecraft.botlin
 
-import com.github.gjum.minecraft.botlin.Look.Companion.radFromDeg
+import com.github.gjum.minecraft.botlin.state.*
+import com.github.gjum.minecraft.botlin.util.*
+import com.github.gjum.minecraft.botlin.util.Look.Companion.radFromDeg
 import com.github.steveice10.mc.auth.data.GameProfile
 import com.github.steveice10.mc.protocol.data.game.PlayerListEntryAction
 import com.github.steveice10.mc.protocol.data.game.entity.player.GameMode
@@ -17,7 +19,10 @@ import com.github.steveice10.mc.protocol.packet.ingame.client.player.ClientPlaye
 import com.github.steveice10.mc.protocol.packet.ingame.client.world.ClientTeleportConfirmPacket
 import com.github.steveice10.mc.protocol.packet.ingame.server.*
 import com.github.steveice10.mc.protocol.packet.ingame.server.entity.*
-import com.github.steveice10.mc.protocol.packet.ingame.server.entity.player.*
+import com.github.steveice10.mc.protocol.packet.ingame.server.entity.player.ServerPlayerChangeHeldItemPacket
+import com.github.steveice10.mc.protocol.packet.ingame.server.entity.player.ServerPlayerHealthPacket
+import com.github.steveice10.mc.protocol.packet.ingame.server.entity.player.ServerPlayerPositionRotationPacket
+import com.github.steveice10.mc.protocol.packet.ingame.server.entity.player.ServerPlayerSetExperiencePacket
 import com.github.steveice10.mc.protocol.packet.ingame.server.entity.spawn.*
 import com.github.steveice10.mc.protocol.packet.ingame.server.window.*
 import com.github.steveice10.mc.protocol.packet.ingame.server.world.*

@@ -1,4 +1,4 @@
-package com.github.gjum.minecraft.botlin
+package com.github.gjum.minecraft.botlin.util
 
 import com.github.steveice10.mc.protocol.data.message.ChatColor
 import com.github.steveice10.mc.protocol.data.message.ChatFormat

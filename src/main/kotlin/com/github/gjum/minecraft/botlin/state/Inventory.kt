@@ -1,4 +1,4 @@
-package com.github.gjum.minecraft.botlin
+package com.github.gjum.minecraft.botlin.state
 
 import com.github.steveice10.opennbt.NBTIO
 

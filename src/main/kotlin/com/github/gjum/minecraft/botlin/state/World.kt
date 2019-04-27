@@ -1,5 +1,7 @@
-package com.github.gjum.minecraft.botlin
+package com.github.gjum.minecraft.botlin.state
 
+import com.github.gjum.minecraft.botlin.util.Look
+import com.github.gjum.minecraft.botlin.util.Vec3d
 import com.github.steveice10.mc.auth.data.GameProfile
 import com.github.steveice10.mc.protocol.data.game.chunk.Chunk
 import com.github.steveice10.mc.protocol.data.game.chunk.Column
