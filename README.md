@@ -13,7 +13,7 @@ Command-line Minecraft client leveraging Kotlin [coroutines](https://kotlinlang.
 
 - Open a terminal, `cd` to your Botlin installation
 - Provide your Minecraft password to the current terminal session: `export MINECRAFT_PASSWORD="replace this with your password"`
-- Run the bot's command-line interface (CLI): `java -jar build/libs/botlin-*-all.jar`
+- Run the bot's command-line interface (CLI): `java -jar build/libs/botlin-*-all.jar your-email@example.com mc.server-address.example.com`
 
 To get started with the available commands, run `help`.
 
