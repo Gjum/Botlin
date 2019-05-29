@@ -8,10 +8,11 @@ import com.google.gson.Gson
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Paths
-import java.util.*
+import java.util.UUID
 import java.util.logging.Logger
 
-private class AuthTokenCache(val clientToken: String, val sessions: MutableMap<String, String>)
+private class AuthTokenCache(val clientToken: String, val sessions: MutableMap<String, String> = mutableMapOf())
+private class Credentials(val mcProfiles: Map<String, String> = mapOf(), val mcDefault: String?)
 
 object Reauth {
     private val logger: Logger = Logger.getLogger(this::class.java.name)
@@ -38,17 +39,19 @@ object Reauth {
         password: String = "",
         accessToken: String = "",
         clientToken: String = "",
-        authCachePath: String? = ".auth_tokens.json"
+        authCachePath: String? = ".auth_tokens.json",
+        credentialsPath: String? = ".credentials"
     ): MinecraftProtocol {
         var aToken = accessToken
         var cToken = clientToken
+        var bestPassword = password
         var authCache: AuthTokenCache? = null
         if (aToken == "" && authCachePath != null) {
             var configStr = ""
             try {
                 configStr = String(Files.readAllBytes(Paths.get(authCachePath)))
             } catch (e: IOException) {
-                logger.info("Could not read auth token cache from $authCachePath")
+                logger.info("Could not read auth token cache from $authCachePath - trying password")
             }
             if (configStr != "") {
                 authCache = Gson().fromJson(configStr, AuthTokenCache::class.java)
@@ -57,21 +60,39 @@ object Reauth {
             }
         }
 
-        if (aToken == "" && password == "") {
+        if (aToken == "" && bestPassword == "") {
+            // try .credentials
+            var credentialsLines = emptyList<String>()
+            try {
+                credentialsLines = Files.readAllLines(Paths.get(credentialsPath))
+            } catch (e: IOException) {
+                logger.info("Could not read credentials from $credentialsPath")
+            }
+            if (credentialsLines.isNotEmpty()) {
+                val credentials = parseCredentialsFile(credentialsLines)
+                val userOrDefault = nonemptyOrNull(username)
+                    ?: runCatching { credentials.keys.first() }.getOrNull()
+                    ?: ""
+                bestPassword = credentials[userOrDefault] ?: ""
+            }
+        }
+
+        if (aToken == "" && bestPassword == "") {
             // cannot possibly authenticate
+            logger.warning("Neither password nor auth token known - running in offline mode")
             return MinecraftProtocol(username)
         }
 
         cToken = if (cToken != "") cToken else UUID.randomUUID().toString()
         val auth = AuthenticationService(cToken)
         auth.username = username
-        auth.password = password
+        auth.password = bestPassword
         auth.accessToken = aToken
 
         try {
             auth.login()
         } catch (e: InvalidCredentialsException) {
-            if (password != "" && auth.accessToken != "") {
+            if (bestPassword != "" && auth.accessToken != "") {
                 logger.fine("Auth: invalid token. Retrying with password")
                 auth.accessToken = ""
                 auth.login()
@@ -91,4 +112,15 @@ object Reauth {
 
         return MinecraftProtocol(auth.selectedProfile.name, auth.clientToken, auth.accessToken)
     }
+}
+
+private fun nonemptyOrNull(s: String) = if (s == "") null else s
+
+fun parseCredentialsFile(lines: List<String>): Map<String, String> {
+    return lines
+        .filter { line -> line.isNotEmpty() }
+        .map { line ->
+            val split = line.split(" ", limit = 2)
+            split[0] to split[1]
+        }.toMap()
 }
