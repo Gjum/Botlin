@@ -43,4 +43,5 @@ dependencies {
 
     testImplementation "org.jetbrains.kotlin:kotlin-test-junit:$kotlin_version"
     testImplementation 'junit:junit:4.11'
+    testImplementation "io.mockk:mockk:1.9.3"
 }
