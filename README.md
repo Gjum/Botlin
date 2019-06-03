@@ -15,7 +15,7 @@ Command-line Minecraft client leveraging Kotlin [coroutines](https://kotlinlang.
 - Provide your Minecraft password to the current terminal session: `export MINECRAFT_PASSWORD="my pas$word"`
 - If that doesn't work, create a file `.credentials` containing email and password separated by space: `your-email@example.com my pas$word`
     You can add multiple accounts, one per line.
-- Run the bot's command-line interface (CLI): `java -jar build/libs/botlin-*-all.jar your-email@example.com mc.server-address.example.com`
+- Run the bot's command-line interface (CLI): `java -DmcHost=mc.server-address.example.com -DmcUsername=your-email@example.com -jar build/libs/botlin-*-all.jar`
 
 To get started with the available commands, run `help`.
 

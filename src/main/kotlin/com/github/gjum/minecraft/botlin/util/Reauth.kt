@@ -1,5 +1,6 @@
 package com.github.gjum.minecraft.botlin.util
 
+import com.github.gjum.minecraft.botlin.modules.defaults.parseCredentialsFile
 import com.github.steveice10.mc.auth.exception.request.InvalidCredentialsException
 import com.github.steveice10.mc.auth.exception.request.RequestException
 import com.github.steveice10.mc.auth.service.AuthenticationService
@@ -12,7 +13,6 @@ import java.util.UUID
 import java.util.logging.Logger
 
 private class AuthTokenCache(val clientToken: String, val sessions: MutableMap<String, String> = mutableMapOf())
-private class Credentials(val mcProfiles: Map<String, String> = mapOf(), val mcDefault: String?)
 
 object Reauth {
     private val logger: Logger = Logger.getLogger(this::class.java.name)
@@ -115,12 +115,3 @@ object Reauth {
 }
 
 private fun nonemptyOrNull(s: String) = if (s == "") null else s
-
-fun parseCredentialsFile(lines: List<String>): Map<String, String> {
-    return lines
-        .filter { line -> line.isNotEmpty() }
-        .map { line ->
-            val split = line.split(" ", limit = 2)
-            split[0] to split[1]
-        }.toMap()
-}
