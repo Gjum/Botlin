@@ -1,8 +1,8 @@
 package com.github.gjum.minecraft.botlin.modules.defaults
 
+import com.github.gjum.minecraft.botlin.api.CommandService
 import com.github.gjum.minecraft.botlin.api.Module
 import com.github.gjum.minecraft.botlin.modules.ServiceRegistry
-import com.github.gjum.minecraft.botlin.modules.defaults.commands.CommandService
 
 class CommandModule : Module() {
     override val name = "Commands"

@@ -1,20 +1,16 @@
 package com.github.gjum.minecraft.botlin.modules.defaults
 
+import com.github.gjum.minecraft.botlin.api.Command
+import com.github.gjum.minecraft.botlin.api.CommandContext
+import com.github.gjum.minecraft.botlin.api.CommandService
 import com.github.gjum.minecraft.botlin.api.Module
-import com.github.gjum.minecraft.botlin.modules.defaults.commands.Command
-import com.github.gjum.minecraft.botlin.modules.defaults.commands.CommandContext
-import com.github.gjum.minecraft.botlin.modules.defaults.commands.CommandService
 
 class CommandRegistry : CommandService {
-    private val modules = mutableMapOf<Module, MutableCollection<String>>()
     private val commands = mutableMapOf<String, Command>()
 
-    override fun registerCommand(module: Module, command: Command): Boolean {
+    override fun registerCommand(command: Command): Boolean {
         val alreadyRegisteredCmd = commands.putIfAbsent(command.prefix, command)
-        return if (alreadyRegisteredCmd == null) {
-            modules.getOrPut(module) { mutableListOf() }.add(command.prefix)
-            true
-        } else false
+        return alreadyRegisteredCmd == null
     }
 
     override fun executeCommand(commandLine: String, context: CommandContext): Boolean {
