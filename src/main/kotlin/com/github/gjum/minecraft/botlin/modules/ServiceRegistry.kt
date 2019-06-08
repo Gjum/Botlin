@@ -18,19 +18,9 @@ class ServiceRegistry(private val modulesLoader: ModulesLoader<Module>) {
     private val providers = mutableMapOf<Class<out Service>, Service>()
 
     /**
-     * All services provided by each currently loaded module.
-     */
-    private val providerModules = mutableMapOf<Module, MutableCollection<Service>>()
-
-    /**
      * All modules wanting to consume each service.
      */
     private val consumerHandlers = mutableMapOf<Class<out Service>, MutableCollection<ServiceChangeHandler<Any>>>()
-
-    /**
-     * All services consumed by each currently loaded module.
-     */
-    private val consumerModules = mutableMapOf<Module, MutableCollection<Class<out Service>>>()
 
     init {
         transition(emptyList(), modulesLoader.getAvailableModules())
@@ -48,10 +38,7 @@ class ServiceRegistry(private val modulesLoader: ModulesLoader<Module>) {
     /**
      * Signal interest in consuming the [service].
      */
-    fun <T : Service> handleServiceChange(module: Module, service: Class<T>, handler: ServiceChangeHandler<T>) {
-        consumerModules.getOrPut(module, ::mkMutList)
-            .add(service)
-
+    fun <T : Service> handleServiceChange(service: Class<T>, handler: ServiceChangeHandler<T>) {
         @Suppress("UNCHECKED_CAST")
         val handlerAny = handler as ServiceChangeHandler<Any>
 
@@ -59,16 +46,21 @@ class ServiceRegistry(private val modulesLoader: ModulesLoader<Module>) {
             .add(handlerAny)
     }
 
-    fun <T : Service> provideService(module: Module, service: Class<T>, provider: T) {
+    fun <T : Service> provideService(service: Class<T>, provider: T) {
         // mark the service as provided
         val prevProvider = providers.putIfAbsent(service, provider)
         if (prevProvider == null) { // service was not already provided by other module
-            // mark this module to be providing this service
-            providerModules.getOrPut(module, ::mkMutList)
-                .add(provider)
             // notify consumers of this service that it is now available
             consumerHandlers[service]?.forEach { handler -> handler(provider) }
         }
+    }
+
+    /**
+     * Unloads all modules to end the program.
+     */
+    fun teardown() {
+        val oldModules = modulesLoader.getAvailableModules()
+        transition(oldModules, emptyList())
     }
 
     /**
@@ -78,8 +70,6 @@ class ServiceRegistry(private val modulesLoader: ModulesLoader<Module>) {
         val newModulesMap = newModules.map { it.name to it }.toMap()
         oldModules.forEach { it.teardown(newModulesMap[it.name]) }
         consumerHandlers.clear()
-        providerModules.clear()
-        consumerModules.clear()
         providers.clear()
 
         consumerHandlers.getOrPut(CommandService::class.java, ::mkMutList).add { commands ->

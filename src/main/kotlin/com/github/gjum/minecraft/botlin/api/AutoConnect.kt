@@ -31,10 +31,10 @@ interface AutoConnect : Service {
     var backoffEnd: Int
 
     /**
-     * How many successful connections can be made before pausing.
-     * Once there were [successes] successful connection attempts
+     * How many connections (successful or unsuccessful) can be made before pausing.
+     * Once there were [limit] connection attempts
      * in the past [intervalMs] milliseconds, no attempts will be made
-     * until [intervalMs] after the [successes]-to-last attempt.
+     * until [intervalMs] after the [limit]-to-last attempt.
      */
-    fun setSuccessRate(successes: Int, intervalMs: Int)
+    fun limitConnectRate(limit: Int, intervalMs: Int)
 }

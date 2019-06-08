@@ -23,7 +23,7 @@ class DirectoryModulesLoader<T>(
     override fun reload(modulesDir: File?): Collection<T>? {
         if (classLoader != null) {
             try {
-                classLoader!!.close() // XXX when is a good time to close it? do we actually need to? is this a memleak?
+                classLoader!!.close() // TODO when is a good time to close it? do we actually need to? is this a memleak?
             } catch (e: IOException) {
                 e.printStackTrace()
             }

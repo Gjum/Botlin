@@ -11,7 +11,7 @@ interface CommandContext {
  * A command that can be registered to a [CommandService].
  */
 interface Command {
-    val prefix: String
+    val name: String
     val usage: String
     val description: String
     fun handle(command: String, context: CommandContext)
@@ -22,7 +22,7 @@ interface Command {
  * as params instead of overriding fields.
  */
 abstract class CommandHelper(
-    override val prefix: String,
+    override val name: String,
     override val usage: String,
     override val description: String
 ) : Command
@@ -32,11 +32,11 @@ abstract class CommandHelper(
  * as params instead of overriding fields.
  */
 fun CommandService.registerCommand(
-    prefix: String,
+    name: String,
     usage: String,
     description: String,
     block: (String, CommandContext) -> Unit
-) = registerCommand(object : CommandHelper(prefix, usage, description) {
+) = registerCommand(object : CommandHelper(name, usage, description) {
     override fun handle(command: String, context: CommandContext) {
         block(command, context)
     }
@@ -48,7 +48,7 @@ fun CommandService.registerCommand(
 interface CommandService : Service {
     /**
      * Register the given [command] implemented by the given [module].
-     * Returns false if a command with the same prefix is already registered,
+     * Returns false if a command with the same name is already registered,
      * in which case this [command] is ignored.
      */
     fun registerCommand(command: Command): Boolean

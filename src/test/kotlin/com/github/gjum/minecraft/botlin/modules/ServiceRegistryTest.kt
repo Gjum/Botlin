@@ -15,8 +15,8 @@ interface TestService : Service {
 
 class ConsumerModule : Module() {
     override fun initialize(serviceRegistry: ServiceRegistry, oldModule: Module?) {
-        serviceRegistry.handleServiceChange(this,
-            TestService::class.java, ::handleTestServiceChange)
+        serviceRegistry.handleServiceChange(TestService::class.java,
+            ::handleTestServiceChange)
     }
 
     fun handleTestServiceChange(service: TestService?) {
@@ -42,7 +42,7 @@ class EventProvider : TestService {
 
 class ProviderModule(private val provider: EventProvider) : Module() {
     override fun initialize(serviceRegistry: ServiceRegistry, oldModule: Module?) {
-        serviceRegistry.provideService(this, TestService::class.java, provider)
+        serviceRegistry.provideService(TestService::class.java, provider)
     }
 
     fun externalFooEvent(msg: String) {

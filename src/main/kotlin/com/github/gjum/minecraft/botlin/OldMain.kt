@@ -1,5 +1,6 @@
 package com.github.gjum.minecraft.botlin
 
+import com.github.gjum.minecraft.botlin.api.Avatar
 import com.github.gjum.minecraft.botlin.state.McWindow
 import com.github.gjum.minecraft.botlin.state.PlayerListItem
 import com.github.gjum.minecraft.botlin.util.Cli
@@ -15,7 +16,7 @@ import com.github.steveice10.packetlib.Session
 import com.github.steveice10.packetlib.tcp.TcpSessionFactory
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
-import java.util.*
+import java.util.UUID
 import java.util.logging.Level
 import java.util.logging.Logger
 
@@ -50,7 +51,7 @@ object Main {
                 client.session.connect(false)
             }
 
-            Cli.start { cmdLine ->
+            Cli.run { cmdLine ->
                 val isSlashCommand = cmdLine.getOrNull(0)?.equals('/') == true
                 val cmdLineAdjusted = if (isSlashCommand) "say $cmdLine" else cmdLine
                 val split = cmdLineAdjusted.split(" +".toRegex())
@@ -86,19 +87,19 @@ object Main {
                     "logout" -> GlobalScope.launch { bot.disconnect("CLI disconnect command") }
                     "info" -> {
                         bot.apply {
-                            logger.info("${profile?.name} at $position $look on $remoteAddress")
+                            logger.info("${profile?.name} at $position $look on ${connection?.remoteAddress}")
                             logger.info("health=$health food=$food sat=$saturation exp=${experience?.total} (${experience?.level} lvl)")
                         }
                     }
                     "list" -> {
-                        val namesSpaceSep = bot.playerList.values.joinToString(" ") {
+                        val namesSpaceSep = bot.playerList!!.values.joinToString(" ") {
                             it.displayName?.toAnsi() ?: it.profile.name
                         }
                         logger.info("Connected players: $namesSpaceSep")
                     }
                     "say" -> {
                         val msg = cmdLineAdjusted.substring(command.length + 1)
-                        bot.send(ClientChatPacket(msg))
+                        bot.connection!!.send(ClientChatPacket(msg))
                     }
                     else -> logger.info("Unknown command: $command")
                 }
@@ -118,13 +119,13 @@ object Main {
         host: String = "localhost", port: Int = 25565,
         username: String = "Botlin", password: String = "",
         waitForConnectionToEstablish: Boolean = true
-    ): IBot {
+    ): Avatar {
         logger.info("Authenticating as $username")
         val proto = reauth(username, password)
         val authMsg = if (proto.accessToken ?: "" != "") "authenticated" else "unauthenticated"
         logger.info("Connecting as ${proto.profile.name} ($authMsg)")
         val bot = connect(proto, host, port, waitForConnectionToEstablish)
-        logger.info("Connected to ${bot.remoteAddress}")
+        logger.info("Connected to ${bot.connection?.remoteAddress}")
         return bot
     }
 
@@ -132,9 +133,10 @@ object Main {
         proto: MinecraftProtocol,
         host: String = "localhost", port: Int = 25565,
         waitForConnectionToEstablish: Boolean = true
-    ): IBot {
+    ): Avatar {
         val client = Client(host, port, proto, TcpSessionFactory())
-        val bot = McBot().useConnection(client.session, proto.profile)
+        val bot = McBot()
+        bot.useConnection(client.session, proto.profile)
         client.session.connect(waitForConnectionToEstablish)
         return bot
     }
@@ -177,7 +179,7 @@ class MiscEventLogger : IInventoryListener, IPlayerListListener, IPlayerStateLis
     )
 }
 
-class ReadyStateLogger(private val bot: IBot) : IReadyListener {
+class ReadyStateLogger(private val bot: Avatar) : IReadyListener {
     private val logger: Logger = Logger.getLogger(this::class.java.name)
 
     override fun onConnected(connection: Session) = logger.info("Connected to ${connection.remoteAddress}")
@@ -188,6 +190,6 @@ class ReadyStateLogger(private val bot: IBot) : IReadyListener {
 
     override fun onDisconnected(reason: String?, cause: Throwable?) {
         if (cause != null) logger.log(Level.FINE, cause.toString(), cause)
-        logger.warning("Disconnected from ${bot.remoteAddress} Reason: $reason")
+        logger.warning("Disconnected from ${bot.connection?.remoteAddress} Reason: $reason")
     }
 }

@@ -4,10 +4,7 @@ import com.github.gjum.minecraft.botlin.api.Module
 import com.github.gjum.minecraft.botlin.api.Service
 import com.github.gjum.minecraft.botlin.modules.ModulesLoader
 import com.github.gjum.minecraft.botlin.modules.ServiceRegistry
-import com.github.gjum.minecraft.botlin.modules.defaults.AuthModule
-import com.github.gjum.minecraft.botlin.modules.defaults.AutoConnectModule
-import com.github.gjum.minecraft.botlin.modules.defaults.CliModule
-import com.github.gjum.minecraft.botlin.modules.defaults.CommandModule
+import com.github.gjum.minecraft.botlin.modules.defaults.*
 import java.io.File
 import java.util.logging.Logger
 
@@ -26,6 +23,7 @@ object NewMain {
 fun createDefaultModules(): Collection<Module> = listOf(
     AuthModule(),
     AutoConnectModule(),
+    AvatarModule(),
     CliModule(),
     CommandModule()
 )
@@ -41,7 +39,7 @@ interface MainArgs : Service {
 
 class MainArgsModule(private val args: Array<String>) : Module() {
     override fun initialize(serviceRegistry: ServiceRegistry, oldModule: Module?) {
-        serviceRegistry.provideService(this, MainArgs::class.java, object : MainArgs {
+        serviceRegistry.provideService(MainArgs::class.java, object : MainArgs {
             override fun getArgs() = args
         })
     }

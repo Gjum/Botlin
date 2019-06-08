@@ -122,7 +122,7 @@ class AuthModule : Module() {
             System.getProperty("mcAuthCredentials") ?: ".credentials",
             System.getProperty("mcAuthCache") ?: ".auth_tokens.json"
         )
-        serviceRegistry.provideService(this, Authentication::class.java, auth)
+        serviceRegistry.provideService(Authentication::class.java, auth)
     }
 }
 

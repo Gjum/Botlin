@@ -10,6 +10,6 @@ class CommandModule : Module() {
 
     override fun initialize(serviceRegistry: ServiceRegistry, oldModule: Module?) {
         val commandRegistry = CommandRegistry()
-        serviceRegistry.provideService(this, CommandService::class.java, commandRegistry)
+        serviceRegistry.provideService(CommandService::class.java, commandRegistry)
     }
 }

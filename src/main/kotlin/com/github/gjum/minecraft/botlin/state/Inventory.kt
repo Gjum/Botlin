@@ -9,8 +9,8 @@ class Slot(
     var nbtData: NBTIO?
 ) {
     val empty: Boolean get() = blockId <= 0
-    val name: String get() = "TODO" // XXX look up slot name in mc-data
-    val customName: String? get() = "TODO" // XXX look up custom name in NBT
+    val name: String get() = "TODO" // TODO look up slot name in mc-data
+    val customName: String? get() = "TODO" // TODO look up custom name in NBT
 }
 
 fun emptySlot() = Slot(0, 0, 0, null)

@@ -34,7 +34,7 @@ object Cli {
      * Takes control of stdin/stderr, printing any output above a persistent prompt.
      * Blocks until [stop] is called or an error occurs.
      */
-    fun start(commandHandler: (String) -> Unit) {
+    fun run(commandHandler: (String) -> Unit) {
         try {
             val readThread_ = synchronized(this) {
                 // can't recover from this as commandHandler would be silently ignored

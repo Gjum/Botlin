@@ -1,5 +1,6 @@
 package com.github.gjum.minecraft.botlin
 
+import com.github.gjum.minecraft.botlin.api.Avatar
 import com.github.gjum.minecraft.botlin.state.*
 import com.github.gjum.minecraft.botlin.util.*
 import com.github.gjum.minecraft.botlin.util.Look.Companion.radFromDeg
@@ -34,71 +35,27 @@ import com.github.steveice10.packetlib.Session
 import com.github.steveice10.packetlib.event.session.*
 import com.github.steveice10.packetlib.packet.Packet
 import kotlinx.coroutines.*
-import java.net.SocketAddress
-import java.util.*
+import java.util.UUID
 import java.util.logging.Level
 import java.util.logging.Logger
 import kotlin.coroutines.EmptyCoroutineContext
 import kotlin.reflect.KClass
 
-/**
- * An enhanced client that tracks world state,
- * handles disconnection, and can be reconnected.
- * Implemented by [McBot].
- * See also [BotConnected], [BotAlive], [InventoryTransaction].
- */
-interface IBot : CoroutineScope {
-    var profile: GameProfile?
-    val endReason: String?
-    val connected: Boolean
-    val localAddress: SocketAddress?
-    val remoteAddress: SocketAddress?
-    fun disconnect(reason: String?, cause: Throwable? = null)
-    fun send(packet: Packet)
-    fun registerListeners(handler: Any)
-    fun unregisterListeners(handler: Any)
-
-    val entity: Entity?
-    val health: Float?
-    val food: Int?
-    val saturation: Float?
-    val experience: Experience?
-    val position: Vec3d? get() = entity?.position
-    val look: Look? get() = entity?.look
-    val onGround: Boolean? get() = entity?.onGround
-    val gameMode: GameMode?
-    val eyePos: Vec3d? get() = entity?.eyePos
-    val inventory: McWindow?
-
-    val spawned: Boolean
-        get() = (position != null
-                && entity != null
-                && health != null
-                && experience != null
-                && connected)
-
-    val alive get() = health ?: 0.0f > 0.0f && spawned
-
-    var world: World?
-    val playerList: Map<UUID, PlayerListItem>
-}
-
 private val brandBytesVanilla = byteArrayOf(7, 118, 97, 110, 105, 108, 108, 97)
 
 /**
- * Implementation of [IBot].
+ * Implementation of [Avatar].
  */
-class McBot : IBot, SessionListener {
+class McBot : Avatar, SessionListener, CoroutineScope {
     private val logger: Logger = Logger.getLogger(this::class.java.name)
 
-    private var connection: Session? = null
+    override var connection: Session? = null
     private var ticker: Job? = null
 
     override val coroutineContext = EmptyCoroutineContext
 
     override var profile: GameProfile? = null
     override var endReason: String? = null
-    override val connected get() = connection != null && endReason == null && profile != null
 
     override var entity: Entity? = null
     override var health: Float? = null
@@ -108,7 +65,7 @@ class McBot : IBot, SessionListener {
     override var inventory: McWindow? = null
 
     override var world: World? = null
-    override val playerList = mutableMapOf<UUID, PlayerListItem>()
+    override var playerList: MutableMap<UUID, PlayerListItem>? = mutableMapOf()
 
     override var gameMode: GameMode?
         get() = entity?.playerListItem?.gameMode
@@ -119,10 +76,7 @@ class McBot : IBot, SessionListener {
             entity?.playerListItem?.gameMode = v
         }
 
-    override val localAddress get() = connection?.localAddress
-    override val remoteAddress get() = connection?.remoteAddress
-
-    override fun send(packet: Packet) = connection?.send(packet) ?: Unit
+    fun send(packet: Packet) = connection?.send(packet) ?: Unit
 
     private fun reset() {
         endReason = null
@@ -137,7 +91,7 @@ class McBot : IBot, SessionListener {
         inventory = null
 
         world = null
-        playerList.clear()
+        playerList = null
     }
 
     private val listeners = mutableMapOf<KClass<out Any>, MutableCollection<Any>>()
@@ -182,13 +136,12 @@ class McBot : IBot, SessionListener {
     /**
      * Throws [NotImplementedError] if already connected.
      */
-    fun useConnection(connection: Session, profile: GameProfile): McBot {
+    override fun useConnection(connection: Session, profile: GameProfile) {
         if (this.connection != null) TODO("already connected") // bail? close existing?
         reset()
         this.connection = connection
         this.profile = profile
         connection.addListener(this)
-        return this
     }
 
     override fun connected(event: ConnectedEvent) {
@@ -305,8 +258,8 @@ class McBot : IBot, SessionListener {
             }
             is ServerPlayerListEntryPacket -> {
                 for (item in packet.entries) {
-                    val wasInListBefore = item.profile.id in playerList
-                    val player = playerList.getOrPut(item.profile.id) { PlayerListItem(item.profile) }
+                    val wasInListBefore = item.profile.id in playerList!!
+                    val player = playerList!!.getOrPut(item.profile.id) { PlayerListItem(item.profile) }
                     if (packet.action === PlayerListEntryAction.ADD_PLAYER) {
                         player.apply {
                             gameMode = item.gameMode
@@ -325,7 +278,7 @@ class McBot : IBot, SessionListener {
                     } else if (packet.action === PlayerListEntryAction.UPDATE_DISPLAY_NAME) {
                         player.displayName = item.displayName
                     } else if (packet.action === PlayerListEntryAction.REMOVE_PLAYER) {
-                        playerList.remove(item.profile.id)
+                        playerList!!.remove(item.profile.id)
                         if (wasInListBefore) {
                             emitEvent(IPlayerListListener::class) {
                                 onPlayerLeft(player)
@@ -343,7 +296,7 @@ class McBot : IBot, SessionListener {
                     position = Vec3d(packet.x, packet.y, packet.z)
                     look = Look.fromDegrees(packet.yaw, packet.pitch)
                 }
-                val player = playerList[packet.uuid]
+                val player = playerList?.get(packet.uuid)
                 if (player == null) {
                     logger.warning("SpawnPlayer: unknown uuid ${packet.uuid} for eid ${packet.entityId}")
                 } else {
@@ -393,7 +346,7 @@ class McBot : IBot, SessionListener {
             is ServerEntityDestroyPacket -> {
                 world?.entities?.also { entities ->
                     for (eid in packet.entityIds) {
-                        entities.remove(eid)?.apply { playerList[uuid]?.entity = null }
+                        entities.remove(eid)?.apply { playerList?.get(uuid)?.entity = null }
                     }
                 }
             }
