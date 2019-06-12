@@ -34,10 +34,14 @@ import com.github.steveice10.mc.protocol.packet.login.server.LoginSuccessPacket
 import com.github.steveice10.packetlib.Session
 import com.github.steveice10.packetlib.event.session.*
 import com.github.steveice10.packetlib.packet.Packet
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
 import java.util.UUID
 import java.util.logging.Level
 import java.util.logging.Logger
+import kotlin.concurrent.fixedRateTimer
 import kotlin.coroutines.EmptyCoroutineContext
 
 private val brandBytesVanilla = byteArrayOf(7, 118, 97, 110, 105, 108, 108, 97)
@@ -414,8 +418,7 @@ class AvatarImpl : Avatar, SessionListener, CoroutineScope, EventEmitterImpl<Ava
                     ClientNotification.STOP_RAIN -> world?.rainy = true
                     else -> Unit
                 }
-                val value = packet.value
-                when (value) {
+                when (val value = packet.value) {
                     is GameMode -> gameMode = value
                     is ThunderStrengthValue -> world?.skyDarkness = value.strength.toDouble()
                     // TODO track other world states
@@ -434,57 +437,55 @@ class AvatarImpl : Avatar, SessionListener, CoroutineScope, EventEmitterImpl<Ava
     private fun startTicker() {
         if (ticker != null) return
         ticker = launch {
-            while (isActive) {
-                val prevPos = position
-                val prevLook = look
-
-                emit(AvatarEvents.PreClientTick) { it.invoke() }
-
-                if (position != null && look != null) {
-                    if (position != prevPos) {
-                        if (look != prevLook) {
-                            send(
-                                ClientPlayerPositionRotationPacket(
-                                    (onGround ?: true),
-                                    position!!.x,
-                                    position!!.y,
-                                    position!!.z,
-                                    look!!.yawDegrees().toFloat(),
-                                    look!!.pitchDegrees().toFloat()
-                                )
-                            )
-                        } else {
-                            send(
-                                ClientPlayerPositionPacket(
-                                    (onGround ?: true),
-                                    position!!.x,
-                                    position!!.y,
-                                    position!!.z
-                                )
-                            )
-                        }
-                    } else {
-                        if (look != prevLook) {
-                            send(
-                                ClientPlayerRotationPacket(
-                                    (onGround ?: true),
-                                    look!!.yawDegrees().toFloat(),
-                                    look!!.pitchDegrees().toFloat()
-                                )
-                            )
-                        } else {
-                            send(ClientPlayerMovementPacket((onGround ?: true)))
-                        }
-                    }
-                }
-
-                // TODO check chat buffer
-
-                emit(AvatarEvents.ClientTick) { it.invoke() }
-
-                delay(50) // XXX too slow, could instead sleep until next tick ms
+            val timer = fixedRateTimer(period = 50) { doTick() }
+            // bind timer lifetime to coroutineContext
+            try {
+                suspendCancellableCoroutine { } // wait until ticker is cancelled
+            } finally {
+                logger.fine("Cancelling tick timer")
+                timer.cancel()
             }
         }
+    }
+
+    private fun doTick() {
+        val prevPos = position
+        val prevLook = look
+
+        emit(AvatarEvents.PreClientTick) { it.invoke() }
+
+        if (position != null && look != null) {
+            if (position != prevPos) {
+                if (look != prevLook) {
+                    send(ClientPlayerPositionRotationPacket(
+                        onGround ?: true,
+                        position!!.x,
+                        position!!.y,
+                        position!!.z,
+                        look!!.yawDegrees().toFloat(),
+                        look!!.pitchDegrees().toFloat()))
+                } else {
+                    send(ClientPlayerPositionPacket(
+                        onGround ?: true,
+                        position!!.x,
+                        position!!.y,
+                        position!!.z))
+                }
+            } else {
+                if (look != prevLook) {
+                    send(ClientPlayerRotationPacket(
+                        onGround ?: true,
+                        look!!.yawDegrees().toFloat(),
+                        look!!.pitchDegrees().toFloat()))
+                } else {
+                    send(ClientPlayerMovementPacket((onGround ?: true)))
+                }
+            }
+        }
+
+        // TODO check chat buffer
+
+        emit(AvatarEvents.ClientTick) { it.invoke() }
     }
 
     override fun packetSending(event: PacketSendingEvent) = Unit
