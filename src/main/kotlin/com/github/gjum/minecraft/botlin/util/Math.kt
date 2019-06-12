@@ -46,6 +46,7 @@ data class Vec3d(var x: Double, var y: Double, var z: Double) {
     fun lengthSquared() = x * x + y * y + z * z
 
     companion object {
+        @JvmStatic
         val origin = Vec3d(0.0, 0.0, 0.0)
     }
 }
