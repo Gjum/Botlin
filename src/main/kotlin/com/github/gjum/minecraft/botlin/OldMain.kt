@@ -1,18 +1,14 @@
 package com.github.gjum.minecraft.botlin
 
 import com.github.gjum.minecraft.botlin.api.Avatar
-import com.github.gjum.minecraft.botlin.state.McWindow
-import com.github.gjum.minecraft.botlin.state.PlayerListItem
+import com.github.gjum.minecraft.botlin.modules.defaults.AvatarImpl
+import com.github.gjum.minecraft.botlin.modules.defaults.EventLoggerModule
 import com.github.gjum.minecraft.botlin.util.Cli
 import com.github.gjum.minecraft.botlin.util.Reauth.reauth
-import com.github.gjum.minecraft.botlin.util.Vec3d
 import com.github.gjum.minecraft.botlin.util.toAnsi
 import com.github.steveice10.mc.protocol.MinecraftProtocol
-import com.github.steveice10.mc.protocol.data.message.Message
 import com.github.steveice10.mc.protocol.packet.ingame.client.ClientChatPacket
-import com.github.steveice10.mc.protocol.packet.ingame.server.window.ServerWindowPropertyPacket
 import com.github.steveice10.packetlib.Client
-import com.github.steveice10.packetlib.Session
 import com.github.steveice10.packetlib.tcp.TcpSessionFactory
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
@@ -21,7 +17,7 @@ import java.util.logging.Level
 import java.util.logging.Logger
 
 object Main {
-    private val logger: Logger = Logger.getLogger(this::class.java.name)
+    private val logger = Logger.getLogger(this::class.java.name)
 
     @JvmStatic
     fun main(args: Array<String>) {
@@ -37,10 +33,9 @@ object Main {
     ) {
         var aToken = ""
         val cToken = UUID.randomUUID().toString()
-        val bot = McBot()
-        bot.registerListeners(ChatLogger())
-        bot.registerListeners(MiscEventLogger())
-        bot.registerListeners(ReadyStateLogger(bot))
+        val bot = AvatarImpl()
+
+        EventLoggerModule().registerWithAvatar(bot) // XXX
 
         try {
             host?.let {
@@ -135,61 +130,9 @@ object Main {
         waitForConnectionToEstablish: Boolean = true
     ): Avatar {
         val client = Client(host, port, proto, TcpSessionFactory())
-        val bot = McBot()
+        val bot = AvatarImpl()
         bot.useConnection(client.session, proto.profile)
         client.session.connect(waitForConnectionToEstablish)
         return bot
-    }
-}
-
-class ChatLogger : IChatListener {
-    private val logger: Logger = Logger.getLogger(this::class.java.name)
-    override fun onChatReceived(msg: Message) = logger.info("[CHAT] ${msg.toAnsi()}")
-}
-
-class MiscEventLogger : IInventoryListener, IPlayerListListener, IPlayerStateListener {
-    private val logger: Logger = Logger.getLogger(this::class.java.name)
-
-    override fun onWindowReady(window: McWindow) = window.run {
-        logger.info("Window ready: $windowTitle with $slotCount slots")
-    }
-
-    override fun onWindowClosed() = logger.info("Window closed")
-
-    override fun onWindowPropertyChanged(property: ServerWindowPropertyPacket) = property.run {
-        logger.info("Window property changed: $rawProperty = $value")
-    }
-
-    override fun onSlotsChanged() = logger.info("Slots changed")
-
-    override fun onPlayerJoined(entry: PlayerListItem) = logger.info(
-        "Player joined: ${entry.displayName?.toAnsi() ?: entry.profile.name}"
-    )
-
-    override fun onPlayerLeft(entry: PlayerListItem) = logger.info(
-        "Player left: ${entry.displayName?.toAnsi() ?: entry.profile.name}"
-    )
-
-    override fun onPositionChanged(position: Vec3d) = logger.info(
-        "Position changed to $position"
-    )
-
-    override fun onPlayerEntityStatusChanged() = logger.info(
-        "Player entity status changed"
-    )
-}
-
-class ReadyStateLogger(private val bot: Avatar) : IReadyListener {
-    private val logger: Logger = Logger.getLogger(this::class.java.name)
-
-    override fun onConnected(connection: Session) = logger.info("Connected to ${connection.remoteAddress}")
-
-    override fun onSpawned() = logger.info(
-        "Spawned at ${bot.position} ${bot.look} as eid ${bot.entity?.eid}"
-    )
-
-    override fun onDisconnected(reason: String?, cause: Throwable?) {
-        if (cause != null) logger.log(Level.FINE, cause.toString(), cause)
-        logger.warning("Disconnected from ${bot.connection?.remoteAddress} Reason: $reason")
     }
 }

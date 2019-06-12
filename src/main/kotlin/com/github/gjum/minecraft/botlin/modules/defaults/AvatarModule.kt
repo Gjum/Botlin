@@ -1,14 +1,13 @@
 package com.github.gjum.minecraft.botlin.modules.defaults
 
-import com.github.gjum.minecraft.botlin.McBot
 import com.github.gjum.minecraft.botlin.api.Avatar
 import com.github.gjum.minecraft.botlin.api.AvatarService
 import com.github.gjum.minecraft.botlin.api.Module
 import com.github.gjum.minecraft.botlin.modules.ServiceRegistry
 
 class AvatarProvider(private val avatars: MutableMap<String, Avatar>) : AvatarService {
-    override fun getAvatar(username: String): Avatar {
-        return avatars.getOrPut(username) { McBot() }
+    override fun getAvatar(username: String, serverAddress: String): Avatar {
+        return avatars.getOrPut("$username@$serverAddress") { AvatarImpl() }
     }
 }
 

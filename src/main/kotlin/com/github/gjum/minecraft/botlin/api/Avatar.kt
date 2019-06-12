@@ -12,7 +12,7 @@ import java.util.UUID
  * An enhanced client that tracks world state,
  * handles disconnection, and can be reconnected.
  */
-interface Avatar {
+interface Avatar: EventEmitter<AvatarEvents> {
     val profile: GameProfile?
     val connection: Session?
     val endReason: String?
@@ -21,7 +21,7 @@ interface Avatar {
     val food: Int?
     val saturation: Float?
     val experience: Experience?
-    val inventory: McWindow?
+    val inventory: Window?
     val position: Vec3d? get() = entity?.position
     val look: Look? get() = entity?.look
     val onGround: Boolean? get() = entity?.onGround
@@ -29,11 +29,6 @@ interface Avatar {
 
     var world: World?
     val playerList: Map<UUID, PlayerListItem>?
-
-    // XXX different event api based on field references? does that work in java?
-    fun registerListeners(handler: Any)
-
-    fun unregisterListeners(handler: Any)
 
     fun useConnection(connection: Session, profile: GameProfile)
 

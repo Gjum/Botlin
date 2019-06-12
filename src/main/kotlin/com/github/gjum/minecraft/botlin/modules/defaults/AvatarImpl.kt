@@ -1,9 +1,9 @@
-package com.github.gjum.minecraft.botlin
+package com.github.gjum.minecraft.botlin.modules.defaults
 
 import com.github.gjum.minecraft.botlin.api.Avatar
+import com.github.gjum.minecraft.botlin.api.AvatarEvents
 import com.github.gjum.minecraft.botlin.state.*
 import com.github.gjum.minecraft.botlin.util.*
-import com.github.gjum.minecraft.botlin.util.Look.Companion.radFromDeg
 import com.github.steveice10.mc.auth.data.GameProfile
 import com.github.steveice10.mc.protocol.data.game.PlayerListEntryAction
 import com.github.steveice10.mc.protocol.data.game.entity.player.GameMode
@@ -39,14 +39,13 @@ import java.util.UUID
 import java.util.logging.Level
 import java.util.logging.Logger
 import kotlin.coroutines.EmptyCoroutineContext
-import kotlin.reflect.KClass
 
 private val brandBytesVanilla = byteArrayOf(7, 118, 97, 110, 105, 108, 108, 97)
 
 /**
  * Implementation of [Avatar].
  */
-class McBot : Avatar, SessionListener, CoroutineScope {
+class AvatarImpl : Avatar, SessionListener, CoroutineScope, EventEmitterImpl<AvatarEvents>() {
     private val logger: Logger = Logger.getLogger(this::class.java.name)
 
     override var connection: Session? = null
@@ -62,7 +61,7 @@ class McBot : Avatar, SessionListener, CoroutineScope {
     override var food: Int? = null
     override var saturation: Float? = null
     override var experience: Experience? = null
-    override var inventory: McWindow? = null
+    override var inventory: Window? = null
 
     override var world: World? = null
     override var playerList: MutableMap<UUID, PlayerListItem>? = mutableMapOf()
@@ -94,41 +93,6 @@ class McBot : Avatar, SessionListener, CoroutineScope {
         playerList = null
     }
 
-    private val listeners = mutableMapOf<KClass<out Any>, MutableCollection<Any>>()
-
-    private fun <T : Any> emitEvent(listener: KClass<T>, block: T.() -> Unit) {
-        listeners[listener]?.forEach { handlerAny ->
-            try {
-                @Suppress("UNCHECKED_CAST")
-                val handler = handlerAny as T
-                block.invoke(handler)
-            } catch (e: Throwable) {
-                logger.log(Level.SEVERE, "Unhandled error in ${listener.simpleName} handler", e)
-            }
-        }
-    }
-
-    override fun registerListeners(handler: Any) {
-        for (listener in listenerInterfaces) {
-            if (listener.isInstance(handler)) {
-                val handlers = listeners.getOrPut(listener) { mutableListOf() }
-                handlers.add(handler)
-            }
-        }
-    }
-
-    override fun unregisterListeners(handler: Any) {
-        for (listener in listenerInterfaces) {
-            if (listener.isInstance(handler)) {
-                val handlers = listeners.getOrPut(listener) { mutableListOf() }
-                handlers.remove(handler)
-                if (handlers.isEmpty()) {
-                    listeners.remove(listener)
-                }
-            }
-        }
-    }
-
     private fun getEntityOrCreate(eid: Int): Entity {
         return world!!.entities.getOrPut(eid) { Entity(eid) }
     }
@@ -145,7 +109,7 @@ class McBot : Avatar, SessionListener, CoroutineScope {
     }
 
     override fun connected(event: ConnectedEvent) {
-        emitEvent(IReadyListener::class) { onConnected(event.session) }
+        emit(AvatarEvents.Connected) { it.invoke(event.session) }
     }
 
     override fun disconnecting(event: DisconnectingEvent) {
@@ -160,11 +124,10 @@ class McBot : Avatar, SessionListener, CoroutineScope {
      * Disconnects the client, blocking the current thread.
      */
     override fun disconnect(reason: String?, cause: Throwable?) {
-        if (connection == null) return
+        val c = connection ?: return
         if (endReason == null) {
-            emitEvent(IReadyListener::class) { onDisconnected(reason, cause) }
+            emit(AvatarEvents.Disconnected) { it.invoke(c, reason, cause) }
         }
-        // reset() // TODO do we already reset here or remember the failstate?
         endReason = reason
         // TODO submit upstream patch for TcpClientSession overriding all TcpSession#disconnect
         connection?.disconnect(reason, cause, false)
@@ -178,13 +141,13 @@ class McBot : Avatar, SessionListener, CoroutineScope {
         } catch (e: Throwable) {
             logger.log(Level.SEVERE, "Failed to process received packet $packet", e)
         }
-        emitEvent(IPacketListener::class) { onServerPacketReceived(packet) }
+        emit(AvatarEvents.ServerPacketReceived) { it.invoke(packet) }
     }
 
     private fun processPacket(packet: Packet) {
         when (packet) {
             is ServerChatPacket -> {
-                emitEvent(IChatListener::class) { onChatReceived(packet.message) }
+                emit(AvatarEvents.ChatReceived) { it.invoke(packet.message) }
             }
             is ServerJoinGamePacket -> {
                 world = World(packet.dimension)
@@ -206,7 +169,7 @@ class McBot : Avatar, SessionListener, CoroutineScope {
                 health = packet.health
                 food = packet.food
                 saturation = packet.saturation
-                if (!wasSpawned && spawned) emitEvent(IReadyListener::class) { onSpawned() }
+                if (!wasSpawned && spawned) emit(AvatarEvents.Spawned) { it.invoke(entity!!) }
             }
             is ServerPlayerSetExperiencePacket -> {
                 val wasSpawned = spawned
@@ -215,11 +178,12 @@ class McBot : Avatar, SessionListener, CoroutineScope {
                     packet.level,
                     packet.totalExperience
                 )
-                if (!wasSpawned && spawned) emitEvent(IReadyListener::class) { onSpawned() }
+                if (!wasSpawned && spawned) emit(AvatarEvents.Spawned) { it.invoke(entity!!) }
             }
             is ServerPlayerPositionRotationPacket -> {
                 send(ClientTeleportConfirmPacket(packet.teleportId))
                 val wasSpawned = spawned
+                val oldPosition = position
 
                 if (packet.relativeElements.isEmpty()) {
                     entity?.position = Vec3d(packet.x, packet.y, packet.z)
@@ -242,18 +206,23 @@ class McBot : Avatar, SessionListener, CoroutineScope {
                     )
                 )
 
-                emitEvent(IPlayerStateListener::class) { onPositionChanged(position!!) }
-                if (!wasSpawned && spawned) emitEvent(IReadyListener::class) { onSpawned() }
+                emit(AvatarEvents.PositionChanged) {
+                    it.invoke(position!!, oldPosition, packet)
+                }
+                if (!wasSpawned && spawned) emit(AvatarEvents.Spawned) { it.invoke(entity!!) }
 
                 startTicker()
             }
             is ServerVehicleMovePacket -> {
                 val vehicle = entity?.vehicle ?: error("Server moved bot while not in vehicle")
                 vehicle.apply {
+                    val oldPosition = position
                     position = Vec3d(packet.x, packet.y, packet.z)
                     look = Look.fromDegrees(packet.yaw, packet.pitch)
                     entity?.position = position // TODO update client pos in relation to vehicle (typically up/down)
-                    emitEvent(IPlayerStateListener::class) { onPositionChanged(position!!) }
+                    emit(AvatarEvents.PositionChanged) {
+                        it.invoke(position!!, oldPosition, packet)
+                    }
                 }
             }
             is ServerPlayerListEntryPacket -> {
@@ -267,9 +236,7 @@ class McBot : Avatar, SessionListener, CoroutineScope {
                             displayName = item.displayName
                         }
                         if (!wasInListBefore) {
-                            emitEvent(IPlayerListListener::class) {
-                                onPlayerJoined(player)
-                            }
+                            emit(AvatarEvents.PlayerJoined) { it.invoke(player) }
                         }
                     } else if (packet.action === PlayerListEntryAction.UPDATE_GAMEMODE) {
                         player.gameMode = item.gameMode
@@ -280,9 +247,7 @@ class McBot : Avatar, SessionListener, CoroutineScope {
                     } else if (packet.action === PlayerListEntryAction.REMOVE_PLAYER) {
                         playerList!!.remove(item.profile.id)
                         if (wasInListBefore) {
-                            emitEvent(IPlayerListListener::class) {
-                                onPlayerLeft(player)
-                            }
+                            emit(AvatarEvents.PlayerLeft) { it.invoke(player) }
                         }
                     }
                 }
@@ -320,7 +285,7 @@ class McBot : Avatar, SessionListener, CoroutineScope {
                     metadata = packet.metadata
                     position = Vec3d(packet.x, packet.y, packet.z)
                     look = Look.fromDegrees(packet.yaw, packet.pitch)
-                    headYaw = radFromDeg(packet.headYaw.toDegrees())
+                    headYaw = Look.radFromDeg(packet.headYaw.toDegrees())
                     velocity = Vec3d(packet.motionX, packet.motionY, packet.motionZ)
                 }
             }
@@ -379,8 +344,8 @@ class McBot : Avatar, SessionListener, CoroutineScope {
                         packet.movementZ
                     )
                 }
-                getEntityOrCreate(packet.entityId).look =
-                    Look.fromDegrees(packet.yaw, packet.pitch)
+                getEntityOrCreate(packet.entityId)
+                    .look = Look.fromDegrees(packet.yaw, packet.pitch)
             }
             is ServerEntityRotationPacket -> {
                 getEntityOrCreate(packet.entityId).look = Look.fromDegrees(packet.yaw, packet.pitch)
@@ -402,9 +367,7 @@ class McBot : Avatar, SessionListener, CoroutineScope {
                 val entity = getEntityOrCreate(packet.entityId)
                 entity.updateMetadata(packet.metadata)
                 if (entity === this.entity) {
-                    emitEvent(IPlayerStateListener::class) {
-                        onPlayerEntityStatusChanged()
-                    }
+                    emit(AvatarEvents.PlayerEntityStatusChanged) { it.invoke() }
                 }
             }
             is ServerEntityPropertiesPacket -> TodoEntityPacket // TODO emit PlayerEntityStatusChanged
@@ -475,7 +438,7 @@ class McBot : Avatar, SessionListener, CoroutineScope {
                 val prevPos = position
                 val prevLook = look
 
-                emitEvent(IClientTickListener::class) { onPreClientTick() }
+                emit(AvatarEvents.PreClientTick) { it.invoke() }
 
                 if (position != null && look != null) {
                     if (position != prevPos) {
@@ -517,7 +480,7 @@ class McBot : Avatar, SessionListener, CoroutineScope {
 
                 // TODO check chat buffer
 
-                emitEvent(IClientTickListener::class) { onPostClientTick() }
+                emit(AvatarEvents.ClientTick) { it.invoke() }
 
                 delay(50) // XXX too slow, could instead sleep until next tick ms
             }

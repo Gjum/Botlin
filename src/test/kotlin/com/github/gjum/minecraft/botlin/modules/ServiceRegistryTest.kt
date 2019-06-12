@@ -15,7 +15,7 @@ interface TestService : Service {
 
 class ConsumerModule : Module() {
     override fun initialize(serviceRegistry: ServiceRegistry, oldModule: Module?) {
-        serviceRegistry.handleServiceChange(TestService::class.java,
+        serviceRegistry.consumeService(TestService::class.java,
             ::handleTestServiceChange)
     }
 

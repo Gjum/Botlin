@@ -4,7 +4,6 @@ import com.github.gjum.minecraft.botlin.modules.ServiceRegistry
 
 abstract class Module {
     /**
-     * Clue about what this module does.
      * Unique identifier during runtime - only one module
      * of any given name can be loaded at any time.
      */
@@ -20,7 +19,7 @@ abstract class Module {
      * [oldModule] is set to the old instance to allow handover of state.
      * [teardown] will already have been called on [oldModule].
      *
-     * Typical activities include [ServiceRegistry.handleServiceChange]
+     * Typical activities include [ServiceRegistry.consumeService]
      * and [ServiceRegistry.provideService].
      *
      * When providing a service, any related state should not be taken from [oldModule],

@@ -15,7 +15,7 @@ class Slot(
 
 fun emptySlot() = Slot(0, 0, 0, null)
 
-class McWindow(
+class Window(
     val windowId: Int,
     val inventoryType: String,
     val windowTitle: String,

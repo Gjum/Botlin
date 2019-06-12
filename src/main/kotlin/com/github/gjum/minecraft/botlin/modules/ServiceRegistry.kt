@@ -20,25 +20,19 @@ class ServiceRegistry(private val modulesLoader: ModulesLoader<Module>) {
     /**
      * All modules wanting to consume each service.
      */
-    private val consumerHandlers = mutableMapOf<Class<out Service>, MutableCollection<ServiceChangeHandler<Any>>>()
+    private val consumerHandlers = mutableMapOf<Class<out Service>,
+        MutableCollection<ServiceChangeHandler<Any>>>()
 
     init {
         transition(emptyList(), modulesLoader.getAvailableModules())
     }
 
     /**
-     * Load all modules in [modulesDirectory], replacing all currently loaded modules.
-     */
-    fun reloadModules(modulesDirectory: File? = null) {
-        val oldModules = modulesLoader.getAvailableModules()
-        val newModules = modulesLoader.reload(modulesDirectory) ?: emptyList()
-        transition(oldModules, newModules)
-    }
-
-    /**
      * Signal interest in consuming the [service].
+     * The [handler] will get called exactly once with the [service]'s provider.
+     * If there is no provider available, [handler] gets called with `null`.
      */
-    fun <T : Service> handleServiceChange(service: Class<T>, handler: ServiceChangeHandler<T>) {
+    fun <T : Service> consumeService(service: Class<T>, handler: ServiceChangeHandler<T>) {
         @Suppress("UNCHECKED_CAST")
         val handlerAny = handler as ServiceChangeHandler<Any>
 
@@ -56,6 +50,15 @@ class ServiceRegistry(private val modulesLoader: ModulesLoader<Module>) {
     }
 
     /**
+     * Load all modules in [modulesDirectory], replacing all currently loaded modules.
+     */
+    fun reloadModules(modulesDirectory: File? = null) {
+        val oldModules = modulesLoader.getAvailableModules()
+        val newModules = modulesLoader.reload(modulesDirectory) ?: emptyList()
+        transition(oldModules, newModules)
+    }
+
+    /**
      * Unloads all modules to end the program.
      */
     fun teardown() {
@@ -64,7 +67,7 @@ class ServiceRegistry(private val modulesLoader: ModulesLoader<Module>) {
     }
 
     /**
-     * Performs upgrade after reload (and initial load).
+     * Performs upgrade after reload (and initial load/final unload).
      */
     private fun transition(oldModules: Collection<Module>, newModules: Collection<Module>) {
         val newModulesMap = newModules.map { it.name to it }.toMap()
@@ -84,6 +87,7 @@ class ServiceRegistry(private val modulesLoader: ModulesLoader<Module>) {
         }
 
         val oldModulesMap = oldModules.map { it.name to it }.toMap()
+        // skip duplicate names by iterating newModulesMap instead of newModules
         newModulesMap.values.forEach { it.initialize(this, oldModulesMap[it.name]) }
 
         // send null for unavailable wanted services

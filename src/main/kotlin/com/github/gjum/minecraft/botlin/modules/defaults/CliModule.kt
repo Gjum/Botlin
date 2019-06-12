@@ -25,7 +25,7 @@ class CliModule : Module() {
                 logger.info("[CMD:$cmdName] $message")
             }
         }
-        serviceRegistry.handleServiceChange(CommandService::class.java) {
+        serviceRegistry.consumeService(CommandService::class.java) {
             commands = it
             commands?.registerCommand("quit", "quit", "Close the program.") { _, _ ->
                 Cli.stop()

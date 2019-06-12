@@ -18,14 +18,14 @@ class AutoConnectModule : Module() {
 
         // if Authentication service is available and mcHost is set,
         // automatically connect to it with the default account
-        serviceRegistry.handleServiceChange(Authentication::class.java) { auth ->
-            val username = auth?.defaultAccount ?: return@handleServiceChange
-            val hostProp = System.getProperty("mcHost") ?: return@handleServiceChange
+        serviceRegistry.consumeService(Authentication::class.java) { auth ->
+            val username = auth?.defaultAccount ?: return@consumeService
+            val hostProp = System.getProperty("mcHost") ?: return@consumeService
             autoConnect.autoConnectTo(username, hostProp)
         }
 
-        serviceRegistry.handleServiceChange(CommandService::class.java) { commands ->
-            commands ?: return@handleServiceChange
+        serviceRegistry.consumeService(CommandService::class.java) { commands ->
+            commands ?: return@consumeService
             commands.registerCommand("connect",
                 "connect [account=default] [server=localhost:25565]",
                 "Start auto-connecting account to server."

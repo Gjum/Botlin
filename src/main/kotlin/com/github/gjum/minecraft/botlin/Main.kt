@@ -9,7 +9,7 @@ import java.io.File
 import java.util.logging.Logger
 
 object NewMain {
-    private val logger: Logger = Logger.getLogger(this::class.java.name)
+    private val logger = Logger.getLogger(this::class.java.name)
 
     @JvmStatic
     fun main(args: Array<String>) {
@@ -24,8 +24,10 @@ fun createDefaultModules(): Collection<Module> = listOf(
     AuthModule(),
     AutoConnectModule(),
     AvatarModule(),
+    BehaviorRegistryModule(),
     CliModule(),
-    CommandModule()
+    CommandModule(),
+    EventLoggerModule()
 )
 
 class StaticModulesLoader(private val modules: Collection<Module>) : ModulesLoader<Module> {
