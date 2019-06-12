@@ -9,11 +9,14 @@ import com.github.steveice10.packetlib.Session
 import java.util.UUID
 
 /**
- * An enhanced client that tracks world state,
- * handles disconnection, and can be reconnected.
+ * State (embodiment) of an account on one server.
  */
-interface Avatar: EventEmitter<AvatarEvents> {
-    val profile: GameProfile?
+interface Avatar : EventEmitter<AvatarEvents> {
+    // profile and ServerAddress together uniquely identify an avatar
+
+    val profile: GameProfile
+    val serverAddress: String
+
     val connection: Session?
     val endReason: String?
     val entity: Entity?
@@ -27,22 +30,37 @@ interface Avatar: EventEmitter<AvatarEvents> {
     val onGround: Boolean? get() = entity?.onGround
     val gameMode: GameMode?
 
-    var world: World?
+    val world: World?
     val playerList: Map<UUID, PlayerListItem>?
 
-    fun useConnection(connection: Session, profile: GameProfile)
+    fun useConnection(connection: Session)
 
     /**
      * Disconnects the client, blocking the current thread.
      */
     fun disconnect(reason: String?, cause: Throwable? = null)
 
-    val connected get() = connection != null && endReason == null && profile != null
+    /**
+     * Indicates if the account is logged into the server at this time.
+     *
+     * depends on endReason because connection remains
+     * set after disconnection, for info/debugging purposes
+     */
+    val connected get() = connection != null && endReason == null
+
+    /**
+     * Indicates if the account has received all its state yet, such as
+     * position, health/food/exp, and is also still [connected].
+     */
     val spawned: Boolean
         get() = (position != null
-            && entity != null
             && health != null
             && experience != null
+            && world != null
             && connected)
+
+    /**
+     * Indicates if the account is alive at this time, including being [spawned].
+     */
     val alive get() = health ?: 0.0f > 0.0f && spawned
 }

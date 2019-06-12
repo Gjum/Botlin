@@ -14,34 +14,91 @@ interface Event<T, E>
 private typealias AvatarEvent<T> = Event<T, AvatarEvents>
 
 object AvatarEvents {
+    /** [Avatar.connected] switched from false to true. */
     @JvmStatic
     val Connected = object : AvatarEvent<(connection: Session) -> Unit> {}
+
+    /** [Avatar.connected] switched from true to false. */
     @JvmStatic
     val Disconnected = object : AvatarEvent<(connection: Session, reason: String?, cause: Any?) -> Unit> {}
+
+    /** [Avatar.spawned] switched from false to true. */
     @JvmStatic
     val Spawned = object : AvatarEvent<(entity: Entity) -> Unit> {}
+
     @JvmStatic
     val ServerPacketReceived = object : AvatarEvent<(packet: Packet) -> Unit> {}
+
     @JvmStatic
     val ChatReceived = object : AvatarEvent<(msg: Message) -> Unit> {}
+
+    /**
+     * Called every 50ms before the [Avatar] processes its tick actions
+     * (physics, chat sending, etc.). See also [ClientTick].
+     */
     @JvmStatic
     val PreClientTick = object : AvatarEvent<() -> Unit> {}
+
+    /**
+     * Called every 50ms after the [Avatar] is done processing its tick actions
+     * (physics, chat sending, etc.). See also [PreClientTick].
+     */
     @JvmStatic
     val ClientTick = object : AvatarEvent<() -> Unit> {}
+
+    /**
+     * An entry was created on the [Avatar.playerList].
+     *
+     * On some servers, [PlayerLeft] and [PlayerJoined] may occur
+     * quickly after one another shortly after joining the server.
+     */
     @JvmStatic
     val PlayerJoined = object : AvatarEvent<(entry: PlayerListItem) -> Unit> {}
+
+    /**
+     * An entry was removed from the [Avatar.playerList].
+     *
+     * On some servers, [PlayerLeft] and [PlayerJoined] may occur
+     * quickly after one another shortly after joining the server.
+     */
     @JvmStatic
     val PlayerLeft = object : AvatarEvent<(entry: PlayerListItem) -> Unit> {}
+
+    /**
+     * The [Avatar.inventory] has received all state. This happens typically
+     * after a window was opened, but may also happen after sending an
+     * invalid click action to the server, to synchronize client and server again.
+     * An ongoing synchronization can be checked through [Window.ready].
+     */
     @JvmStatic
     val WindowReady = object : AvatarEvent<(newWindow: Window) -> Unit> {}
 
-    /** The new Window will be in the next WindowReady */
+    /**
+     * The current window was closed by the server.
+     * The new Window will be in the next [WindowReady].
+     */
     @JvmStatic
     val WindowClosed = object : AvatarEvent<(oldWindow: Window) -> Unit> {}
 
+    /**
+     * The position was forcefully changed by the server.
+     * This happens after joining a server,
+     * moving illegally (e.g., into a block or too quickly),
+     * or respawning after death or in another dimension.
+     */
     @JvmStatic
     val PositionChanged = object : AvatarEvent<(newPos: Vec3d, oldPos: Vec3d?, reason: Any?) -> Unit> {}
 
+    /**
+     * The slots at the indices were changed by the server.
+     * This happens typically when picking up items,
+     * receiving state of a newly opened window, or
+     * after sending an invalid click action to the server,
+     * to synchronize client and server again.
+     * In the latter cases, [WindowReady] will be fired
+     * once everything is synchronized with the server.
+     * An ongoing synchronization can be checked through [Window.ready].
+     */
     @JvmStatic
     val SlotsChanged = object : AvatarEvent<(
         window: Window,

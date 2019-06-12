@@ -49,15 +49,13 @@ private val brandBytesVanilla = byteArrayOf(7, 118, 97, 110, 105, 108, 108, 97)
 /**
  * Implementation of [Avatar].
  */
-class AvatarImpl : Avatar, SessionListener, CoroutineScope, EventEmitterImpl<AvatarEvents>() {
+class AvatarImpl(override val profile: GameProfile, override val serverAddress: String) : Avatar, SessionListener, CoroutineScope, EventEmitterImpl<AvatarEvents>() {
     private val logger: Logger = Logger.getLogger(this::class.java.name)
-
-    override var connection: Session? = null
     private var ticker: Job? = null
 
     override val coroutineContext = EmptyCoroutineContext
 
-    override var profile: GameProfile? = null
+    override var connection: Session? = null
     override var endReason: String? = null
 
     override var entity: Entity? = null
@@ -74,7 +72,7 @@ class AvatarImpl : Avatar, SessionListener, CoroutineScope, EventEmitterImpl<Ava
         get() = entity?.playerListItem?.gameMode
         set(v) {
             if (entity?.playerListItem == null) {
-                entity?.playerListItem = PlayerListItem(profile ?: error("No UUID in client"))
+                entity?.playerListItem = PlayerListItem(profile)
             }
             entity?.playerListItem?.gameMode = v
         }
@@ -104,11 +102,14 @@ class AvatarImpl : Avatar, SessionListener, CoroutineScope, EventEmitterImpl<Ava
     /**
      * Throws [NotImplementedError] if already connected.
      */
-    override fun useConnection(connection: Session, profile: GameProfile) {
-        if (this.connection != null) TODO("already connected") // bail? close existing?
+    override fun useConnection(connection: Session) {
+        if (this.connection != null) TODO("already connected") // bail? close existing and use new one?
+        if (connection.remoteAddress.toString() != serverAddress) {
+            throw IllegalArgumentException(
+                "Avatar for $serverAddress cannot connect to ${connection.remoteAddress}")
+        }
         reset()
         this.connection = connection
-        this.profile = profile
         connection.addListener(this)
     }
 
