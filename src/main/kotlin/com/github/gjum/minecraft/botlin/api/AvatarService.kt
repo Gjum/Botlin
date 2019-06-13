@@ -8,5 +8,5 @@ interface AvatarService : Service {
      * Returns the avatar and its associated state on the given account and server.
      * Creates an [Avatar] instance if necessary.
      */
-    fun getAvatar(username: String, serverAddress: String): Avatar
+    suspend fun getAvatar(username: String, serverAddress: String): Avatar
 }

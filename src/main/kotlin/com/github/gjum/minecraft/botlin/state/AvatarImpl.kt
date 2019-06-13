@@ -1,8 +1,8 @@
-package com.github.gjum.minecraft.botlin.modules.defaults
+package com.github.gjum.minecraft.botlin.state
 
 import com.github.gjum.minecraft.botlin.api.Avatar
 import com.github.gjum.minecraft.botlin.api.AvatarEvents
-import com.github.gjum.minecraft.botlin.state.*
+import com.github.gjum.minecraft.botlin.api.Behavior
 import com.github.gjum.minecraft.botlin.util.*
 import com.github.steveice10.mc.auth.data.GameProfile
 import com.github.steveice10.mc.protocol.data.game.PlayerListEntryAction
@@ -46,15 +46,13 @@ import kotlin.coroutines.EmptyCoroutineContext
 
 private val brandBytesVanilla = byteArrayOf(7, 118, 97, 110, 105, 108, 108, 97)
 
-/**
- * Implementation of [Avatar].
- */
 class AvatarImpl(override val profile: GameProfile, override val serverAddress: String) : Avatar, SessionListener, CoroutineScope, EventEmitterImpl<AvatarEvents>() {
     private val logger: Logger = Logger.getLogger(this::class.java.name)
     private var ticker: Job? = null
 
     override val coroutineContext = EmptyCoroutineContext
 
+    override var behavior: Behavior = IdleBehavior().also { it.activate(this) }
     override var connection: Session? = null
     override var endReason: String? = null
 
@@ -77,7 +75,7 @@ class AvatarImpl(override val profile: GameProfile, override val serverAddress: 
             entity?.playerListItem?.gameMode = v
         }
 
-    fun send(packet: Packet) = connection?.send(packet) ?: Unit
+    fun send(packet: Packet) = connection?.send(packet)
 
     private fun reset() {
         endReason = null
@@ -99,9 +97,12 @@ class AvatarImpl(override val profile: GameProfile, override val serverAddress: 
         return world!!.entities.getOrPut(eid) { Entity(eid) }
     }
 
-    /**
-     * Throws [NotImplementedError] if already connected.
-     */
+    override fun useBehavior(behavior: Behavior?) {
+        this.behavior.deactivate(this)
+        this.behavior = behavior ?: IdleBehavior()
+        this.behavior.activate(this)
+    }
+
     override fun useConnection(connection: Session) {
         if (this.connection != null) TODO("already connected") // bail? close existing and use new one?
         if (connection.remoteAddress.toString() != serverAddress) {
@@ -133,6 +134,7 @@ class AvatarImpl(override val profile: GameProfile, override val serverAddress: 
         if (endReason == null) {
             emit(AvatarEvents.Disconnected) { it.invoke(c, reason, cause) }
         }
+        // reset() // TODO do we already reset here or remember the failstate?
         endReason = reason
         // TODO submit upstream patch for TcpClientSession overriding all TcpSession#disconnect
         connection?.disconnect(reason, cause, false)
@@ -156,7 +158,7 @@ class AvatarImpl(override val profile: GameProfile, override val serverAddress: 
             }
             is ServerJoinGamePacket -> {
                 world = World(packet.dimension)
-                entity = getEntityOrCreate(packet.entityId).apply { uuid = profile?.id }
+                entity = getEntityOrCreate(packet.entityId).apply { uuid = profile.id }
                 gameMode = packet.gameMode
                 send(ClientPluginMessagePacket("MC|Brand", brandBytesVanilla))
                 send(ClientSettingsPacket("en_us", 10, ChatVisibility.FULL, true, emptyArray(), Hand.MAIN_HAND))
@@ -405,6 +407,7 @@ class AvatarImpl(override val profile: GameProfile, override val serverAddress: 
                 }
             }
 
+            // XXX emit WindowReady, WindowClosed, SlotsChanged, WindowPropertyChanged
             is ServerPlayerChangeHeldItemPacket -> TodoInventoryPacket
             is ServerOpenWindowPacket -> TodoInventoryPacket
             is ServerCloseWindowPacket -> TodoInventoryPacket
@@ -454,6 +457,8 @@ class AvatarImpl(override val profile: GameProfile, override val serverAddress: 
         val prevLook = look
 
         emit(AvatarEvents.PreClientTick) { it.invoke() }
+
+        behavior.doPhysicsTick(this)
 
         if (position != null && look != null) {
             if (position != prevPos) {

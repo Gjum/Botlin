@@ -17,6 +17,7 @@ interface Avatar : EventEmitter<AvatarEvents> {
     val profile: GameProfile
     val serverAddress: String
 
+    val behavior: Behavior
     val connection: Session?
     val endReason: String?
     val entity: Entity?
@@ -39,6 +40,12 @@ interface Avatar : EventEmitter<AvatarEvents> {
      * Disconnects the client, blocking the current thread.
      */
     fun disconnect(reason: String?, cause: Throwable? = null)
+
+    /**
+     * Deactivate and remove any old behavior, and activate the [behavior].
+     * When [behavior] is null, [IdleBehavior] is used.
+     */
+    fun useBehavior(behavior: Behavior?)
 
     /**
      * Indicates if the account is logged into the server at this time.
