@@ -72,7 +72,6 @@ internal class AccountRateLimiter(private val username: String, private val pare
 
     @Synchronized
     suspend fun createProto(auth: Authentication): MinecraftProtocol? {
-        val nextAttempt = prevAttempt + nextBackoff.toLong()
         val callTime = TimeProxy.currentTimeMillis()
 
         // remove unused entries
@@ -82,6 +81,7 @@ internal class AccountRateLimiter(private val username: String, private val pare
             rateQueue[0] + parent.connectRateInterval
         } else callTime
 
+        val nextAttempt = prevAttempt + nextBackoff.toLong()
         val waitMs = max(nextAttempt - callTime, nextRateSlot - callTime)
         if (waitMs > 0) TimeProxy.delay(waitMs)
 

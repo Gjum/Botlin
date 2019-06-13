@@ -11,9 +11,9 @@ class RateLimiterTest {
     fun `backoff gets applied and reset`() {
         mockkObject(TimeProxy)
         var nowMs = 1560000000L
-        every { TimeProxy.currentTimeMillis() } returns nowMs
+        every { TimeProxy.currentTimeMillis() } answers { nowMs }
         val delayMs = slot<Long>()
-        coEvery { TimeProxy.delay(capture(delayMs)) } coAnswers {
+        coEvery { TimeProxy.delay(capture(delayMs)) } answers {
             nowMs += delayMs.captured
         }
 
@@ -59,40 +59,34 @@ class RateLimiterTest {
         }
 
         coVerifyOrder {
-            rateLimiter.createProto(auth)
             // delay(0) is not called
-            auth.authenticate("botlin")
-
-            rateLimiter.createProto(auth)
             TimeProxy.delay(1000)
-            auth.authenticate("botlin")
-
-            rateLimiter.createProto(auth)
             TimeProxy.delay(2000)
-            auth.authenticate("botlin")
-
-            rateLimiter.createProto(auth)
             TimeProxy.delay(4000)
-            auth.authenticate("botlin")
-
-            rateLimiter.createProto(auth)
             TimeProxy.delay(5000)
-            auth.authenticate("botlin")
-
-            rateLimiter.createProto(auth)
             TimeProxy.delay(5000)
-            auth.authenticate("botlin")
-
-            rateLimiter.createProto(auth)
             TimeProxy.delay(1000)
-            auth.authenticate("botlin")
-
-            rateLimiter.createProto(auth)
             TimeProxy.delay(1000)
-            auth.authenticate("botlin")
-
-            rateLimiter.createProto(auth)
             TimeProxy.delay(2000)
+        }
+        coVerifyOrder {
+            rateLimiter.createProto(auth)
+            auth.authenticate("botlin")
+            rateLimiter.createProto(auth)
+            auth.authenticate("botlin")
+            rateLimiter.createProto(auth)
+            auth.authenticate("botlin")
+            rateLimiter.createProto(auth)
+            auth.authenticate("botlin")
+            rateLimiter.createProto(auth)
+            auth.authenticate("botlin")
+            rateLimiter.createProto(auth)
+            auth.authenticate("botlin")
+            rateLimiter.createProto(auth)
+            auth.authenticate("botlin")
+            rateLimiter.createProto(auth)
+            auth.authenticate("botlin")
+            rateLimiter.createProto(auth)
             auth.authenticate("botlin")
         }
         confirmVerified(auth, rateLimiter)
@@ -102,7 +96,7 @@ class RateLimiterTest {
     fun `rate limit gets applied and reset`() {
         mockkObject(TimeProxy)
         var nowMs = 1560000000L
-        every { TimeProxy.currentTimeMillis() } returns nowMs
+        every { TimeProxy.currentTimeMillis() } answers { nowMs }
         val delayMs = slot<Long>()
         coEvery { TimeProxy.delay(capture(delayMs)) } answers {
             nowMs += delayMs.captured
@@ -134,28 +128,28 @@ class RateLimiterTest {
             // success does not use exponential backoff, but constant backoffStart
             rateLimiter.createProto(auth)
             TimeProxy.delay(100)
-            // XXX above inter-call delay does not get applied
-//            // successful attempts are rate limited when above rate
-//            rateLimiter.createProto(auth)
-//            // rate limit cleans up queue
-//            rateLimiter.createProto(auth)
-//            TimeProxy.delay(200)
-//            // rate limit expires by waiting
-//            rateLimiter.createProto(auth)
+            // successful attempts are rate limited when above rate
+            rateLimiter.createProto(auth)
+            // rate limit cleans up queue
+            rateLimiter.createProto(auth)
+            // rate limit expires by waiting
+            TimeProxy.delay(1001)
+            rateLimiter.createProto(auth)
 
-            // TODO rate limit is not applied to backoff after unsuccessful attempts
+            // TODO test: rate limit is not applied to backoff after unsuccessful attempts
         }
 
         coVerifyOrder {
             // delay(0) is not called
             TimeProxy.delay(200)
-            TimeProxy.delay(1000) // attempt 2: within rate
+            TimeProxy.delay(800) // attempt 2: within rate
             TimeProxy.delay(200)
-            TimeProxy.delay(1000) // attempt 3: within rate
+            TimeProxy.delay(800) // attempt 3: within rate
             TimeProxy.delay(100)
-//            TimeProxy.delay(connectRateInterval - 2500L) // attempt 4: rate limited
-//            TimeProxy.delay(300) // attempt 5: rate limited
-//            TimeProxy.delay(200)
+            TimeProxy.delay(connectRateInterval - 2100L) // attempt 4: rate limited
+            TimeProxy.delay(1000) // attempt 5: rate limited
+            TimeProxy.delay(1001)
+            // attempt 6: not rate limited
         }
         coVerifyOrder {
             rateLimiter.createProto(auth)
@@ -164,10 +158,12 @@ class RateLimiterTest {
             auth.authenticate("botlin")
             rateLimiter.createProto(auth)
             auth.authenticate("botlin")
-//            rateLimiter.createProto(auth)
-//            auth.authenticate("botlin")
-//            rateLimiter.createProto(auth)
-//            auth.authenticate("botlin")
+            rateLimiter.createProto(auth)
+            auth.authenticate("botlin")
+            rateLimiter.createProto(auth)
+            auth.authenticate("botlin")
+            rateLimiter.createProto(auth)
+            auth.authenticate("botlin")
         }
         confirmVerified(auth, rateLimiter)
     }
