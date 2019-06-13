@@ -9,15 +9,16 @@ import com.github.steveice10.packetlib.Session
 import java.util.UUID
 
 /**
- * State (embodiment) of an account on one server.
+ * State (embodiment) of an account on one server,
+ * uniquely identified by [profile] and [serverAddress].
  */
 interface Avatar : EventEmitter<AvatarEvents> {
-    // profile and ServerAddress together uniquely identify an avatar
-
     val profile: GameProfile
+
+    /** Normalized to format "host:port". */
     val serverAddress: String
 
-    val behavior: Behavior
+    val behavior: BehaviorInstance
     val connection: Session?
     val endReason: String?
     val entity: Entity?
@@ -42,10 +43,10 @@ interface Avatar : EventEmitter<AvatarEvents> {
     fun disconnect(reason: String?, cause: Throwable? = null)
 
     /**
-     * Deactivate and remove any old behavior, and activate the [behavior].
-     * When [behavior] is null, [IdleBehavior] is used.
+     * Deactivate and remove any old behavior, and
+     * call [Behavior.activate].
      */
-    fun useBehavior(behavior: Behavior?)
+    fun useBehavior(behavior: Behavior)
 
     /**
      * Indicates if the account is logged into the server at this time.

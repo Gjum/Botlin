@@ -7,35 +7,40 @@ import com.github.steveice10.mc.auth.exception.request.InvalidCredentialsExcepti
 import com.github.steveice10.mc.auth.service.AuthenticationService
 import com.github.steveice10.mc.protocol.MinecraftProtocol
 import com.google.gson.Gson
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.suspendCancellableCoroutine
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Paths
 import java.util.UUID
 import java.util.logging.Logger
+import kotlin.concurrent.thread
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
 
 const val mcPasswordEnv = "MINECRAFT_PASSWORD"
 
 private class AuthTokenCache(val clientToken: String, val sessions: MutableMap<String, String> = mutableMapOf())
 
-class AuthenticationProvider(
+private class AuthenticationProvider(
     private val credentialsPath: String,
     private val authCachePath: String
 ) : Authentication {
     private val logger: Logger = Logger.getLogger(this::class.java.name)
 
-    override val defaultAccount: String
+    override val defaultAccount: String?
         get () {
             return System.getProperty("mcUsername")
                 ?: System.getenv("MINECRAFT_USERNAME")
-                ?: "" // TODO check authCache and .credentials
+                ?: availableAccounts.firstOrNull()
         }
 
     override val availableAccounts: Collection<String>
         get() {
-            TODO("check authCache and .credentials")
+            TODO("check authCache and .credentials") // XXX
         }
 
-    override fun authenticate(username: String): MinecraftProtocol? {
+    override suspend fun authenticate(username: String): MinecraftProtocol? {
         var cToken: String = UUID.randomUUID().toString() // TODO allow providing default value
 
         // try loading cached token, and maybe client token
@@ -52,10 +57,7 @@ class AuthenticationProvider(
                     val auth = AuthenticationService(cToken)
                     auth.username = username
                     auth.accessToken = aToken
-                    auth.login()
-                    // success!
-                    cacheToken(authCachePath, auth, authCache)
-                    return mcProtoFromAuth(auth)
+                    return tryLoginAndCacheToken(auth)
                 } catch (e: InvalidCredentialsException) {
                     logger.info("Could not reuse auth token from $authCachePath")
                 }
@@ -64,15 +66,12 @@ class AuthenticationProvider(
 
         // try password from env
         val envPassword = System.getenv(mcPasswordEnv) ?: ""
-        if (!envPassword.isEmpty()) {
+        if (envPassword.isNotEmpty()) {
             try {
                 val auth = AuthenticationService(cToken)
                 auth.username = username
                 auth.password = envPassword
-                auth.login()
-                // success!
-                cacheToken(authCachePath, auth)
-                return mcProtoFromAuth(auth)
+                return tryLoginAndCacheToken(auth)
             } catch (e: InvalidCredentialsException) {
                 logger.warning("Invalid password provided via env ($mcPasswordEnv)")
             }
@@ -81,28 +80,33 @@ class AuthenticationProvider(
         // try password from .credentials
         val credentials = readCredentialsFile(credentialsPath)
         if (credentials == null) {
-            logger.fine("Could not read credentials from $credentialsPath and no password provided via env ($mcPasswordEnv)")
+            logger.info("Failed to authenticate $username: Could not read credentials from $credentialsPath and no password provided via env ($mcPasswordEnv)")
             return null
-        } else {
-            val credPassword = credentials[username] ?: ""
-            if (credPassword.isEmpty()) {
-                logger.info("No password provided via env ($mcPasswordEnv) or $credentialsPath")
-                return null
-            } else {
-                try {
-                    val auth = AuthenticationService(cToken)
-                    auth.username = username
-                    auth.password = credPassword
-                    auth.login()
-                    // success!
-                    cacheToken(authCachePath, auth)
-                    return mcProtoFromAuth(auth)
-                } catch (e: InvalidCredentialsException) {
-                    logger.warning("Invalid password provided via $credentialsPath")
-                    return null
-                }
-            }
         }
+
+        val credPassword = credentials[username] ?: ""
+        if (credPassword.isEmpty()) {
+            logger.info("Failed to authenticate $username: No password provided via env ($mcPasswordEnv) or $credentialsPath")
+            return null
+        }
+
+        try {
+            val auth = AuthenticationService(cToken)
+            auth.username = username
+            auth.password = credPassword
+            return tryLoginAndCacheToken(auth)
+        } catch (e: InvalidCredentialsException) {
+            logger.warning("Failed to authenticate $username: Invalid password provided via $credentialsPath")
+            return null
+        }
+    }
+
+    @Throws(InvalidCredentialsException::class)
+    private suspend fun tryLoginAndCacheToken(auth: AuthenticationService): MinecraftProtocol {
+        runOnThread { auth.login() } // this may throw, in which case no token is cached
+        // success!
+        cacheToken(authCachePath, auth)
+        return mcProtoFromAuth(auth)
     }
 
     private fun cacheToken(authCachePath: String, auth: AuthenticationService, authCacheArg: AuthTokenCache? = null) {
@@ -117,7 +121,7 @@ class AuthenticationProvider(
 }
 
 class AuthModule : Module() {
-    override fun initialize(serviceRegistry: ServiceRegistry, oldModule: Module?) {
+    override suspend fun initialize(serviceRegistry: ServiceRegistry, oldModule: Module?) {
         val auth = AuthenticationProvider(
             System.getProperty("mcAuthCredentials") ?: ".credentials",
             System.getProperty("mcAuthCache") ?: ".auth_tokens.json"
@@ -152,7 +156,7 @@ private fun readCredentialsFile(credentialsPath: String): Map<String, String>? {
     return parseCredentialsFile(credentialsLines)
 }
 
-fun parseCredentialsFile(lines: List<String>): Map<String, String> {
+internal fun parseCredentialsFile(lines: List<String>): Map<String, String> {
     return lines
         .filter { line -> line.isNotEmpty() }
         .map { line ->
@@ -163,4 +167,29 @@ fun parseCredentialsFile(lines: List<String>): Map<String, String> {
 
 private fun mcProtoFromAuth(auth: AuthenticationService): MinecraftProtocol {
     return MinecraftProtocol(auth.selectedProfile.name, auth.clientToken, auth.accessToken)
+}
+
+private suspend inline fun <T> runOnThread(crossinline block: () -> T): T {
+    var t: Thread? = null
+    try {
+        return suspendCancellableCoroutine { cont ->
+            synchronized(cont) {
+                t = thread(start = true) {
+                    synchronized(cont) {
+                        if (cont.isCancelled) return@thread
+                    }
+                    try {
+                        cont.resume(block())
+                    } catch (e: InterruptedException) {
+                        throw e
+                    } catch (e: Throwable) {
+                        cont.resumeWithException(e)
+                    }
+                }
+            }
+        }
+    } catch (e: CancellationException) {
+        t?.interrupt()
+        throw e
+    }
 }

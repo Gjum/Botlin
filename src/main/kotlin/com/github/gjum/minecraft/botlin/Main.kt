@@ -16,18 +16,18 @@ object NewMain {
         // val loader = DirectoryModulesLoader(Module::class.java, File("modules"))
         val loader = StaticModulesLoader(createDefaultModules() + MainArgsModule(args))
         ServiceRegistry(loader)
-        // everything else happens inside the modules
+        // everything else happens asynchronously inside the modules
     }
 }
 
 fun createDefaultModules(): Collection<Module> = listOf(
     AuthModule(),
-    AutoConnectModule(),
     AvatarModule(),
-    BehaviorRegistryModule(),
+    BehaviorsModule(),
     CliModule(),
     CommandModule(),
-    EventLoggerModule()
+    EventLoggerModule(),
+    RateLimitedConnectModule()
 )
 
 class StaticModulesLoader(private val modules: Collection<Module>) : ModulesLoader<Module> {
@@ -40,7 +40,7 @@ interface MainArgs : Service {
 }
 
 class MainArgsModule(private val args: Array<String>) : Module() {
-    override fun initialize(serviceRegistry: ServiceRegistry, oldModule: Module?) {
+    override suspend fun initialize(serviceRegistry: ServiceRegistry, oldModule: Module?) {
         serviceRegistry.provideService(MainArgs::class.java, object : MainArgs {
             override fun getArgs() = args
         })

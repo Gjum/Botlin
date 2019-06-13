@@ -2,6 +2,7 @@ package com.github.gjum.minecraft.botlin.state
 
 import com.github.gjum.minecraft.botlin.api.Avatar
 import com.github.gjum.minecraft.botlin.api.AvatarEvents
+import com.github.gjum.minecraft.botlin.api.BehaviorInstance
 import com.github.gjum.minecraft.botlin.api.Behavior
 import com.github.gjum.minecraft.botlin.util.*
 import com.github.steveice10.mc.auth.data.GameProfile
@@ -52,7 +53,7 @@ class AvatarImpl(override val profile: GameProfile, override val serverAddress: 
 
     override val coroutineContext = EmptyCoroutineContext
 
-    override var behavior: Behavior = IdleBehavior().also { it.activate(this) }
+    override var behavior: BehaviorInstance = IdleBehaviorInstance(this)
     override var connection: Session? = null
     override var endReason: String? = null
 
@@ -97,10 +98,9 @@ class AvatarImpl(override val profile: GameProfile, override val serverAddress: 
         return world!!.entities.getOrPut(eid) { Entity(eid) }
     }
 
-    override fun useBehavior(behavior: Behavior?) {
-        this.behavior.deactivate(this)
-        this.behavior = behavior ?: IdleBehavior()
-        this.behavior.activate(this)
+    override fun useBehavior(behavior: Behavior) {
+        this.behavior.deactivate()
+        this.behavior = behavior.activate(this)
     }
 
     override fun useConnection(connection: Session) {
@@ -458,7 +458,7 @@ class AvatarImpl(override val profile: GameProfile, override val serverAddress: 
 
         emit(AvatarEvents.PreClientTick) { it.invoke() }
 
-        behavior.doPhysicsTick(this)
+        behavior.doPhysicsTick()
 
         if (position != null && look != null) {
             if (position != prevPos) {

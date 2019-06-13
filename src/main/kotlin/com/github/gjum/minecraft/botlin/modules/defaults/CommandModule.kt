@@ -8,7 +8,7 @@ class CommandModule : Module() {
     override val name = "Commands"
     override val description = "Provides command registration and execution"
 
-    override fun initialize(serviceRegistry: ServiceRegistry, oldModule: Module?) {
+    override suspend fun initialize(serviceRegistry: ServiceRegistry, oldModule: Module?) {
         val commandRegistry = CommandRegistry()
         serviceRegistry.provideService(CommandService::class.java, commandRegistry)
     }

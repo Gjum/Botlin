@@ -1,17 +1,13 @@
 package com.github.gjum.minecraft.botlin.api
 
-interface AutoConnect : Service {
+interface RateLimitedConnect : Service {
     /**
-     * Automatically connect [username] to [serverAddress],
-     * reconnecting it when disconnected with exponential backoff.
+     * Tries to connect [avatar], using exponential backoff for unsuccessful attempts.
+     *
+     * Blocks until a connection could be made.
+     * May rely on [Authentication] service for authentication.
      */
-    fun autoConnectTo(username: String, serverAddress: String?)
-
-    /**
-     * Returns all currently configured automatically connecting accounts
-     * and which servers they connect to.
-     */
-    fun getCurrentlyAutoConnecting(): Map<String, String>
+    suspend fun connect(avatar: Avatar)
 
     /**
      * After getting disconnected from a successful connection,

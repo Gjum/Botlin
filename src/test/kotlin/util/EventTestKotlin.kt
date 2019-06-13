@@ -12,19 +12,19 @@ class EventTestKotlin {
     fun eventTest() {
         val ee = EventEmitterImpl<AvatarEvents>()
 
-        val foo: (String) -> Unit = spyk()
+        val trackEventHandler: (String) -> Unit = spyk()
 
         // events get handled
         ee.on(AvatarEvents.Spawned) { entity ->
-            foo("AAA Spawned ${entity.position}")
+            trackEventHandler("AAA Spawned ${entity.position}")
         }
         // multiple handlers same event
         ee.on(AvatarEvents.Spawned) { entity ->
-            foo("BBB Spawned ${entity.position}")
+            trackEventHandler("BBB Spawned ${entity.position}")
         }
         // multiple handlers different events
         ee.on(AvatarEvents.PositionChanged) { newPos, oldPos, reason ->
-            foo("PosChange $newPos")
+            trackEventHandler("PosChange $newPos")
         }
 
         // events get emitted
@@ -43,11 +43,11 @@ class EventTestKotlin {
         }
 
         verifyOrder {
-            foo("PosChange [1.0 1.0 1.0]")
-            foo("PosChange [2.0 2.0 2.0]")
-            foo("AAA Spawned [3.0 3.0 3.0]")
-            foo("BBB Spawned [3.0 3.0 3.0]")
+            trackEventHandler("PosChange [1.0 1.0 1.0]")
+            trackEventHandler("PosChange [2.0 2.0 2.0]")
+            trackEventHandler("AAA Spawned [3.0 3.0 3.0]")
+            trackEventHandler("BBB Spawned [3.0 3.0 3.0]")
         }
-        confirmVerified(foo)
+        confirmVerified(trackEventHandler)
     }
 }

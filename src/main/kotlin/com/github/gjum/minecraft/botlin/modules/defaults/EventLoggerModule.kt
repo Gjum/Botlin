@@ -17,7 +17,7 @@ import java.util.logging.Logger
 class EventLoggerModule : Module() {
     private val logger = Logger.getLogger(this::class.java.name)
 
-    override fun initialize(serviceRegistry: ServiceRegistry, oldModule: Module?) {
+    override suspend fun initialize(serviceRegistry: ServiceRegistry, oldModule: Module?) {
         // XXX on every avatar creation: listen for all events
         val avatar = EventEmitterImpl<AvatarEvents>() // XXX on avatar
         registerWithAvatar(avatar)

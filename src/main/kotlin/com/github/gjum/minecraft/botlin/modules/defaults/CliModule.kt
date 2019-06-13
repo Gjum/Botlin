@@ -17,7 +17,7 @@ import java.util.logging.Logger
 class CliModule : Module() {
     private val logger = Logger.getLogger(this::class.java.name)
 
-    override fun initialize(serviceRegistry: ServiceRegistry, oldModule: Module?) {
+    override suspend fun initialize(serviceRegistry: ServiceRegistry, oldModule: Module?) {
         var commands: CommandService? = null
 
         class Context(val cmdName: String) : CommandContext {

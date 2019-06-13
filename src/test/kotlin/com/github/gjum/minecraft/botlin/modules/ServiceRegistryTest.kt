@@ -3,6 +3,7 @@ package com.github.gjum.minecraft.botlin.modules
 import com.github.gjum.minecraft.botlin.api.Module
 import com.github.gjum.minecraft.botlin.api.Service
 import io.mockk.*
+import kotlinx.coroutines.runBlocking
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -14,7 +15,7 @@ interface TestService : Service {
 }
 
 class ConsumerModule : Module() {
-    override fun initialize(serviceRegistry: ServiceRegistry, oldModule: Module?) {
+    override suspend fun initialize(serviceRegistry: ServiceRegistry, oldModule: Module?) {
         serviceRegistry.consumeService(TestService::class.java,
             ::handleTestServiceChange)
     }
@@ -41,7 +42,7 @@ class EventProvider : TestService {
 }
 
 class ProviderModule(private val provider: EventProvider) : Module() {
-    override fun initialize(serviceRegistry: ServiceRegistry, oldModule: Module?) {
+    override suspend fun initialize(serviceRegistry: ServiceRegistry, oldModule: Module?) {
         serviceRegistry.provideService(TestService::class.java, provider)
     }
 
@@ -78,10 +79,10 @@ class ServiceRegistryTest {
             providerModule.name
 
             consumerModule.name
-            consumerModule.initialize(serviceRegistry)
+            runBlocking { consumerModule.initialize(serviceRegistry) }
 
             providerModule.name
-            providerModule.initialize(serviceRegistry)
+            runBlocking { providerModule.initialize(serviceRegistry) }
             consumerModule.handleTestServiceChange(provider)
             provider.subscribe(consumerModule, "foo", any())
 
@@ -93,10 +94,7 @@ class ServiceRegistryTest {
             consumerModule.handleTestServiceChange(null)
         }
 
-        confirmVerified(loader)
-        confirmVerified(consumerModule)
-        confirmVerified(provider)
-        confirmVerified(providerModule)
+        confirmVerified(loader, consumerModule, provider, providerModule)
     }
 
     @Test
@@ -111,12 +109,12 @@ class ServiceRegistryTest {
         val serviceRegistry = ServiceRegistry(loader)
 
         verify(inverse = true) {
-            consumer1.initialize(serviceRegistry)
+            runBlocking { consumer1.initialize(serviceRegistry) }
         }
         verifyOrder {
             consumer1.name
             consumer2.name
-            consumer2.initialize(serviceRegistry)
+            runBlocking { consumer2.initialize(serviceRegistry) }
         }
     }
 }

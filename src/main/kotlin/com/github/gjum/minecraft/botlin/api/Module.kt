@@ -25,7 +25,7 @@ abstract class Module {
      * When providing a service, any related state should not be taken from [oldModule],
      * because other modules will be prompted to contact this new instance.
      */
-    open fun initialize(serviceRegistry: ServiceRegistry, oldModule: Module? = null) = Unit
+    open suspend fun initialize(serviceRegistry: ServiceRegistry, oldModule: Module? = null) = Unit
 
     /**
      * Called when this module will be removed, e.g., after error or hot reload.
