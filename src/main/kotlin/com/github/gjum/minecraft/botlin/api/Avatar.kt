@@ -13,6 +13,8 @@ import java.util.UUID
  * uniquely identified by [profile] and [serverAddress].
  */
 interface Avatar : EventEmitter<AvatarEvents> {
+    val identifier get() = "${profile.name}@$serverAddress"
+
     val profile: GameProfile
 
     /** Normalized to format "host:port". */

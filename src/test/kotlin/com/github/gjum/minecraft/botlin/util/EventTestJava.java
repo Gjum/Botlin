@@ -1,9 +1,7 @@
-package util;
+package com.github.gjum.minecraft.botlin.util;
 
 import com.github.gjum.minecraft.botlin.api.AvatarEvents;
 import com.github.gjum.minecraft.botlin.state.Entity;
-import com.github.gjum.minecraft.botlin.util.EventEmitterImpl;
-import com.github.gjum.minecraft.botlin.util.Vec3d;
 import org.junit.Test;
 
 import java.util.ArrayList;

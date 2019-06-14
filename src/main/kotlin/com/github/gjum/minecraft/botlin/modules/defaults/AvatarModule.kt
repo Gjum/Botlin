@@ -16,7 +16,7 @@ class AvatarProvider(private val avatars: MutableMap<String, Avatar>) : Avatars 
     private val profileService = ProfileService()
 
     override suspend fun getAvatar(username: String, serverAddress: String): Avatar {
-        return avatars.getOrPut("$username\n$serverAddress") {
+        return avatars.getOrPut("$username@$serverAddress") {
             val profile: GameProfile = lookupProfile(username)
             AvatarImpl(profile, serverAddress)
         }

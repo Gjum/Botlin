@@ -23,8 +23,6 @@ class RateLimitedConnectModule : Module() {
 
 private fun getACProp(prop: String) = System.getProperty("autoconnect$prop") ?: null
 
-private data class AvatarId(val username: String, val serverAddress: String)
-
 internal class RateLimitedConnectProvider(
     private val auth: Authentication,
     override var backoffStart: Int,

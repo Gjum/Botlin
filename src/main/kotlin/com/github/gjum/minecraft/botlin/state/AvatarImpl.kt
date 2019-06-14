@@ -2,8 +2,8 @@ package com.github.gjum.minecraft.botlin.state
 
 import com.github.gjum.minecraft.botlin.api.Avatar
 import com.github.gjum.minecraft.botlin.api.AvatarEvents
-import com.github.gjum.minecraft.botlin.api.BehaviorInstance
 import com.github.gjum.minecraft.botlin.api.Behavior
+import com.github.gjum.minecraft.botlin.api.BehaviorInstance
 import com.github.gjum.minecraft.botlin.util.*
 import com.github.steveice10.mc.auth.data.GameProfile
 import com.github.steveice10.mc.protocol.data.game.PlayerListEntryAction
@@ -47,11 +47,14 @@ import kotlin.coroutines.EmptyCoroutineContext
 
 private val brandBytesVanilla = byteArrayOf(7, 118, 97, 110, 105, 108, 108, 97)
 
-class AvatarImpl(override val profile: GameProfile, override val serverAddress: String) : Avatar, SessionListener, CoroutineScope, EventEmitterImpl<AvatarEvents>() {
+class AvatarImpl(override val profile: GameProfile, serverArg: String) : Avatar, SessionListener, CoroutineScope, EventEmitterImpl<AvatarEvents>() {
     private val logger: Logger = Logger.getLogger(this::class.java.name)
     private var ticker: Job? = null
 
     override val coroutineContext = EmptyCoroutineContext
+
+    override val serverAddress = (serverArg.split(':') + "25565")
+        .take(2).joinToString(":")
 
     override var behavior: BehaviorInstance = IdleBehaviorInstance(this)
     override var connection: Session? = null
@@ -496,6 +499,11 @@ class AvatarImpl(override val profile: GameProfile, override val serverAddress: 
 
     override fun packetSending(event: PacketSendingEvent) = Unit
     override fun packetSent(event: PacketSentEvent) = Unit
+
+    override fun toString(): String {
+        val connStatus = if (connected) "online" else "offline"
+        return "AvatarImpl($identifier $connStatus at $position behavior=${behavior.name})"
+    }
 }
 
 private val HandledByProtoLib = Unit
