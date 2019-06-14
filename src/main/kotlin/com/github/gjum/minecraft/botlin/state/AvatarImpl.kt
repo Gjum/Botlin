@@ -461,7 +461,7 @@ class AvatarImpl(override val profile: GameProfile, serverArg: String) : Avatar,
 
         emit(AvatarEvents.PreClientTick) { it.invoke() }
 
-        behavior.doPhysicsTick()
+        if (position != null) behavior.doPhysicsTick()
 
         if (position != null && look != null) {
             if (position != prevPos) {

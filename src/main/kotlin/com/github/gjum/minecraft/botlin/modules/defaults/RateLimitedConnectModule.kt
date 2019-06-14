@@ -1,11 +1,15 @@
 package com.github.gjum.minecraft.botlin.modules.defaults
 
-import com.github.gjum.minecraft.botlin.api.*
+import com.github.gjum.minecraft.botlin.api.Authentication
+import com.github.gjum.minecraft.botlin.api.Avatar
+import com.github.gjum.minecraft.botlin.api.Module
+import com.github.gjum.minecraft.botlin.api.RateLimitedConnect
 import com.github.gjum.minecraft.botlin.modules.ServiceRegistry
 import com.github.steveice10.mc.protocol.MinecraftProtocol
 import com.github.steveice10.packetlib.Client
 import com.github.steveice10.packetlib.tcp.TcpSessionFactory
 import java.lang.Long.max
+import java.util.logging.Logger
 
 class RateLimitedConnectModule : Module() {
     override suspend fun initialize(serviceRegistry: ServiceRegistry, oldModule: Module?) {
@@ -31,6 +35,8 @@ internal class RateLimitedConnectProvider(
     var connectRateLimit: Int,
     var connectRateInterval: Int
 ) : RateLimitedConnect {
+    private val logger = Logger.getLogger(this.javaClass.name)
+
     private val rateLimiters = mutableMapOf<String, AccountRateLimiter>()
 
     override fun limitConnectRate(limit: Int, intervalMs: Int) {
@@ -38,8 +44,11 @@ internal class RateLimitedConnectProvider(
         connectRateInterval = intervalMs
     }
 
+    @Synchronized
     override suspend fun connect(avatar: Avatar) {
-        // XXX what if already connected? or other caller is already trying to connect?
+        if (avatar.connected) {
+            logger.warning("Avatar $avatar is already connected")
+        }
         val rateLimiter = rateLimiters.getOrPut(avatar.profile.name, {
             AccountRateLimiter(avatar.profile.name, this)
         })
@@ -52,12 +61,16 @@ internal class RateLimitedConnectProvider(
         val host = split[0]
         val port = split[1].toInt()
         val client = Client(host, port, proto, TcpSessionFactory())
+        if (avatar.connected) {
+            logger.warning("Avatar $avatar got connected by other caller")
+            return
+        }
         avatar.useConnection(client.session)
         client.session.connect(true)
     }
 }
 
-/** for testing. Gets inlined by JVM JIT (hopefully). */
+/** For testing. Gets inlined by JVM JIT (hopefully). */
 internal object TimeProxy {
     fun currentTimeMillis() = System.currentTimeMillis()
     suspend fun delay(ms: Long) = kotlinx.coroutines.delay(ms)

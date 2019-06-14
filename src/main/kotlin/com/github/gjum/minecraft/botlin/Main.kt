@@ -1,21 +1,27 @@
 package com.github.gjum.minecraft.botlin
 
+import com.github.gjum.minecraft.botlin.api.Behaviors
 import com.github.gjum.minecraft.botlin.api.Module
 import com.github.gjum.minecraft.botlin.api.Service
 import com.github.gjum.minecraft.botlin.modules.ModulesLoader
 import com.github.gjum.minecraft.botlin.modules.ServiceRegistry
 import com.github.gjum.minecraft.botlin.modules.defaults.*
+import com.github.gjum.minecraft.botlin.state.IdleBehavior
+import com.github.gjum.minecraft.botlin.state.ReconnectBehavior
 import java.io.File
-import java.util.logging.Logger
 
 object NewMain {
-    private val logger = Logger.getLogger(this::class.java.name)
-
     @JvmStatic
     fun main(args: Array<String>) {
         // val loader = DirectoryModulesLoader(Module::class.java, File("modules"))
         val loader = StaticModulesLoader(createDefaultModules() + MainArgsModule(args))
-        ServiceRegistry(loader)
+        val serviceRegistry = ServiceRegistry(loader)
+        serviceRegistry.consumeService(Behaviors::class.java) { behaviors ->
+            behaviors ?: return@consumeService
+            // TODO do this in DefaultBehaviorsModule
+            behaviors.provideBehavior(IdleBehavior())
+            behaviors.provideBehavior(ReconnectBehavior())
+        }
         // everything else happens asynchronously inside the modules
     }
 }

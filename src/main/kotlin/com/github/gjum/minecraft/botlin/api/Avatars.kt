@@ -9,4 +9,6 @@ interface Avatars : Service {
      * Creates an [Avatar] instance if necessary.
      */
     suspend fun getAvatar(username: String, serverAddress: String): Avatar
+
+    val availableAvatars : Collection<Avatar>
 }
