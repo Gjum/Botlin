@@ -3,8 +3,7 @@ package com.github.gjum.minecraft.botlin.api
 interface RateLimitedConnect : Service {
     /**
      * Tries to connect [avatar], using exponential backoff for unsuccessful attempts.
-     * Calls [Avatar.useConnection] on success.
-     * Blocks until a connection could be made. Use coroutine cancellation for timeouts etc.
+     * Calls [Avatar.useProtocol] on success.
      * May rely on [Authentication] service for authentication.
      */
     suspend fun connect(avatar: Avatar)

@@ -1,7 +1,7 @@
 package com.github.gjum.minecraft.botlin.modules.defaults
 
-import com.github.gjum.minecraft.botlin.api.Authentication
-import com.github.steveice10.mc.protocol.MinecraftProtocol
+import com.github.gjum.minecraft.botlin.util.RateLimiter
+import com.github.gjum.minecraft.botlin.util.TimeProxy
 import io.mockk.*
 import kotlinx.coroutines.runBlocking
 import org.junit.Test
@@ -17,45 +17,44 @@ class RateLimiterTest {
             nowMs += delayMs.captured
         }
 
-        val proto = mockk<MinecraftProtocol>()
-        val auth = mockk<Authentication>()
+        val params = object : RateLimiter.Params {
+            override val backoffStart = 1000
+            override val backoffFactor = 2f
+            override val backoffEnd = 5_000
+            override val connectRateLimit = 5
+            override val connectRateInterval = 60_000
+        }
+        val rateLimiter = spyk(RateLimiter(params))
 
-        val backoffStart = 1000
-        val backoffFactor = 2f
-        val backoffEnd = 5_000
-        val connectRateLimit = 5
-        val connectRateInterval = 60_000
-
-        val connector = RateLimitedConnectProvider(auth,
-            backoffStart, backoffFactor, backoffEnd,
-            connectRateLimit, connectRateInterval)
-        val rateLimiter = spyk(AccountRateLimiter("botlin", connector))
+        var success = false
+        val getSuccess = spyk<() -> Boolean>(fun() = success)
+        val block = suspend { (0 to getSuccess()) }
 
         runBlocking {
             // failed attempts use exponential backoff
-            coEvery { auth.authenticate("botlin") } returns null
+            success = false
             // attempt 1: no delay
-            rateLimiter.createProto(auth)
+            rateLimiter.runWithRateLimit(block)
             // attempt 2: after backoffStart
-            rateLimiter.createProto(auth)
+            rateLimiter.runWithRateLimit(block)
             // attempt 3: after backoffStart * 2
-            rateLimiter.createProto(auth)
+            rateLimiter.runWithRateLimit(block)
             // attempt 4: after backoffStart * 2 * 2
-            rateLimiter.createProto(auth)
+            rateLimiter.runWithRateLimit(block)
             // attempt n: after backoffEnd
-            rateLimiter.createProto(auth)
+            rateLimiter.runWithRateLimit(block)
             // attempt n+1: also after backoffEnd
             // also set up success for next part ...
-            coEvery { auth.authenticate("botlin") } returns proto
-            rateLimiter.createProto(auth)
+            success = true
+            rateLimiter.runWithRateLimit(block)
             // successful attempt resets backoff to backoffStart
-            rateLimiter.createProto(auth)
+            rateLimiter.runWithRateLimit(block)
             // repeated successful attempts delayed by backoffStart
             // also setup failure for next part ...
-            coEvery { auth.authenticate("botlin") } returns null
-            rateLimiter.createProto(auth)
+            success = false
+            rateLimiter.runWithRateLimit(block)
             // after success, failures use exponential backoff again
-            rateLimiter.createProto(auth)
+            rateLimiter.runWithRateLimit(block)
         }
 
         coVerifyOrder {
@@ -70,26 +69,26 @@ class RateLimiterTest {
             TimeProxy.delay(2000)
         }
         coVerifyOrder {
-            rateLimiter.createProto(auth)
-            auth.authenticate("botlin")
-            rateLimiter.createProto(auth)
-            auth.authenticate("botlin")
-            rateLimiter.createProto(auth)
-            auth.authenticate("botlin")
-            rateLimiter.createProto(auth)
-            auth.authenticate("botlin")
-            rateLimiter.createProto(auth)
-            auth.authenticate("botlin")
-            rateLimiter.createProto(auth)
-            auth.authenticate("botlin")
-            rateLimiter.createProto(auth)
-            auth.authenticate("botlin")
-            rateLimiter.createProto(auth)
-            auth.authenticate("botlin")
-            rateLimiter.createProto(auth)
-            auth.authenticate("botlin")
+            rateLimiter.runWithRateLimit(block)
+            getSuccess()
+            rateLimiter.runWithRateLimit(block)
+            getSuccess()
+            rateLimiter.runWithRateLimit(block)
+            getSuccess()
+            rateLimiter.runWithRateLimit(block)
+            getSuccess()
+            rateLimiter.runWithRateLimit(block)
+            getSuccess()
+            rateLimiter.runWithRateLimit(block)
+            getSuccess()
+            rateLimiter.runWithRateLimit(block)
+            getSuccess()
+            rateLimiter.runWithRateLimit(block)
+            getSuccess()
+            rateLimiter.runWithRateLimit(block)
+            getSuccess()
         }
-        confirmVerified(auth, rateLimiter)
+        confirmVerified(rateLimiter, getSuccess)
     }
 
     @Test
@@ -102,39 +101,38 @@ class RateLimiterTest {
             nowMs += delayMs.captured
         }
 
-        val proto = mockk<MinecraftProtocol>()
-        val auth = mockk<Authentication>()
+        val params = object : RateLimiter.Params {
+            override val backoffStart = 1000
+            override val backoffFactor = 2f
+            override val backoffEnd = 5_000
+            override val connectRateLimit = 5
+            override val connectRateInterval = 60_000
+        }
+        val rateLimiter = spyk(RateLimiter(params))
 
-        val backoffStart = 1000
-        val backoffFactor = 2f
-        val backoffEnd = 5_000
-        val connectRateLimit = 3
-        val connectRateInterval = 60_000
-
-        val connector = RateLimitedConnectProvider(auth,
-            backoffStart, backoffFactor, backoffEnd,
-            connectRateLimit, connectRateInterval)
-        val rateLimiter = spyk(AccountRateLimiter("botlin", connector))
+        var success = false
+        val getSuccess = spyk<() -> Boolean>(fun() = success)
+        val block = suspend { (0 to getSuccess()) }
 
         runBlocking {
+            success = true
             // first attempt happens instantly
-            coEvery { auth.authenticate("botlin") } returns proto
-            rateLimiter.createProto(auth)
+            rateLimiter.runWithRateLimit(block)
             TimeProxy.delay(200)
             // successful attempts are not rate limited when below rate,
             // and use backoffStart delay
-            rateLimiter.createProto(auth)
+            rateLimiter.runWithRateLimit(block)
             TimeProxy.delay(200)
             // success does not use exponential backoff, but constant backoffStart
-            rateLimiter.createProto(auth)
+            rateLimiter.runWithRateLimit(block)
             TimeProxy.delay(100)
             // successful attempts are rate limited when above rate
-            rateLimiter.createProto(auth)
+            rateLimiter.runWithRateLimit(block)
             // rate limit cleans up queue
-            rateLimiter.createProto(auth)
+            rateLimiter.runWithRateLimit(block)
             // rate limit expires by waiting
             TimeProxy.delay(1001)
-            rateLimiter.createProto(auth)
+            rateLimiter.runWithRateLimit(block)
 
             // TODO test: rate limit is not applied to backoff after unsuccessful attempts
         }
@@ -146,25 +144,25 @@ class RateLimiterTest {
             TimeProxy.delay(200)
             TimeProxy.delay(800) // attempt 3: within rate
             TimeProxy.delay(100)
-            TimeProxy.delay(connectRateInterval - 2100L) // attempt 4: rate limited
+            TimeProxy.delay(params.connectRateInterval - 2100L) // attempt 4: rate limited
             TimeProxy.delay(1000) // attempt 5: rate limited
             TimeProxy.delay(1001)
             // attempt 6: not rate limited
         }
         coVerifyOrder {
-            rateLimiter.createProto(auth)
-            auth.authenticate("botlin")
-            rateLimiter.createProto(auth)
-            auth.authenticate("botlin")
-            rateLimiter.createProto(auth)
-            auth.authenticate("botlin")
-            rateLimiter.createProto(auth)
-            auth.authenticate("botlin")
-            rateLimiter.createProto(auth)
-            auth.authenticate("botlin")
-            rateLimiter.createProto(auth)
-            auth.authenticate("botlin")
+            rateLimiter.runWithRateLimit(block)
+            getSuccess()
+            rateLimiter.runWithRateLimit(block)
+            getSuccess()
+            rateLimiter.runWithRateLimit(block)
+            getSuccess()
+            rateLimiter.runWithRateLimit(block)
+            getSuccess()
+            rateLimiter.runWithRateLimit(block)
+            getSuccess()
+            rateLimiter.runWithRateLimit(block)
+            getSuccess()
         }
-        confirmVerified(auth, rateLimiter)
+        confirmVerified(rateLimiter, getSuccess)
     }
 }

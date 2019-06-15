@@ -4,6 +4,7 @@ import com.github.gjum.minecraft.botlin.state.*
 import com.github.gjum.minecraft.botlin.util.Look
 import com.github.gjum.minecraft.botlin.util.Vec3d
 import com.github.steveice10.mc.auth.data.GameProfile
+import com.github.steveice10.mc.protocol.MinecraftProtocol
 import com.github.steveice10.mc.protocol.data.game.entity.player.GameMode
 import com.github.steveice10.packetlib.Session
 import java.util.UUID
@@ -37,7 +38,7 @@ interface Avatar : EventEmitter<AvatarEvents> {
     val world: World?
     val playerList: Map<UUID, PlayerListItem>?
 
-    fun useConnection(connection: Session)
+    fun useProtocol(proto: MinecraftProtocol)
 
     /**
      * Disconnects the client, blocking the current thread.

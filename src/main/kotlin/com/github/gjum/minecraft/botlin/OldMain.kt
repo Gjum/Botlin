@@ -6,8 +6,6 @@ import com.github.gjum.minecraft.botlin.util.Cli
 import com.github.gjum.minecraft.botlin.util.Reauth.reauth
 import com.github.gjum.minecraft.botlin.util.toAnsi
 import com.github.steveice10.mc.protocol.packet.ingame.client.ClientChatPacket
-import com.github.steveice10.packetlib.Client
-import com.github.steveice10.packetlib.tcp.TcpSessionFactory
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -41,9 +39,7 @@ object Main {
             run {
                 val proto = reauth(username, password, aToken, cToken)
                 aToken = proto.accessToken ?: ""
-                val client = Client(host, port, proto, TcpSessionFactory())
-                bot.useConnection(client.session)
-                client.session.connect(false)
+                bot.useProtocol(proto)
             }
 
             Cli.run { cmdLine ->
@@ -72,9 +68,7 @@ object Main {
                         val proto = reauth(username, password, aToken, cToken)
                         aToken = proto.accessToken ?: ""
                         logger.info("Connecting as ${proto.profile.name} auth=${aToken != ""}")
-                        val client = Client(host, port, proto, TcpSessionFactory())
-                        bot.useConnection(client.session)
-                        client.session.connect(false)
+                        bot.useProtocol(proto)
                     }
                     "logout" -> GlobalScope.launch { bot.disconnect("CLI disconnect command") }
                     "info" -> {

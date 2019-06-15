@@ -3,8 +3,11 @@ package com.github.gjum.minecraft.botlin.modules.defaults
 import com.github.gjum.minecraft.botlin.api.*
 import com.github.gjum.minecraft.botlin.modules.ServiceRegistry
 import com.github.gjum.minecraft.botlin.state.AvatarImpl
+import com.github.gjum.minecraft.botlin.state.normalizeServerAddress
 import com.github.steveice10.mc.auth.data.GameProfile
 import com.github.steveice10.mc.auth.service.ProfileService
+import com.github.steveice10.packetlib.Client
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
@@ -14,9 +17,10 @@ class AvatarProvider(private val avatars: MutableMap<String, Avatar>) : Avatars 
     private val profileService = ProfileService()
 
     override suspend fun getAvatar(username: String, serverAddress: String): Avatar {
-        return avatars.getOrPut("$username@$serverAddress") {
+        val serverAddressNorm = normalizeServerAddress(serverAddress) // XXX
+        return avatars.getOrPut("$username@$serverAddressNorm") {
             val profile: GameProfile = lookupProfile(username)
-            AvatarImpl(profile, serverAddress)
+            AvatarImpl(profile, serverAddressNorm)
         }
     }
 
@@ -66,14 +70,24 @@ class AvatarModule : Module() {
         val auth = serviceRegistry.consumeService(Authentication::class.java)
         auth ?: return
         commands.registerCommand("connect",
-            "connect [account=default] [server=localhost:25565]",
-            "Start auto-connecting account to server."
+            "connect [username=default] [server=localhost:25565]",
+            "Connect account to server with its current behavior."
         ) { cmdLine, context ->
             val split = cmdLine.split(" +".toRegex())
             val (servers, users) = split.drop(1).partition { '.' in it || ':' in it }
             val serverAddress = servers.getOrElse(0) { TODO("previous server") }
-            val username = users.getOrElse(0) { auth.defaultAccount }
-            TODO("connect command") // XXX
+            val username = users.getOrElse(0) { auth.defaultAccount } ?: run {
+                context.respond("Not connecting: no username given and no default account available")
+                return@registerCommand
+            }
+            val proto = runBlocking { auth.authenticate(username) } ?: run {
+                context.respond("Failed to authenticate $username")
+                return@registerCommand
+            }
+            runBlocking {
+                val avatar = avatars.getAvatar(username, serverAddress)
+                avatar.useProtocol(proto)
+            }
         }
     }
 }
