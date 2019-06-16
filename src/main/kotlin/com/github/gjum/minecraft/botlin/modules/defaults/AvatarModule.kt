@@ -6,7 +6,6 @@ import com.github.gjum.minecraft.botlin.state.AvatarImpl
 import com.github.gjum.minecraft.botlin.state.normalizeServerAddress
 import com.github.steveice10.mc.auth.data.GameProfile
 import com.github.steveice10.mc.auth.service.ProfileService
-import com.github.steveice10.packetlib.Client
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
@@ -17,7 +16,7 @@ class AvatarProvider(private val avatars: MutableMap<String, Avatar>) : Avatars 
     private val profileService = ProfileService()
 
     override suspend fun getAvatar(username: String, serverAddress: String): Avatar {
-        val serverAddressNorm = normalizeServerAddress(serverAddress) // XXX
+        val serverAddressNorm = normalizeServerAddress(serverAddress)
         return avatars.getOrPut("$username@$serverAddressNorm") {
             val profile: GameProfile = lookupProfile(username)
             AvatarImpl(profile, serverAddressNorm)

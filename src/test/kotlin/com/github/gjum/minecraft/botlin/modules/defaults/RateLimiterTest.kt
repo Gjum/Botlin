@@ -105,7 +105,7 @@ class RateLimiterTest {
             override val backoffStart = 1000
             override val backoffFactor = 2f
             override val backoffEnd = 5_000
-            override val connectRateLimit = 5
+            override val connectRateLimit = 3
             override val connectRateInterval = 60_000
         }
         val rateLimiter = spyk(RateLimiter(params))
