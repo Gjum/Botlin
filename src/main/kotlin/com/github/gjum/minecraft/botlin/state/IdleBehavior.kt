@@ -23,7 +23,7 @@ open class IdleBehaviorInstance(avatar: Avatar) : BehaviorInstance(avatar) {
     private var prevPos: Vec3d? = null
 
     init {
-        avatar.on(AvatarEvents.PositionChanged, ::onPosChanged)
+        avatar.on(AvatarEvents.TeleportByServer, ::onPosChanged)
     }
 
     private fun onPosChanged(newPos: Vec3d, oldPos: Vec3d?, reason: Any?) {

@@ -192,19 +192,31 @@ class AvatarImpl(override val profile: GameProfile, serverArg: String) : Avatar,
                 inventory = null
             }
             is ServerPlayerHealthPacket -> {
+                val prevHealth = health
+                val prevFood = food
+                val prevSaturation = saturation
+
                 val wasSpawned = spawned
+
                 health = packet.health
                 food = packet.food
                 saturation = packet.saturation
+
+                if (prevHealth != health) emit(AvatarEvents.HealthChanged) { it.invoke(health!!, prevHealth) }
+                if (prevFood != food) emit(AvatarEvents.FoodChanged) { it.invoke(food!!, prevFood) }
+                if (prevSaturation != saturation) emit(AvatarEvents.SaturationChanged) { it.invoke(saturation!!, prevSaturation) }
+
                 if (!wasSpawned && spawned) emit(AvatarEvents.Spawned) { it.invoke(entity!!) }
             }
             is ServerPlayerSetExperiencePacket -> {
+                val prevExp = experience
                 val wasSpawned = spawned
                 experience = Experience(
                     packet.slot,
                     packet.level,
                     packet.totalExperience
                 )
+                emit(AvatarEvents.ExpChanged) { it.invoke(experience!!, prevExp) }
                 if (!wasSpawned && spawned) emit(AvatarEvents.Spawned) { it.invoke(entity!!) }
             }
             is ServerPlayerPositionRotationPacket -> {
@@ -233,7 +245,7 @@ class AvatarImpl(override val profile: GameProfile, serverArg: String) : Avatar,
                     )
                 )
 
-                emit(AvatarEvents.PositionChanged) {
+                emit(AvatarEvents.TeleportByServer) {
                     it.invoke(position!!, oldPosition, packet)
                 }
                 if (!wasSpawned && spawned) emit(AvatarEvents.Spawned) { it.invoke(entity!!) }
@@ -247,7 +259,7 @@ class AvatarImpl(override val profile: GameProfile, serverArg: String) : Avatar,
                     position = Vec3d(packet.x, packet.y, packet.z)
                     look = Look.fromDegrees(packet.yaw, packet.pitch)
                     entity?.position = position // TODO update client pos in relation to vehicle (typically up/down)
-                    emit(AvatarEvents.PositionChanged) {
+                    emit(AvatarEvents.TeleportByServer) {
                         it.invoke(position!!, oldPosition, packet)
                     }
                 }

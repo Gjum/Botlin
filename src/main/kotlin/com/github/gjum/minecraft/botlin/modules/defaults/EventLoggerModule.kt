@@ -57,7 +57,7 @@ class EventLoggerModule : Module() {
             logger.info("Window closed: ${window.windowTitle} with ${window.slotCount} slots")
         }
 
-        avatar.on(AvatarEvents.PositionChanged, fun(newPos: Vec3d, oldPos: Vec3d?, reason: Any?) {
+        avatar.on(AvatarEvents.TeleportByServer, fun(newPos: Vec3d, oldPos: Vec3d?, reason: Any?) {
             logger.info("Position changed to $newPos")
         })
 

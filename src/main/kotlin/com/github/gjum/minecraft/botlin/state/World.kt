@@ -20,7 +20,7 @@ import com.github.steveice10.mc.protocol.data.game.world.block.value.BlockValueT
 import com.github.steveice10.mc.protocol.data.message.Message
 import java.util.*
 
-class Experience(val bar: Float, val level: Int, val total: Int)
+class Experience(val progress: Float, val level: Int, val total: Int)
 
 sealed class EntityType {
     class ExpOrb(val exp: Int) : EntityType()

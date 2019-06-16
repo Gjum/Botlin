@@ -21,11 +21,11 @@ public class EventTestJava {
             called.add("AAA Spawned " + entity.getPosition());
         }));
         // three args
-        ee.on(AvatarEvents.getPositionChanged(), $((newPos, oldPos, reason) -> {
+        ee.on(AvatarEvents.getTeleportByServer(), $((newPos, oldPos, reason) -> {
             called.add("PosChange " + newPos);
         }));
 
-        ee.emit(AvatarEvents.getPositionChanged(), $(it -> {
+        ee.emit(AvatarEvents.getTeleportByServer(), $(it -> {
             it.invoke(new Vec3d(2.0, 2.0, 2.0), Vec3d.getOrigin(), null);
         }));
         ee.emit(AvatarEvents.getSpawned(), it -> {

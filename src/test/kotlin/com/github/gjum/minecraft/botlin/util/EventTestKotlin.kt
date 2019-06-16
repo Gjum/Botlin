@@ -23,16 +23,16 @@ class EventTestKotlin {
             trackEventHandler("BBB Spawned ${entity.position}")
         }
         // multiple handlers different events
-        ee.on(AvatarEvents.PositionChanged) { newPos, oldPos, reason ->
+        ee.on(AvatarEvents.TeleportByServer) { newPos, oldPos, reason ->
             trackEventHandler("PosChange $newPos")
         }
 
         // events get emitted
-        ee.emit(AvatarEvents.PositionChanged) {
+        ee.emit(AvatarEvents.TeleportByServer) {
             it.invoke(Vec3d(1.0, 1.0, 1.0), Vec3d.origin, null)
         }
         // events get emitted each time
-        ee.emit(AvatarEvents.PositionChanged) {
+        ee.emit(AvatarEvents.TeleportByServer) {
             it.invoke(Vec3d(2.0, 2.0, 2.0), Vec3d.origin, null)
         }
         // different events get emitted

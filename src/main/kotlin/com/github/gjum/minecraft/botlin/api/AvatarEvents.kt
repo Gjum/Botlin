@@ -1,9 +1,6 @@
 package com.github.gjum.minecraft.botlin.api
 
-import com.github.gjum.minecraft.botlin.state.Entity
-import com.github.gjum.minecraft.botlin.state.PlayerListItem
-import com.github.gjum.minecraft.botlin.state.Slot
-import com.github.gjum.minecraft.botlin.state.Window
+import com.github.gjum.minecraft.botlin.state.*
 import com.github.gjum.minecraft.botlin.util.Vec3d
 import com.github.steveice10.mc.protocol.data.message.Message
 import com.github.steveice10.packetlib.Session
@@ -18,7 +15,12 @@ object AvatarEvents {
     @JvmStatic
     val Connected = object : AvatarEvent<(connection: Session) -> Unit> {}
 
-    /** [Avatar.connected] switched from true to false. */
+    /**
+     * [Avatar.connected] switched from true to false.
+     * This happens when the client intentionally disconnects,
+     * when the server disconnects the client, when a network error occurs, etc.
+     * Check the reason/cause to differentiate between these.
+     */
     @JvmStatic
     val Disconnected = object : AvatarEvent<(connection: Session, reason: String?, cause: Any?) -> Unit> {}
 
@@ -87,7 +89,19 @@ object AvatarEvents {
      * or respawning after death or in another dimension.
      */
     @JvmStatic
-    val PositionChanged = object : AvatarEvent<(newPos: Vec3d, oldPos: Vec3d?, reason: Any?) -> Unit> {}
+    val TeleportByServer = object : AvatarEvent<(newPos: Vec3d, oldPos: Vec3d?, reason: Any?) -> Unit> {}
+
+    @JvmStatic
+    val HealthChanged = object : AvatarEvent<(new: Float, old: Float?) -> Unit> {}
+
+    @JvmStatic
+    val FoodChanged = object : AvatarEvent<(new: Int, old: Int?) -> Unit> {}
+
+    @JvmStatic
+    val SaturationChanged = object : AvatarEvent<(new: Float, old: Float?) -> Unit> {}
+
+    @JvmStatic
+    val ExpChanged = object : AvatarEvent<(new: Experience, old: Experience?) -> Unit> {}
 
     /**
      * The slots at the indices were changed by the server.
