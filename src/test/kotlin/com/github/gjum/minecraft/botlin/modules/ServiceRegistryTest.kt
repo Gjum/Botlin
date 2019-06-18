@@ -15,7 +15,7 @@ interface TestService : Service {
 }
 
 class ConsumerModule : Module() {
-    override suspend fun initialize(serviceRegistry: ServiceRegistry, oldModule: Module?) {
+    override suspend fun initialize(serviceRegistry: ReloadableServiceRegistry, oldModule: Module?) {
         serviceRegistry.consumeService(TestService::class.java,
             ::handleTestServiceChange)
     }
@@ -42,7 +42,7 @@ class EventProvider : TestService {
 }
 
 class ProviderModule(private val provider: EventProvider) : Module() {
-    override suspend fun initialize(serviceRegistry: ServiceRegistry, oldModule: Module?) {
+    override suspend fun initialize(serviceRegistry: ReloadableServiceRegistry, oldModule: Module?) {
         serviceRegistry.provideService(TestService::class.java, provider)
     }
 
@@ -70,7 +70,7 @@ class ServiceRegistryTest {
         every { loader.getAvailableModules() } returns modules
 
         // execute test
-        val serviceRegistry = ServiceRegistry(loader)
+        val serviceRegistry = ReloadableServiceRegistry(loader)
         providerModule.externalFooEvent("bar")
 
         verifyOrder {
@@ -106,7 +106,7 @@ class ServiceRegistryTest {
         every { loader.reload() } returns modules
         every { loader.getAvailableModules() } returns modules
 
-        val serviceRegistry = ServiceRegistry(loader)
+        val serviceRegistry = ReloadableServiceRegistry(loader)
 
         verify(inverse = true) {
             runBlocking { consumer1.initialize(serviceRegistry) }

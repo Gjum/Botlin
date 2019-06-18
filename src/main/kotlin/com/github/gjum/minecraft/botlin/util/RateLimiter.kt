@@ -6,9 +6,9 @@ internal object TimeProxy {
     suspend fun delay(ms: Long) = kotlinx.coroutines.delay(ms)
 }
 
-class RateLimiter(private val parent: Params) {
+class RateLimiter(private val params: Params) {
     private val rateQueue = mutableListOf<Long>()
-    private var nextBackoff: Float = parent.backoffStart.toFloat() / parent.backoffFactor
+    private var nextBackoff: Float = params.backoffStart.toFloat() / params.backoffFactor
     private var prevAttempt = 0L // at most now - backoffStart / backoffFactor
 
     interface Params {
@@ -24,10 +24,10 @@ class RateLimiter(private val parent: Params) {
         val callTime = TimeProxy.currentTimeMillis()
 
         // remove unused entries
-        while (rateQueue.isNotEmpty() && rateQueue[0] < callTime - parent.connectRateInterval) rateQueue.removeAt(0)
+        while (rateQueue.isNotEmpty() && rateQueue[0] < callTime - params.connectRateInterval) rateQueue.removeAt(0)
         // apply success rate limit
-        val nextRateSlot = if (rateQueue.size >= parent.connectRateLimit) {
-            rateQueue[0] + parent.connectRateInterval
+        val nextRateSlot = if (rateQueue.size >= params.connectRateLimit) {
+            rateQueue[0] + params.connectRateInterval
         } else callTime
 
         val nextAttempt = prevAttempt + nextBackoff.toLong()
@@ -39,11 +39,11 @@ class RateLimiter(private val parent: Params) {
 
         if (successful) {
             rateQueue.add(prevAttempt)
-            nextBackoff = parent.backoffStart.toFloat()
+            nextBackoff = params.backoffStart.toFloat()
         } else {
-            nextBackoff *= parent.backoffFactor
+            nextBackoff *= params.backoffFactor
         }
-        if (nextBackoff > parent.backoffEnd) nextBackoff = parent.backoffEnd.toFloat()
+        if (nextBackoff > params.backoffEnd) nextBackoff = params.backoffEnd.toFloat()
 
         return result
     }

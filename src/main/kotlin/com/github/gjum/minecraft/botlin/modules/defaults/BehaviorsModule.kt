@@ -1,7 +1,7 @@
 package com.github.gjum.minecraft.botlin.modules.defaults
 
 import com.github.gjum.minecraft.botlin.api.*
-import com.github.gjum.minecraft.botlin.modules.ServiceRegistry
+import com.github.gjum.minecraft.botlin.modules.ReloadableServiceRegistry
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -9,7 +9,7 @@ import kotlinx.coroutines.runBlocking
 class BehaviorsModule : Module() {
     private val registry = BehaviorsProvider()
 
-    override suspend fun initialize(serviceRegistry: ServiceRegistry, oldModule: Module?) {
+    override suspend fun initialize(serviceRegistry: ReloadableServiceRegistry, oldModule: Module?) {
         serviceRegistry.provideService(Behaviors::class.java, registry)
 
         val avatars = serviceRegistry.consumeService(Avatars::class.java) ?: return
@@ -64,7 +64,7 @@ class BehaviorsModule : Module() {
      * and Authentication service is available,
      * automatically applies the behavior to the default account on mcHost.
      */
-    private suspend fun launchDefaultBehavior(serviceRegistry: ServiceRegistry) {
+    private suspend fun launchDefaultBehavior(serviceRegistry: ReloadableServiceRegistry) {
         val auth = serviceRegistry.consumeService(Authentication::class.java) ?: return
         val avatars = serviceRegistry.consumeService(Avatars::class.java) ?: return
         val hostProp = System.getProperty("mcHost") ?: return

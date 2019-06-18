@@ -4,7 +4,7 @@ import com.github.gjum.minecraft.botlin.api.CommandContext
 import com.github.gjum.minecraft.botlin.api.CommandService
 import com.github.gjum.minecraft.botlin.api.Module
 import com.github.gjum.minecraft.botlin.api.registerCommand
-import com.github.gjum.minecraft.botlin.modules.ServiceRegistry
+import com.github.gjum.minecraft.botlin.modules.ReloadableServiceRegistry
 import com.github.gjum.minecraft.botlin.util.Cli
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
@@ -17,7 +17,7 @@ import java.util.logging.Logger
 class CliModule : Module() {
     private val logger = Logger.getLogger(this::class.java.name)
 
-    override suspend fun initialize(serviceRegistry: ServiceRegistry, oldModule: Module?) {
+    override suspend fun initialize(serviceRegistry: ReloadableServiceRegistry, oldModule: Module?) {
         var commands: CommandService? = null
 
         class Context(val cmdName: String) : CommandContext {

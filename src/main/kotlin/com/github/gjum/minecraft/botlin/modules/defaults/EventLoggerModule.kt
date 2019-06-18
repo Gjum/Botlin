@@ -3,7 +3,7 @@ package com.github.gjum.minecraft.botlin.modules.defaults
 import com.github.gjum.minecraft.botlin.api.AvatarEvents
 import com.github.gjum.minecraft.botlin.api.EventEmitter
 import com.github.gjum.minecraft.botlin.api.Module
-import com.github.gjum.minecraft.botlin.modules.ServiceRegistry
+import com.github.gjum.minecraft.botlin.modules.ReloadableServiceRegistry
 import com.github.gjum.minecraft.botlin.util.EventEmitterImpl
 import com.github.gjum.minecraft.botlin.util.Vec3d
 import com.github.gjum.minecraft.botlin.util.toAnsi
@@ -17,7 +17,7 @@ import java.util.logging.Logger
 class EventLoggerModule : Module() {
     private val logger = Logger.getLogger(this::class.java.name)
 
-    override suspend fun initialize(serviceRegistry: ServiceRegistry, oldModule: Module?) {
+    override suspend fun initialize(serviceRegistry: ReloadableServiceRegistry, oldModule: Module?) {
         // XXX on every avatar creation: listen for all events
         val avatar = EventEmitterImpl<AvatarEvents>() // XXX on avatar
         registerWithAvatar(avatar)

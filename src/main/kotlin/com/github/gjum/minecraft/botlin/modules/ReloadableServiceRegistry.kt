@@ -1,20 +1,15 @@
 package com.github.gjum.minecraft.botlin.modules
 
-import com.github.gjum.minecraft.botlin.api.CommandService
-import com.github.gjum.minecraft.botlin.api.Module
-import com.github.gjum.minecraft.botlin.api.Service
-import com.github.gjum.minecraft.botlin.api.registerCommand
+import com.github.gjum.minecraft.botlin.api.*
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.suspendCancellableCoroutine
 import java.io.File
 import kotlin.coroutines.resume
 
-private typealias ServiceChangeHandler<T> = (provider: T?) -> Unit
-
 /**
  * Keeps track of modules and services. Allows hot reloading modules in one directory.
  */
-class ServiceRegistry(private val modulesLoader: ModulesLoader<Module>) {
+class ReloadableServiceRegistry(private val modulesLoader: ModulesLoader<Module>) : ServiceRegistry {
     /**
      * The provider of each service.
      */
@@ -31,12 +26,7 @@ class ServiceRegistry(private val modulesLoader: ModulesLoader<Module>) {
         transition(emptyList(), newModules)
     }
 
-    /**
-     * Signal interest in consuming the [service].
-     * The [handler] will get called exactly once with the [service]'s provider.
-     * If there is no provider available, [handler] gets called with `null`.
-     */
-    fun <T : Service> consumeService(service: Class<T>, handler: ServiceChangeHandler<T>) {
+    override fun <T : Service> consumeService(service: Class<T>, handler: ServiceChangeHandler<T>) {
         @Suppress("UNCHECKED_CAST")
         val handlerAny = handler as ServiceChangeHandler<Any>
 
@@ -54,7 +44,7 @@ class ServiceRegistry(private val modulesLoader: ModulesLoader<Module>) {
         }
     }
 
-    fun <T : Service> provideService(service: Class<T>, provider: T) {
+    override fun <T : Service> provideService(service: Class<T>, provider: T) {
         // mark the service as provided
         val prevProvider = providers.putIfAbsent(service, provider)
         if (prevProvider == null) { // service was not already provided by other module
@@ -63,10 +53,7 @@ class ServiceRegistry(private val modulesLoader: ModulesLoader<Module>) {
         }
     }
 
-    /**
-     * Load all modules in [modulesDirectory], replacing all currently loaded modules.
-     */
-    fun reloadModules(modulesDirectory: File? = null) {
+    fun reloadModules(modulesDirectory: File?) {
         val oldModules = modulesLoader.getAvailableModules()
         val newModules = modulesLoader.reload(modulesDirectory) ?: emptyList()
         transition(oldModules, newModules)
@@ -89,19 +76,18 @@ class ServiceRegistry(private val modulesLoader: ModulesLoader<Module>) {
         consumerHandlers.clear()
         providers.clear()
 
-        consumerHandlers.getOrPut(CommandService::class.java, ::mkMutList).add { commands ->
-            if (commands !is CommandService) return@add
-            commands.registerCommand("reload", "reload", "Reload all modules."
-            ) { command, context ->
-                reloadModules()
-            }
-        }
-
         val oldModulesMap = oldModules.map { it.name to it }.toMap()
         // skip duplicate names by iterating newModulesMap instead of newModules
         newModulesMap.values.forEach {
             runBlocking {
-                it.initialize(this@ServiceRegistry, oldModulesMap[it.name])
+                it.initialize(this@ReloadableServiceRegistry, oldModulesMap[it.name])
+            }
+        }
+
+        consumeService(CommandService::class.java) { commands ->
+            commands?.registerCommand("reload", "reload", "Reload all modules."
+            ) { command, context ->
+                reloadModules(null)
             }
         }
 

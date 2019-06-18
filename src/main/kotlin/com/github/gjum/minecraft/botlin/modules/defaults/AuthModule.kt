@@ -2,7 +2,8 @@ package com.github.gjum.minecraft.botlin.modules.defaults
 
 import com.github.gjum.minecraft.botlin.api.Authentication
 import com.github.gjum.minecraft.botlin.api.Module
-import com.github.gjum.minecraft.botlin.modules.ServiceRegistry
+import com.github.gjum.minecraft.botlin.modules.ReloadableServiceRegistry
+import com.github.gjum.minecraft.botlin.util.RateLimiter
 import com.github.steveice10.mc.auth.exception.request.InvalidCredentialsException
 import com.github.steveice10.mc.auth.service.AuthenticationService
 import com.github.steveice10.mc.protocol.MinecraftProtocol
@@ -27,6 +28,7 @@ private class AuthenticationProvider(
     private val authCachePath: String
 ) : Authentication {
     private val logger: Logger = Logger.getLogger(this::class.java.name)
+    private val rateLimiters = mutableMapOf<String, RateLimiter>()
 
     override val defaultAccount: String?
         get () {
@@ -41,6 +43,9 @@ private class AuthenticationProvider(
         }
 
     override suspend fun authenticate(username: String): MinecraftProtocol? {
+        rateLimiters.getOrPut(username, { RateLimiter(RateParamsFromSysProps()) })
+            .runWithRateLimit { null to false } // XXX rate limiter api sucks, rework
+
         var cToken: String = UUID.randomUUID().toString() // TODO allow providing default value
 
         // try loading cached token, and maybe client token
@@ -121,13 +126,31 @@ private class AuthenticationProvider(
 }
 
 class AuthModule : Module() {
-    override suspend fun initialize(serviceRegistry: ServiceRegistry, oldModule: Module?) {
+    override suspend fun initialize(serviceRegistry: ReloadableServiceRegistry, oldModule: Module?) {
         val auth = AuthenticationProvider(
             System.getProperty("mcAuthCredentials") ?: ".credentials",
             System.getProperty("mcAuthCache") ?: ".auth_tokens.json"
         )
         serviceRegistry.provideService(Authentication::class.java, auth)
     }
+}
+
+private class RateParamsFromSysProps : RateLimiter.Params {
+    override var backoffStart = System.getProperty(
+        "authBackoffStart")?.toIntOrNull()
+        ?: 1000
+    override var backoffFactor = System.getProperty(
+        "authBackoffFactor")?.toFloatOrNull()
+        ?: 2f
+    override var backoffEnd = System.getProperty(
+        "authBackoffEnd")?.toIntOrNull()
+        ?: 30_000
+    override var connectRateLimit = System.getProperty(
+        "authRateLimit")?.toIntOrNull()
+        ?: 5
+    override var connectRateInterval = System.getProperty(
+        "authRateInterval")?.toIntOrNull()
+        ?: 60_000
 }
 
 private fun readAuthTokenCache(authCachePath: String): AuthTokenCache? {

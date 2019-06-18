@@ -1,7 +1,7 @@
 package com.github.gjum.minecraft.botlin.modules.defaults
 
 import com.github.gjum.minecraft.botlin.api.*
-import com.github.gjum.minecraft.botlin.modules.ServiceRegistry
+import com.github.gjum.minecraft.botlin.modules.ReloadableServiceRegistry
 import com.github.gjum.minecraft.botlin.state.AvatarImpl
 import com.github.gjum.minecraft.botlin.state.normalizeServerAddress
 import com.github.steveice10.mc.auth.data.GameProfile
@@ -46,7 +46,7 @@ class AvatarProvider(private val avatars: MutableMap<String, Avatar>) : Avatars 
 class AvatarModule : Module() {
     private val avatars = AvatarProvider(mutableMapOf())
 
-    override suspend fun initialize(serviceRegistry: ServiceRegistry, oldModule: Module?) {
+    override suspend fun initialize(serviceRegistry: ReloadableServiceRegistry, oldModule: Module?) {
         serviceRegistry.provideService(Avatars::class.java,
             avatars)
 
