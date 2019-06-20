@@ -23,15 +23,19 @@ open class IdleBehaviorInstance(avatar: Avatar) : BehaviorInstance(avatar) {
     private var prevPos: Vec3d? = null
 
     init {
-        avatar.on(AvatarEvents.TeleportByServer, ::onPosChanged)
+        avatar.on(AvatarEvents.TeleportByServer::class.java, ::onTeleportByServer)
     }
 
-    private fun onPosChanged(newPos: Vec3d, oldPos: Vec3d?, reason: Any?) {
-        if (reason is ServerVehicleMovePacket) {
+    override fun deactivate() {
+        avatar.removeEventHandler(AvatarEvents.TeleportByServer::class.java, ::onTeleportByServer)
+    }
+
+    private fun onTeleportByServer(event: AvatarEvents.TeleportByServer) {
+        if (event.reason is ServerVehicleMovePacket) {
             isFalling = false // in vehicle
         }
-        if (reason is ServerPlayerPositionRotationPacket) {
-            val isLanded = newPos == prevPos
+        if (event.reason is ServerPlayerPositionRotationPacket) {
+            val isLanded = event.newPos == prevPos
             isFalling = !isLanded
         }
     }

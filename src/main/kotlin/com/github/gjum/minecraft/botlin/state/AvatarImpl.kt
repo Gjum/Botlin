@@ -1,9 +1,6 @@
 package com.github.gjum.minecraft.botlin.state
 
-import com.github.gjum.minecraft.botlin.api.Avatar
-import com.github.gjum.minecraft.botlin.api.AvatarEvents
-import com.github.gjum.minecraft.botlin.api.Behavior
-import com.github.gjum.minecraft.botlin.api.BehaviorInstance
+import com.github.gjum.minecraft.botlin.api.*
 import com.github.gjum.minecraft.botlin.util.*
 import com.github.steveice10.mc.auth.data.GameProfile
 import com.github.steveice10.mc.protocol.MinecraftProtocol
@@ -55,7 +52,7 @@ fun normalizeServerAddress(serverAddress: String): String {
         .take(2).joinToString(":")
 }
 
-class AvatarImpl(override val profile: GameProfile, serverArg: String) : Avatar, SessionListener, CoroutineScope, EventEmitterImpl<AvatarEvents>() {
+class AvatarImpl(override val profile: GameProfile, serverArg: String) : Avatar, SessionListener, CoroutineScope, EventEmitterImpl<AvatarEvent>() {
     private val logger: Logger = Logger.getLogger(this::class.java.name)
     private var ticker: Job? = null
 
@@ -135,7 +132,7 @@ class AvatarImpl(override val profile: GameProfile, serverArg: String) : Avatar,
     }
 
     override fun connected(event: ConnectedEvent) {
-        emit(AvatarEvents.Connected) { it.invoke(event.session) }
+        emit(AvatarEvents.Connected(event.session))
     }
 
     override fun disconnecting(event: DisconnectingEvent) {
@@ -152,7 +149,7 @@ class AvatarImpl(override val profile: GameProfile, serverArg: String) : Avatar,
     override fun disconnect(reason: String?, cause: Throwable?) {
         val c = connection ?: return
         if (endReason == null) {
-            emit(AvatarEvents.Disconnected) { it.invoke(c, reason, cause) }
+            emit(AvatarEvents.Disconnected(c, reason, cause))
         }
         // reset() // TODO do we already reset here or remember the failstate?
         endReason = reason
@@ -168,13 +165,13 @@ class AvatarImpl(override val profile: GameProfile, serverArg: String) : Avatar,
         } catch (e: Throwable) {
             logger.log(Level.SEVERE, "Failed to process received packet $packet", e)
         }
-        emit(AvatarEvents.ServerPacketReceived) { it.invoke(packet) }
+        emit(AvatarEvents.ServerPacketReceived(packet))
     }
 
     private fun processPacket(packet: Packet) {
         when (packet) {
             is ServerChatPacket -> {
-                emit(AvatarEvents.ChatReceived) { it.invoke(packet.message) }
+                emit(AvatarEvents.ChatReceived(packet.message))
             }
             is ServerJoinGamePacket -> {
                 world = World(packet.dimension)
@@ -202,11 +199,11 @@ class AvatarImpl(override val profile: GameProfile, serverArg: String) : Avatar,
                 food = packet.food
                 saturation = packet.saturation
 
-                if (prevHealth != health) emit(AvatarEvents.HealthChanged) { it.invoke(health!!, prevHealth) }
-                if (prevFood != food) emit(AvatarEvents.FoodChanged) { it.invoke(food!!, prevFood) }
-                if (prevSaturation != saturation) emit(AvatarEvents.SaturationChanged) { it.invoke(saturation!!, prevSaturation) }
+                if (prevHealth != health) emit(AvatarEvents.HealthChanged(health!!, prevHealth))
+                if (prevFood != food) emit(AvatarEvents.FoodChanged(food!!, prevFood))
+                if (prevSaturation != saturation) emit(AvatarEvents.SaturationChanged(saturation!!, prevSaturation))
 
-                if (!wasSpawned && spawned) emit(AvatarEvents.Spawned) { it.invoke(entity!!) }
+                if (!wasSpawned && spawned) emit(AvatarEvents.Spawned(entity!!))
             }
             is ServerPlayerSetExperiencePacket -> {
                 val prevExp = experience
@@ -216,8 +213,8 @@ class AvatarImpl(override val profile: GameProfile, serverArg: String) : Avatar,
                     packet.level,
                     packet.totalExperience
                 )
-                emit(AvatarEvents.ExpChanged) { it.invoke(experience!!, prevExp) }
-                if (!wasSpawned && spawned) emit(AvatarEvents.Spawned) { it.invoke(entity!!) }
+                emit(AvatarEvents.ExpChanged(experience!!, prevExp))
+                if (!wasSpawned && spawned) emit(AvatarEvents.Spawned(entity!!))
             }
             is ServerPlayerPositionRotationPacket -> {
                 send(ClientTeleportConfirmPacket(packet.teleportId))
@@ -245,10 +242,8 @@ class AvatarImpl(override val profile: GameProfile, serverArg: String) : Avatar,
                     )
                 )
 
-                emit(AvatarEvents.TeleportByServer) {
-                    it.invoke(position!!, oldPosition, packet)
-                }
-                if (!wasSpawned && spawned) emit(AvatarEvents.Spawned) { it.invoke(entity!!) }
+                emit(AvatarEvents.TeleportByServer(position!!, oldPosition, packet))
+                if (!wasSpawned && spawned) emit(AvatarEvents.Spawned(entity!!))
 
                 startTicker()
             }
@@ -259,9 +254,7 @@ class AvatarImpl(override val profile: GameProfile, serverArg: String) : Avatar,
                     position = Vec3d(packet.x, packet.y, packet.z)
                     look = Look.fromDegrees(packet.yaw, packet.pitch)
                     entity?.position = position // TODO update client pos in relation to vehicle (typically up/down)
-                    emit(AvatarEvents.TeleportByServer) {
-                        it.invoke(position!!, oldPosition, packet)
-                    }
+                    emit(AvatarEvents.TeleportByServer(position!!, oldPosition, packet))
                 }
             }
             is ServerPlayerListEntryPacket -> {
@@ -275,7 +268,7 @@ class AvatarImpl(override val profile: GameProfile, serverArg: String) : Avatar,
                             displayName = item.displayName
                         }
                         if (!wasInListBefore) {
-                            emit(AvatarEvents.PlayerJoined) { it.invoke(player) }
+                            emit(AvatarEvents.PlayerJoined(player))
                         }
                     } else if (packet.action === PlayerListEntryAction.UPDATE_GAMEMODE) {
                         player.gameMode = item.gameMode
@@ -286,7 +279,7 @@ class AvatarImpl(override val profile: GameProfile, serverArg: String) : Avatar,
                     } else if (packet.action === PlayerListEntryAction.REMOVE_PLAYER) {
                         playerList!!.remove(item.profile.id)
                         if (wasInListBefore) {
-                            emit(AvatarEvents.PlayerLeft) { it.invoke(player) }
+                            emit(AvatarEvents.PlayerLeft(player))
                         }
                     }
                 }
@@ -406,7 +399,7 @@ class AvatarImpl(override val profile: GameProfile, serverArg: String) : Avatar,
                 val entity = getEntityOrCreate(packet.entityId)
                 entity.updateMetadata(packet.metadata)
                 if (entity === this.entity) {
-                    emit(AvatarEvents.PlayerEntityStatusChanged) { it.invoke() }
+                    emit(AvatarEvents.PlayerEntityStatusChanged())
                 }
             }
             is ServerEntityPropertiesPacket -> TodoEntityPacket // TODO emit PlayerEntityStatusChanged
@@ -488,7 +481,7 @@ class AvatarImpl(override val profile: GameProfile, serverArg: String) : Avatar,
         val prevPos = position
         val prevLook = look
 
-        emit(AvatarEvents.PreClientTick) { it.invoke() }
+        emit(AvatarEvents.PreClientTick())
 
         if (position != null) behavior.doPhysicsTick()
 
@@ -523,7 +516,7 @@ class AvatarImpl(override val profile: GameProfile, serverArg: String) : Avatar,
 
         // TODO check chat buffer
 
-        emit(AvatarEvents.ClientTick) { it.invoke() }
+        emit(AvatarEvents.ClientTick())
     }
 
     override fun packetSending(event: PacketSendingEvent) = Unit

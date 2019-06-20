@@ -19,14 +19,14 @@ open class ReconnectBehaviorInstance(avatar: Avatar) : IdleBehaviorInstance(avat
     override val name = behaviorName
 
     init {
-        avatar.on(AvatarEvents.Disconnected, ::onDisconnected)
+        avatar.on(AvatarEvents.Disconnected::class.java, ::onDisconnected)
     }
 
-    private fun onDisconnected(session: Any?, reason: String?, cause: Any?) {
+    private fun onDisconnected(event: AvatarEvents.Disconnected) {
         // XXX auto reconnect
     }
 
     override fun deactivate() {
-        avatar.removeEventHandler(AvatarEvents.Disconnected, ::onDisconnected)
+        avatar.removeEventHandler(AvatarEvents.Disconnected::class.java, ::onDisconnected)
     }
 }

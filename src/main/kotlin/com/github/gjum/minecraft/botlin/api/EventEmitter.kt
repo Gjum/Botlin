@@ -1,7 +1,12 @@
 package com.github.gjum.minecraft.botlin.api
 
-interface EventEmitter<E> {
-    fun <T> on(event: Event<T, E>, handler: T)
-    fun <T> removeEventHandler(event: Event<T, E>, handler: T)
-    fun <T> emit(event: Event<T, E>, caller: (T) -> Unit)
+interface Event
+
+typealias EventClass<E> = Class<out E>
+typealias EventHandler<E> = (E) -> Unit
+
+interface EventEmitter<E : Event> {
+    fun <T : E> on(event: EventClass<T>, handler: EventHandler<T>)
+    fun <T : E> removeEventHandler(event: EventClass<T>, handler: EventHandler<T>)
+    fun <T : E> emit(event: T)
 }

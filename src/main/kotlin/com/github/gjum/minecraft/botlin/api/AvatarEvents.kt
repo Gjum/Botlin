@@ -6,14 +6,12 @@ import com.github.steveice10.mc.protocol.data.message.Message
 import com.github.steveice10.packetlib.Session
 import com.github.steveice10.packetlib.packet.Packet
 
-interface Event<T, E>
+interface AvatarEvent : Event
 
-private typealias AvatarEvent<T> = Event<T, AvatarEvents>
-
+// TODO add all events missing to make the spectator module
 object AvatarEvents {
     /** [Avatar.connected] switched from false to true. */
-    @JvmStatic
-    val Connected = object : AvatarEvent<(connection: Session) -> Unit> {}
+    class Connected(val connection: Session) : AvatarEvent
 
     /**
      * [Avatar.connected] switched from true to false.
@@ -21,32 +19,26 @@ object AvatarEvents {
      * when the server disconnects the client, when a network error occurs, etc.
      * Check the reason/cause to differentiate between these.
      */
-    @JvmStatic
-    val Disconnected = object : AvatarEvent<(connection: Session, reason: String?, cause: Any?) -> Unit> {}
+    class Disconnected(val connection: Session, val reason: String?, val cause: Any?) : AvatarEvent
 
     /** [Avatar.spawned] switched from false to true. */
-    @JvmStatic
-    val Spawned = object : AvatarEvent<(entity: Entity) -> Unit> {}
+    class Spawned(val entity: Entity) : AvatarEvent
 
-    @JvmStatic
-    val ServerPacketReceived = object : AvatarEvent<(packet: Packet) -> Unit> {}
+    class ServerPacketReceived(val packet: Packet) : AvatarEvent
 
-    @JvmStatic
-    val ChatReceived = object : AvatarEvent<(msg: Message) -> Unit> {}
+    class ChatReceived(val msg: Message) : AvatarEvent
 
     /**
      * Called every 50ms before the [Avatar] processes its tick actions
      * (physics, chat sending, etc.). See also [ClientTick].
      */
-    @JvmStatic
-    val PreClientTick = object : AvatarEvent<() -> Unit> {}
+    class PreClientTick : AvatarEvent
 
     /**
      * Called every 50ms after the [Avatar] is done processing its tick actions
      * (physics, chat sending, etc.). See also [PreClientTick].
      */
-    @JvmStatic
-    val ClientTick = object : AvatarEvent<() -> Unit> {}
+    class ClientTick : AvatarEvent
 
     /**
      * An entry was created on the [Avatar.playerList].
@@ -54,8 +46,7 @@ object AvatarEvents {
      * On some servers, [PlayerLeft] and [PlayerJoined] may occur
      * quickly after one another shortly after joining the server.
      */
-    @JvmStatic
-    val PlayerJoined = object : AvatarEvent<(entry: PlayerListItem) -> Unit> {}
+    class PlayerJoined(val entry: PlayerListItem) : AvatarEvent
 
     /**
      * An entry was removed from the [Avatar.playerList].
@@ -63,8 +54,7 @@ object AvatarEvents {
      * On some servers, [PlayerLeft] and [PlayerJoined] may occur
      * quickly after one another shortly after joining the server.
      */
-    @JvmStatic
-    val PlayerLeft = object : AvatarEvent<(entry: PlayerListItem) -> Unit> {}
+    class PlayerLeft(val entry: PlayerListItem) : AvatarEvent
 
     /**
      * The [Avatar.inventory] has received all state. This happens typically
@@ -72,15 +62,13 @@ object AvatarEvents {
      * invalid click action to the server, to synchronize client and server again.
      * An ongoing synchronization can be checked through [Window.ready].
      */
-    @JvmStatic
-    val WindowReady = object : AvatarEvent<(newWindow: Window) -> Unit> {}
+    class WindowReady(val newWindow: Window) : AvatarEvent
 
     /**
      * The current window was closed by the server.
      * The new Window will be in the next [WindowReady].
      */
-    @JvmStatic
-    val WindowClosed = object : AvatarEvent<(oldWindow: Window) -> Unit> {}
+    class WindowClosed(val oldWindow: Window) : AvatarEvent
 
     /**
      * The position was forcefully changed by the server.
@@ -88,20 +76,15 @@ object AvatarEvents {
      * moving illegally (e.g., into a block or too quickly),
      * or respawning after death or in another dimension.
      */
-    @JvmStatic
-    val TeleportByServer = object : AvatarEvent<(newPos: Vec3d, oldPos: Vec3d?, reason: Any?) -> Unit> {}
+    class TeleportByServer(val newPos: Vec3d, val oldPos: Vec3d?, val reason: Any?) : AvatarEvent
 
-    @JvmStatic
-    val HealthChanged = object : AvatarEvent<(new: Float, old: Float?) -> Unit> {}
+    class HealthChanged(val new: Float, val old: Float?) : AvatarEvent
 
-    @JvmStatic
-    val FoodChanged = object : AvatarEvent<(new: Int, old: Int?) -> Unit> {}
+    class FoodChanged(val new: Int, val old: Int?) : AvatarEvent
 
-    @JvmStatic
-    val SaturationChanged = object : AvatarEvent<(new: Float, old: Float?) -> Unit> {}
+    class SaturationChanged(val new: Float, val old: Float?) : AvatarEvent
 
-    @JvmStatic
-    val ExpChanged = object : AvatarEvent<(new: Experience, old: Experience?) -> Unit> {}
+    class ExpChanged(val new: Experience, val old: Experience?) : AvatarEvent
 
     /**
      * The slots at the indices were changed by the server.
@@ -113,16 +96,14 @@ object AvatarEvents {
      * once everything is synchronized with the server.
      * An ongoing synchronization can be checked through [Window.ready].
      */
-    @JvmStatic
-    val SlotsChanged = object : AvatarEvent<(
-        window: Window,
-        indices: Array<Int>,
-        newSlots: Array<Slot>,
-        oldSlots: Array<Slot>) -> Unit> {}
+    class SlotsChanged(
+        val window: Window,
+        val indices: Array<Int>,
+        val newSlots: Array<Slot>,
+        val oldSlots: Array<Slot>
+    ) : AvatarEvent
 
-    @JvmStatic
-    val WindowPropertyChanged = object : AvatarEvent<(window: Window, property: Int, oldValue: Int, newValue: Int) -> Unit> {}
+    class WindowPropertyChanged(val window: Window, val property: Int, val oldValue: Int, val newValue: Int) : AvatarEvent
 
-    @JvmStatic
-    val PlayerEntityStatusChanged = object : AvatarEvent<() -> Unit> {} // TODO PlayerEntityStatusChanged args? split into several events?
+    class PlayerEntityStatusChanged : AvatarEvent // TODO PlayerEntityStatusChanged args? split into several events?
 }
