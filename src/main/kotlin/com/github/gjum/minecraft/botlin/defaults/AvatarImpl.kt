@@ -1,8 +1,13 @@
 package com.github.gjum.minecraft.botlin.defaults
 
+import com.github.gjum.minecraft.botlin.MainArgs
 import com.github.gjum.minecraft.botlin.api.*
+import com.github.gjum.minecraft.botlin.modules.consumeService
+import com.github.gjum.minecraft.botlin.util.lookupProfile
+import com.github.gjum.minecraft.botlin.util.normalizeServerAddress
 import com.github.gjum.minecraft.botlin.util.splitHostPort
 import com.github.steveice10.mc.auth.data.GameProfile
+import com.github.steveice10.mc.auth.service.ProfileService
 import com.github.steveice10.mc.protocol.MinecraftProtocol
 import com.github.steveice10.mc.protocol.data.game.PlayerListEntryAction
 import com.github.steveice10.mc.protocol.data.game.entity.player.GameMode
@@ -45,9 +50,25 @@ import kotlin.concurrent.fixedRateTimer
 
 private val brandBytesVanilla = byteArrayOf(7, 118, 97, 110, 105, 108, 108, 97)
 
-fun normalizeServerAddress(serverAddress: String): String {
-    return (serverAddress.split(':') + "25565")
-        .take(2).joinToString(":")
+class AvatarModule : Module() {
+	override suspend fun activate(serviceRegistry: ServiceRegistry) {
+		super.activate(serviceRegistry)
+		val args = serviceRegistry.consumeService(MainArgs::class.java)?.getArgs()
+		val username = args?.getOrNull(0)
+			?: System.getProperty("username")
+			?: System.getenv("MINECRAFT_USERNAME")
+			?: "Botlin"
+		val serverAddress = normalizeServerAddress(
+			args?.getOrNull(1)
+				?: System.getProperty("serverAddress")
+				?: System.getenv("MINECRAFT_SERVER_ADDRESS")
+				?: "localhost")
+
+		val profileService = ProfileService()
+		val profile = lookupProfile(username, profileService)
+		val avatar = AvatarImpl(profile, serverAddress)
+		serviceRegistry.provideService(Avatar::class.java, avatar)
+	}
 }
 
 class AvatarImpl(override val profile: GameProfile, serverAddr: String

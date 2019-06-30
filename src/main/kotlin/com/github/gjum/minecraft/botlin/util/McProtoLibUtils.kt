@@ -34,3 +34,8 @@ fun splitHostPort(address: String): Pair<String, Int> {
 	val port = split.getOrNull(2)?.toInt() ?: 25565
 	return host to port
 }
+
+fun normalizeServerAddress(serverAddress: String): String {
+    return (serverAddress.split(':') + "25565")
+        .take(2).joinToString(":")
+}

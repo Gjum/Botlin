@@ -17,7 +17,7 @@ interface TestService : Service {
 }
 
 class ConsumerModule : Module() {
-    override suspend fun activate(serviceRegistry: ServiceRegistry, avatar: Avatar) {
+    override suspend fun activate(serviceRegistry: ServiceRegistry) {
         serviceRegistry.consumeService(TestService::class.java,
             ::handleTestServiceChange)
     }
@@ -44,7 +44,7 @@ class EventProvider : TestService {
 }
 
 class ProviderModule(private val provider: EventProvider) : Module() {
-    override suspend fun activate(serviceRegistry: ServiceRegistry, avatar: Avatar) {
+    override suspend fun activate(serviceRegistry: ServiceRegistry) {
         serviceRegistry.provideService(TestService::class.java, provider)
     }
 
@@ -67,13 +67,12 @@ class ServiceRegistryTest {
         val providerModule = spyk(ProviderModule(provider))
         val modules = listOf(consumerModule, providerModule)
 
-        val avatar = mockk<Avatar>()
         val loader = mockk<ModulesLoader<Module>>()
         every { loader.reload() } returns modules
         every { loader.getAvailableModules() } returns modules
 
         // execute test
-        val serviceRegistry = ReloadableServiceRegistry(avatar, loader)
+        val serviceRegistry = ReloadableServiceRegistry(loader)
         providerModule.externalFooEvent("bar")
 
         verifyOrder {
@@ -81,9 +80,9 @@ class ServiceRegistryTest {
             consumerModule.name
             providerModule.name
 
-            runBlocking { consumerModule.activate(serviceRegistry, avatar) }
+            runBlocking { consumerModule.activate(serviceRegistry) }
 
-            runBlocking { providerModule.activate(serviceRegistry, avatar) }
+            runBlocking { providerModule.activate(serviceRegistry) }
             consumerModule.handleTestServiceChange(provider)
             provider.subscribe(consumerModule, "foo", any())
 
@@ -103,20 +102,19 @@ class ServiceRegistryTest {
         val consumer1 = spyk(ConsumerModule())
         val consumer2 = spyk(ConsumerModule())
         val modules = listOf(consumer1, consumer2)
-        val avatar = mockk<Avatar>()
         val loader = mockk<ModulesLoader<Module>>()
         every { loader.reload() } returns modules
         every { loader.getAvailableModules() } returns modules
 
-        val serviceRegistry = ReloadableServiceRegistry(avatar, loader)
+        val serviceRegistry = ReloadableServiceRegistry(loader)
 
         verify(inverse = true) {
-            runBlocking { consumer1.activate(serviceRegistry, avatar) }
+            runBlocking { consumer1.activate(serviceRegistry) }
         }
         verifyOrder {
             consumer1.name
             consumer2.name
-            runBlocking { consumer2.activate(serviceRegistry, avatar) }
+            runBlocking { consumer2.activate(serviceRegistry) }
         }
     }
 }

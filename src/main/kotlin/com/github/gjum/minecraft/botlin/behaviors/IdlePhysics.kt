@@ -1,6 +1,5 @@
 package com.github.gjum.minecraft.botlin.behaviors
 
-import com.github.gjum.minecraft.botlin.api.Avatar
 import com.github.gjum.minecraft.botlin.api.AvatarEvents
 import com.github.gjum.minecraft.botlin.api.ServiceRegistry
 import com.github.gjum.minecraft.botlin.api.Vec3d
@@ -17,14 +16,13 @@ open class IdlePhysics : ModuleAutoEvents() {
 	private var onGround = false // XXX set inside avatar
 	private var prevPos: Vec3d? = null
 
-	override suspend fun activate(serviceRegistry: ServiceRegistry, avatar: Avatar) {
-		super.activate(serviceRegistry, avatar)
+	override suspend fun activate(serviceRegistry: ServiceRegistry) {
+		super.activate(serviceRegistry)
 		onEach(AvatarEvents.PreClientTick::class.java, ::onPhysicsTick)
 		onEach(AvatarEvents.TeleportedByServer::class.java, ::onTeleportByServer)
 	}
 
 	private fun onPhysicsTick(event: AvatarEvents.PreClientTick) {
-		val avatar = this.avatar!!
 		if (!avatar.alive) return
 		if (!onGround) {
 			prevPos = avatar.entity!!.position!!

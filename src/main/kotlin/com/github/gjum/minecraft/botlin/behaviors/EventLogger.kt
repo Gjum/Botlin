@@ -1,6 +1,5 @@
 package com.github.gjum.minecraft.botlin.behaviors
 
-import com.github.gjum.minecraft.botlin.api.Avatar
 import com.github.gjum.minecraft.botlin.api.AvatarEvents
 import com.github.gjum.minecraft.botlin.api.ServiceRegistry
 import com.github.gjum.minecraft.botlin.util.ModuleAutoEvents
@@ -14,8 +13,8 @@ import java.util.logging.Logger
 class EventLogger : ModuleAutoEvents() {
 	private val logger = Logger.getLogger(this::class.java.name)
 
-	override suspend fun activate(serviceRegistry: ServiceRegistry, avatar: Avatar) {
-		super.activate(serviceRegistry, avatar)
+	override suspend fun activate(serviceRegistry: ServiceRegistry) {
+		super.activate(serviceRegistry)
 		onEach(AvatarEvents.Connected::class.java) {
 			it.run {
 				logger.info("Connected to ${connection.remoteAddress}")

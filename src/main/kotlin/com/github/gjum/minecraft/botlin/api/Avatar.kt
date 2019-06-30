@@ -10,7 +10,7 @@ import java.util.UUID
  * State (embodiment) of an account on one server,
  * uniquely identified by [profile] and [serverAddress].
  */
-interface Avatar : EventEmitter<AvatarEvent> {
+interface Avatar : EventEmitter<AvatarEvent>, Service {
     val identifier get() = "${profile.name}@$serverAddress"
 
     val profile: GameProfile

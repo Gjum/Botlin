@@ -1,6 +1,7 @@
 package com.github.gjum.minecraft.botlin.defaults
 
 import com.github.gjum.minecraft.botlin.api.*
+import com.github.gjum.minecraft.botlin.modules.consumeService
 import com.github.gjum.minecraft.botlin.util.mcProtoFromAuth
 import com.github.gjum.minecraft.botlin.util.runOnThread
 import com.github.steveice10.mc.auth.exception.request.InvalidCredentialsException
@@ -107,10 +108,11 @@ private class AuthenticationProvider(
 }
 
 class AuthModule : Module() {
-    override suspend fun activate(serviceRegistry: ServiceRegistry, avatar: Avatar) {
-        super.activate(serviceRegistry, avatar)
+    override suspend fun activate(serviceRegistry: ServiceRegistry) {
+        super.activate(serviceRegistry)
+        val avatar = serviceRegistry.consumeService(Avatar::class.java)!!
         val auth = AuthenticationProvider(
-             avatar.profile.name,
+            avatar.profile.name,
             System.getProperty("mcAuthCredentials") ?: ".credentials",
             System.getProperty("mcAuthCache") ?: ".auth_tokens.json"
         )

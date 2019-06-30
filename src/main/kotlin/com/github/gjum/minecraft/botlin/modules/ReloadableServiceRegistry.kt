@@ -20,7 +20,6 @@ suspend inline fun <reified T : Service> ServiceRegistry.consumeService(service:
  * Keeps track of modules and services. Allows hot reloading modules in one directory.
  */
 class ReloadableServiceRegistry(
-    private val avatar: Avatar,
     private val modulesLoader: ModulesLoader<Module>
 ) : ServiceRegistry {
     /**
@@ -82,7 +81,7 @@ class ReloadableServiceRegistry(
         // skip duplicate names by iterating newModulesMap instead of newModules
         newModulesMap.values.forEach {
             runBlocking {
-                it.activate(this@ReloadableServiceRegistry, avatar)
+                it.activate(this@ReloadableServiceRegistry)
             }
         }
 

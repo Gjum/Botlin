@@ -15,7 +15,7 @@ abstract class Module {
 	 * Typical activities include [ServiceRegistry.consumeService]
 	 * and [ServiceRegistry.provideService].
 	 */
-	open suspend fun activate(serviceRegistry: ServiceRegistry, avatar: Avatar) = Unit
+	open suspend fun activate(serviceRegistry: ServiceRegistry) = Unit
 
 	/**
 	 * Deactivate the module and its functionality.
