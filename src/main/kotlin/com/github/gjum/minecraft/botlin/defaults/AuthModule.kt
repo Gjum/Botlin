@@ -1,51 +1,32 @@
-package com.github.gjum.minecraft.botlin.modules.defaults
+package com.github.gjum.minecraft.botlin.defaults
 
-import com.github.gjum.minecraft.botlin.api.Authentication
-import com.github.gjum.minecraft.botlin.api.Module
-import com.github.gjum.minecraft.botlin.modules.ReloadableServiceRegistry
-import com.github.gjum.minecraft.botlin.util.RateLimiter
+import com.github.gjum.minecraft.botlin.api.*
+import com.github.gjum.minecraft.botlin.util.mcProtoFromAuth
+import com.github.gjum.minecraft.botlin.util.runOnThread
 import com.github.steveice10.mc.auth.exception.request.InvalidCredentialsException
 import com.github.steveice10.mc.auth.service.AuthenticationService
 import com.github.steveice10.mc.protocol.MinecraftProtocol
 import com.google.gson.Gson
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.suspendCancellableCoroutine
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Paths
 import java.util.UUID
 import java.util.logging.Logger
-import kotlin.concurrent.thread
-import kotlin.coroutines.resume
-import kotlin.coroutines.resumeWithException
 
 const val mcPasswordEnv = "MINECRAFT_PASSWORD"
 
 private class AuthTokenCache(val clientToken: String, val sessions: MutableMap<String, String> = mutableMapOf())
 
+// XXX causes race condition when used from multiple processes, because tokens for all accounts are cached in the same file
+
 private class AuthenticationProvider(
+    private val username: String,
     private val credentialsPath: String,
     private val authCachePath: String
 ) : Authentication {
     private val logger: Logger = Logger.getLogger(this::class.java.name)
-    private val rateLimiters = mutableMapOf<String, RateLimiter>()
 
-    override val defaultAccount: String?
-        get () {
-            return System.getProperty("mcUsername")
-                ?: System.getenv("MINECRAFT_USERNAME")
-                ?: availableAccounts.firstOrNull()
-        }
-
-    override val availableAccounts: Collection<String>
-        get() {
-            TODO("check authCache and .credentials") // XXX
-        }
-
-    override suspend fun authenticate(username: String): MinecraftProtocol? {
-        rateLimiters.getOrPut(username, { RateLimiter(RateParamsFromSysProps()) })
-            .runWithRateLimit { null to false } // XXX rate limiter api sucks, rework
-
+    override suspend fun authenticate(): MinecraftProtocol? {
         var cToken: String = UUID.randomUUID().toString() // TODO allow providing default value
 
         // try loading cached token, and maybe client token
@@ -126,31 +107,15 @@ private class AuthenticationProvider(
 }
 
 class AuthModule : Module() {
-    override suspend fun initialize(serviceRegistry: ReloadableServiceRegistry, oldModule: Module?) {
+    override suspend fun activate(serviceRegistry: ServiceRegistry, avatar: Avatar) {
+        super.activate(serviceRegistry, avatar)
         val auth = AuthenticationProvider(
+             avatar.profile.name,
             System.getProperty("mcAuthCredentials") ?: ".credentials",
             System.getProperty("mcAuthCache") ?: ".auth_tokens.json"
         )
         serviceRegistry.provideService(Authentication::class.java, auth)
     }
-}
-
-private class RateParamsFromSysProps : RateLimiter.Params {
-    override var backoffStart = System.getProperty(
-        "authBackoffStart")?.toIntOrNull()
-        ?: 1000
-    override var backoffFactor = System.getProperty(
-        "authBackoffFactor")?.toFloatOrNull()
-        ?: 2f
-    override var backoffEnd = System.getProperty(
-        "authBackoffEnd")?.toIntOrNull()
-        ?: 30_000
-    override var connectRateLimit = System.getProperty(
-        "authRateLimit")?.toIntOrNull()
-        ?: 5
-    override var connectRateInterval = System.getProperty(
-        "authRateInterval")?.toIntOrNull()
-        ?: 60_000
 }
 
 private fun readAuthTokenCache(authCachePath: String): AuthTokenCache? {
@@ -186,33 +151,4 @@ internal fun parseCredentialsFile(lines: List<String>): Map<String, String> {
             val split = line.split(" ", limit = 2)
             split[0] to split[1]
         }.toMap()
-}
-
-private fun mcProtoFromAuth(auth: AuthenticationService): MinecraftProtocol {
-    return MinecraftProtocol(auth.selectedProfile.name, auth.clientToken, auth.accessToken)
-}
-
-private suspend inline fun <T> runOnThread(crossinline block: () -> T): T {
-    var t: Thread? = null
-    try {
-        return suspendCancellableCoroutine { cont ->
-            synchronized(cont) {
-                t = thread(start = true) {
-                    synchronized(cont) {
-                        if (cont.isCancelled) return@thread
-                    }
-                    try {
-                        cont.resume(block())
-                    } catch (e: InterruptedException) {
-                        throw e
-                    } catch (e: Throwable) {
-                        cont.resumeWithException(e)
-                    }
-                }
-            }
-        }
-    } catch (e: CancellationException) {
-        t?.interrupt()
-        throw e
-    }
 }

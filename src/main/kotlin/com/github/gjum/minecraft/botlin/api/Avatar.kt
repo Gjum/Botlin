@@ -1,8 +1,5 @@
 package com.github.gjum.minecraft.botlin.api
 
-import com.github.gjum.minecraft.botlin.state.*
-import com.github.gjum.minecraft.botlin.util.Look
-import com.github.gjum.minecraft.botlin.util.Vec3d
 import com.github.steveice10.mc.auth.data.GameProfile
 import com.github.steveice10.mc.protocol.MinecraftProtocol
 import com.github.steveice10.mc.protocol.data.game.entity.player.GameMode
@@ -21,7 +18,6 @@ interface Avatar : EventEmitter<AvatarEvent> {
     /** Normalized to format "host:port". */
     val serverAddress: String
 
-    val behavior: BehaviorInstance
     val connection: Session?
     val endReason: String?
     val entity: Entity?
@@ -44,12 +40,6 @@ interface Avatar : EventEmitter<AvatarEvent> {
      * Disconnects the client, blocking the current thread.
      */
     fun disconnect(reason: String?, cause: Throwable? = null)
-
-    /**
-     * Deactivate and remove any old behavior, and
-     * call [Behavior.activate].
-     */
-    fun useBehavior(behavior: Behavior)
 
     /**
      * Indicates if the account is logged into the server at this time.

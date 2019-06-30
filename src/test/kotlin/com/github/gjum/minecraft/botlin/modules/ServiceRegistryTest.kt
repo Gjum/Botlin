@@ -1,7 +1,9 @@
 package com.github.gjum.minecraft.botlin.modules
 
+import com.github.gjum.minecraft.botlin.api.Avatar
 import com.github.gjum.minecraft.botlin.api.Module
 import com.github.gjum.minecraft.botlin.api.Service
+import com.github.gjum.minecraft.botlin.api.ServiceRegistry
 import io.mockk.*
 import kotlinx.coroutines.runBlocking
 import kotlin.test.Test
@@ -15,7 +17,7 @@ interface TestService : Service {
 }
 
 class ConsumerModule : Module() {
-    override suspend fun initialize(serviceRegistry: ReloadableServiceRegistry, oldModule: Module?) {
+    override suspend fun activate(serviceRegistry: ServiceRegistry, avatar: Avatar) {
         serviceRegistry.consumeService(TestService::class.java,
             ::handleTestServiceChange)
     }
@@ -42,7 +44,7 @@ class EventProvider : TestService {
 }
 
 class ProviderModule(private val provider: EventProvider) : Module() {
-    override suspend fun initialize(serviceRegistry: ReloadableServiceRegistry, oldModule: Module?) {
+    override suspend fun activate(serviceRegistry: ServiceRegistry, avatar: Avatar) {
         serviceRegistry.provideService(TestService::class.java, provider)
     }
 
@@ -65,12 +67,13 @@ class ServiceRegistryTest {
         val providerModule = spyk(ProviderModule(provider))
         val modules = listOf(consumerModule, providerModule)
 
+        val avatar = mockk<Avatar>()
         val loader = mockk<ModulesLoader<Module>>()
         every { loader.reload() } returns modules
         every { loader.getAvailableModules() } returns modules
 
         // execute test
-        val serviceRegistry = ReloadableServiceRegistry(loader)
+        val serviceRegistry = ReloadableServiceRegistry(avatar, loader)
         providerModule.externalFooEvent("bar")
 
         verifyOrder {
@@ -78,11 +81,9 @@ class ServiceRegistryTest {
             consumerModule.name
             providerModule.name
 
-            consumerModule.name
-            runBlocking { consumerModule.initialize(serviceRegistry) }
+            runBlocking { consumerModule.activate(serviceRegistry, avatar) }
 
-            providerModule.name
-            runBlocking { providerModule.initialize(serviceRegistry) }
+            runBlocking { providerModule.activate(serviceRegistry, avatar) }
             consumerModule.handleTestServiceChange(provider)
             provider.subscribe(consumerModule, "foo", any())
 
@@ -102,19 +103,20 @@ class ServiceRegistryTest {
         val consumer1 = spyk(ConsumerModule())
         val consumer2 = spyk(ConsumerModule())
         val modules = listOf(consumer1, consumer2)
+        val avatar = mockk<Avatar>()
         val loader = mockk<ModulesLoader<Module>>()
         every { loader.reload() } returns modules
         every { loader.getAvailableModules() } returns modules
 
-        val serviceRegistry = ReloadableServiceRegistry(loader)
+        val serviceRegistry = ReloadableServiceRegistry(avatar, loader)
 
         verify(inverse = true) {
-            runBlocking { consumer1.initialize(serviceRegistry) }
+            runBlocking { consumer1.activate(serviceRegistry, avatar) }
         }
         verifyOrder {
             consumer1.name
             consumer2.name
-            runBlocking { consumer2.initialize(serviceRegistry) }
+            runBlocking { consumer2.activate(serviceRegistry, avatar) }
         }
     }
 }

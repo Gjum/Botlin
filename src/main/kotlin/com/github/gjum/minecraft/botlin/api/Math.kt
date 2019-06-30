@@ -1,4 +1,4 @@
-package com.github.gjum.minecraft.botlin.util
+package com.github.gjum.minecraft.botlin.api
 
 import kotlin.math.*
 

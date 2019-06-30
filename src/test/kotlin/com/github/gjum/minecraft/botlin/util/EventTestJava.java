@@ -1,8 +1,7 @@
 package com.github.gjum.minecraft.botlin.util;
 
-import com.github.gjum.minecraft.botlin.api.AvatarEvent;
-import com.github.gjum.minecraft.botlin.api.AvatarEvents;
-import com.github.gjum.minecraft.botlin.state.Entity;
+import com.github.gjum.minecraft.botlin.api.*;
+import com.github.gjum.minecraft.botlin.defaults.EventEmitterImpl;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -18,15 +17,15 @@ public class EventTestJava {
         final ArrayList<String> called = new ArrayList<>();
 
         // single arg
-        ee.on(AvatarEvents.Spawned.class, $(event -> {
+        ee.onEach(AvatarEvents.Spawned.class, $(event -> {
             called.add("AAA Spawned " + event.getEntity().getPosition());
         }));
         // three args
-        ee.on(AvatarEvents.TeleportByServer.class, $(event -> {
+        ee.onEach(AvatarEvents.TeleportedByServer.class, $(event -> {
             called.add("PosChange " + event.getNewPos());
         }));
 
-        ee.emit(new AvatarEvents.TeleportByServer(new Vec3d(2.0, 2.0, 2.0), Vec3d.getOrigin(), null));
+        ee.emit(new AvatarEvents.TeleportedByServer(new Vec3d(2.0, 2.0, 2.0), Vec3d.getOrigin(), null));
         {
             final Entity e = new Entity(42);
             e.setPosition(new Vec3d(3.0, 3.0, 3.0));

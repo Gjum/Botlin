@@ -1,7 +1,7 @@
-package com.github.gjum.minecraft.botlin.state
+package com.github.gjum.minecraft.botlin.defaults
 
 import com.github.gjum.minecraft.botlin.api.*
-import com.github.gjum.minecraft.botlin.util.*
+import com.github.gjum.minecraft.botlin.util.splitHostPort
 import com.github.steveice10.mc.auth.data.GameProfile
 import com.github.steveice10.mc.protocol.MinecraftProtocol
 import com.github.steveice10.mc.protocol.data.game.PlayerListEntryAction
@@ -35,15 +35,13 @@ import com.github.steveice10.packetlib.Session
 import com.github.steveice10.packetlib.event.session.*
 import com.github.steveice10.packetlib.packet.Packet
 import com.github.steveice10.packetlib.tcp.TcpSessionFactory
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.*
 import java.util.UUID
 import java.util.logging.Level
 import java.util.logging.Logger
 import kotlin.concurrent.fixedRateTimer
-import kotlin.coroutines.EmptyCoroutineContext
+
+// TODO catch handler exceptions
 
 private val brandBytesVanilla = byteArrayOf(7, 118, 97, 110, 105, 108, 108, 97)
 
@@ -52,15 +50,13 @@ fun normalizeServerAddress(serverAddress: String): String {
         .take(2).joinToString(":")
 }
 
-class AvatarImpl(override val profile: GameProfile, serverArg: String) : Avatar, SessionListener, CoroutineScope, EventEmitterImpl<AvatarEvent>() {
+class AvatarImpl(override val profile: GameProfile, serverAddr: String
+) : Avatar, SessionListener, CoroutineScope by CoroutineScope(Dispatchers.Default), EventEmitterImpl<AvatarEvent>() {
     private val logger: Logger = Logger.getLogger(this::class.java.name)
     private var ticker: Job? = null
 
-    override val coroutineContext = EmptyCoroutineContext
+    override val serverAddress = normalizeServerAddress(serverAddr)
 
-    override val serverAddress = normalizeServerAddress(serverArg)
-
-    override var behavior: BehaviorInstance = IdleBehaviorInstance(this)
     override var connection: Session? = null
     override var endReason: String? = null
 
@@ -83,7 +79,7 @@ class AvatarImpl(override val profile: GameProfile, serverArg: String) : Avatar,
             entity?.playerListItem?.gameMode = v
         }
 
-    fun send(packet: Packet) = connection?.send(packet)
+    private fun send(packet: Packet) = connection?.send(packet)
 
     private fun reset() {
         endReason = null
@@ -105,16 +101,9 @@ class AvatarImpl(override val profile: GameProfile, serverArg: String) : Avatar,
         return world!!.entities.getOrPut(eid) { Entity(eid) }
     }
 
-    override fun useBehavior(behavior: Behavior) {
-        this.behavior.deactivate()
-        this.behavior = behavior.activate(this)
-    }
-
     @Synchronized
     override fun useProtocol(proto: MinecraftProtocol) {
-        val split = serverAddress.split(':')
-        val host = split[0]
-        val port = split[1].toInt()
+        val (host, port) = splitHostPort(serverAddress)
         val client = Client(host, port, proto, TcpSessionFactory())
         useConnection(client.session)
         client.session.connect(true)
@@ -242,7 +231,7 @@ class AvatarImpl(override val profile: GameProfile, serverArg: String) : Avatar,
                     )
                 )
 
-                emit(AvatarEvents.TeleportByServer(position!!, oldPosition, packet))
+                emit(AvatarEvents.TeleportedByServer(position!!, oldPosition, packet))
                 if (!wasSpawned && spawned) emit(AvatarEvents.Spawned(entity!!))
 
                 startTicker()
@@ -254,7 +243,7 @@ class AvatarImpl(override val profile: GameProfile, serverArg: String) : Avatar,
                     position = Vec3d(packet.x, packet.y, packet.z)
                     look = Look.fromDegrees(packet.yaw, packet.pitch)
                     entity?.position = position // TODO update client pos in relation to vehicle (typically up/down)
-                    emit(AvatarEvents.TeleportByServer(position!!, oldPosition, packet))
+                    emit(AvatarEvents.TeleportedByServer(position!!, oldPosition, packet))
                 }
             }
             is ServerPlayerListEntryPacket -> {
@@ -483,8 +472,6 @@ class AvatarImpl(override val profile: GameProfile, serverArg: String) : Avatar,
 
         emit(AvatarEvents.PreClientTick())
 
-        if (position != null) behavior.doPhysicsTick()
-
         if (position != null && look != null) {
             if (position != prevPos) {
                 if (look != prevLook) {
@@ -524,7 +511,7 @@ class AvatarImpl(override val profile: GameProfile, serverArg: String) : Avatar,
 
     override fun toString(): String {
         val connStatus = if (connected) "online" else "offline"
-        return "AvatarImpl($identifier $connStatus at $position behavior=${behavior.name})"
+        return "AvatarImpl($identifier $connStatus at $position)"
     }
 }
 

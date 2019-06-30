@@ -1,7 +1,5 @@
 package com.github.gjum.minecraft.botlin.api
 
-import com.github.gjum.minecraft.botlin.state.*
-import com.github.gjum.minecraft.botlin.util.Vec3d
 import com.github.steveice10.mc.protocol.data.message.Message
 import com.github.steveice10.packetlib.Session
 import com.github.steveice10.packetlib.packet.Packet
@@ -11,7 +9,7 @@ interface AvatarEvent : Event
 // TODO add all events missing to make the spectator module
 object AvatarEvents {
     /** [Avatar.connected] switched from false to true. */
-    class Connected(val connection: Session) : AvatarEvent
+    data class Connected(val connection: Session) : AvatarEvent
 
     /**
      * [Avatar.connected] switched from true to false.
@@ -19,14 +17,14 @@ object AvatarEvents {
      * when the server disconnects the client, when a network error occurs, etc.
      * Check the reason/cause to differentiate between these.
      */
-    class Disconnected(val connection: Session, val reason: String?, val cause: Any?) : AvatarEvent
+    data class Disconnected(val connection: Session, val reason: String?, val cause: Any?) : AvatarEvent
 
     /** [Avatar.spawned] switched from false to true. */
-    class Spawned(val entity: Entity) : AvatarEvent
+    data class Spawned(val entity: Entity) : AvatarEvent
 
-    class ServerPacketReceived(val packet: Packet) : AvatarEvent
+    data class ServerPacketReceived(val packet: Packet) : AvatarEvent
 
-    class ChatReceived(val msg: Message) : AvatarEvent
+    data class ChatReceived(val msg: Message) : AvatarEvent
 
     /**
      * Called every 50ms before the [Avatar] processes its tick actions
@@ -46,7 +44,7 @@ object AvatarEvents {
      * On some servers, [PlayerLeft] and [PlayerJoined] may occur
      * quickly after one another shortly after joining the server.
      */
-    class PlayerJoined(val entry: PlayerListItem) : AvatarEvent
+    data class PlayerJoined(val entry: PlayerListItem) : AvatarEvent
 
     /**
      * An entry was removed from the [Avatar.playerList].
@@ -54,7 +52,7 @@ object AvatarEvents {
      * On some servers, [PlayerLeft] and [PlayerJoined] may occur
      * quickly after one another shortly after joining the server.
      */
-    class PlayerLeft(val entry: PlayerListItem) : AvatarEvent
+    data class PlayerLeft(val entry: PlayerListItem) : AvatarEvent
 
     /**
      * The [Avatar.inventory] has received all state. This happens typically
@@ -62,13 +60,13 @@ object AvatarEvents {
      * invalid click action to the server, to synchronize client and server again.
      * An ongoing synchronization can be checked through [Window.ready].
      */
-    class WindowReady(val newWindow: Window) : AvatarEvent
+    data class WindowReady(val newWindow: Window) : AvatarEvent
 
     /**
      * The current window was closed by the server.
      * The new Window will be in the next [WindowReady].
      */
-    class WindowClosed(val oldWindow: Window) : AvatarEvent
+    data class WindowClosed(val oldWindow: Window) : AvatarEvent
 
     /**
      * The position was forcefully changed by the server.
@@ -76,15 +74,15 @@ object AvatarEvents {
      * moving illegally (e.g., into a block or too quickly),
      * or respawning after death or in another dimension.
      */
-    class TeleportByServer(val newPos: Vec3d, val oldPos: Vec3d?, val reason: Any?) : AvatarEvent
+    data class TeleportedByServer(val newPos: Vec3d, val oldPos: Vec3d?, val reason: Any?) : AvatarEvent
 
-    class HealthChanged(val new: Float, val old: Float?) : AvatarEvent
+    data class HealthChanged(val new: Float, val old: Float?) : AvatarEvent
 
-    class FoodChanged(val new: Int, val old: Int?) : AvatarEvent
+    data class FoodChanged(val new: Int, val old: Int?) : AvatarEvent
 
-    class SaturationChanged(val new: Float, val old: Float?) : AvatarEvent
+    data class SaturationChanged(val new: Float, val old: Float?) : AvatarEvent
 
-    class ExpChanged(val new: Experience, val old: Experience?) : AvatarEvent
+    data class ExpChanged(val new: Experience, val old: Experience?) : AvatarEvent
 
     /**
      * The slots at the indices were changed by the server.
@@ -96,14 +94,14 @@ object AvatarEvents {
      * once everything is synchronized with the server.
      * An ongoing synchronization can be checked through [Window.ready].
      */
-    class SlotsChanged(
+    data class SlotsChanged(
         val window: Window,
-        val indices: Array<Int>,
-        val newSlots: Array<Slot>,
-        val oldSlots: Array<Slot>
+        val indices: List<Int>,
+        val newSlots: List<Slot>,
+        val oldSlots: List<Slot>
     ) : AvatarEvent
 
-    class WindowPropertyChanged(val window: Window, val property: Int, val oldValue: Int, val newValue: Int) : AvatarEvent
+    data class WindowPropertyChanged(val window: Window, val property: Int, val oldValue: Int, val newValue: Int) : AvatarEvent
 
     class PlayerEntityStatusChanged : AvatarEvent // TODO PlayerEntityStatusChanged args? split into several events?
 }

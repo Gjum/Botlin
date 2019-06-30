@@ -1,4 +1,4 @@
-package com.github.gjum.minecraft.botlin.modules.defaults
+package com.github.gjum.minecraft.botlin.defaults
 
 import kotlin.test.Test
 import kotlin.test.assertEquals

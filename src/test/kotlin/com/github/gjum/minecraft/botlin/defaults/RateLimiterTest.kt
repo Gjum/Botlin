@@ -1,4 +1,4 @@
-package com.github.gjum.minecraft.botlin.modules.defaults
+package com.github.gjum.minecraft.botlin.defaults
 
 import com.github.gjum.minecraft.botlin.util.RateLimiter
 import com.github.gjum.minecraft.botlin.util.TimeProxy

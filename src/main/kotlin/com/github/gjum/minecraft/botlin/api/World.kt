@@ -1,7 +1,5 @@
-package com.github.gjum.minecraft.botlin.state
+package com.github.gjum.minecraft.botlin.api
 
-import com.github.gjum.minecraft.botlin.util.Look
-import com.github.gjum.minecraft.botlin.util.Vec3d
 import com.github.steveice10.mc.auth.data.GameProfile
 import com.github.steveice10.mc.protocol.data.game.chunk.Chunk
 import com.github.steveice10.mc.protocol.data.game.chunk.Column
@@ -22,6 +20,7 @@ import java.util.*
 
 class Experience(val progress: Float, val level: Int, val total: Int)
 
+// TODO use class hierarchy to represent entities with/without health, name, headYaw, etc.
 sealed class EntityType {
     class ExpOrb(val exp: Int) : EntityType()
     class Mob(val type: MobType) : EntityType()

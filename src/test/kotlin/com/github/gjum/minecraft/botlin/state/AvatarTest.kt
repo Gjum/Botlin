@@ -1,5 +1,6 @@
 package com.github.gjum.minecraft.botlin.state
 
+import com.github.gjum.minecraft.botlin.defaults.AvatarImpl
 import com.github.steveice10.mc.auth.data.GameProfile
 import io.mockk.mockk
 import org.junit.Test

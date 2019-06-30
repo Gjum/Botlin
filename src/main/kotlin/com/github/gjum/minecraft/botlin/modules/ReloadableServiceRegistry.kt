@@ -7,9 +7,22 @@ import java.io.File
 import kotlin.coroutines.resume
 
 /**
+ * Lookup the service provider for [service].
+ * Returns null if no provider is registered.
+ */
+suspend inline fun <reified T : Service> ServiceRegistry.consumeService(service: Class<T>): T? {
+    return suspendCancellableCoroutine { cont ->
+        consumeService(service, cont::resume)
+    }
+}
+
+/**
  * Keeps track of modules and services. Allows hot reloading modules in one directory.
  */
-class ReloadableServiceRegistry(private val modulesLoader: ModulesLoader<Module>) : ServiceRegistry {
+class ReloadableServiceRegistry(
+    private val avatar: Avatar,
+    private val modulesLoader: ModulesLoader<Module>
+) : ServiceRegistry {
     /**
      * The provider of each service.
      */
@@ -32,16 +45,6 @@ class ReloadableServiceRegistry(private val modulesLoader: ModulesLoader<Module>
 
         consumerHandlers.getOrPut(service, ::mkMutList)
             .add(handlerAny)
-    }
-
-    /**
-     * Lookup the service provider for [service].
-     * Returns null if no provider is registered.
-     */
-    suspend inline fun <reified T : Service> consumeService(service: Class<T>): T? {
-        return suspendCancellableCoroutine { cont ->
-            consumeService(service, cont::resume)
-        }
     }
 
     override fun <T : Service> provideService(service: Class<T>, provider: T) {
@@ -72,15 +75,14 @@ class ReloadableServiceRegistry(private val modulesLoader: ModulesLoader<Module>
      */
     private fun transition(oldModules: Collection<Module>, newModules: Collection<Module>) {
         val newModulesMap = newModules.map { it.name to it }.toMap()
-        oldModules.forEach { it.teardown(newModulesMap[it.name]) }
+        oldModules.forEach { it.deactivate() }
         consumerHandlers.clear()
         providers.clear()
 
-        val oldModulesMap = oldModules.map { it.name to it }.toMap()
         // skip duplicate names by iterating newModulesMap instead of newModules
         newModulesMap.values.forEach {
             runBlocking {
-                it.initialize(this@ReloadableServiceRegistry, oldModulesMap[it.name])
+                it.activate(this@ReloadableServiceRegistry, avatar)
             }
         }
 
