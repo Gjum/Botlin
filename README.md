@@ -23,3 +23,5 @@ To get started with the available commands, run `help`.
 ## License
 
 Botlin is licensed under the **[MIT license](http://www.opensource.org/licenses/mit-license.html)**.
+
+[![Build Status](https://travis-ci.org/Gjum/Botlin.svg?branch=master)](https://travis-ci.org/Gjum/Botlin)
