@@ -4,13 +4,14 @@ import com.github.steveice10.mc.auth.data.GameProfile
 import com.github.steveice10.mc.protocol.MinecraftProtocol
 import com.github.steveice10.mc.protocol.data.game.entity.player.GameMode
 import com.github.steveice10.packetlib.Session
+import kotlinx.coroutines.CoroutineScope
 import java.util.UUID
 
 /**
  * State (embodiment) of an account on one server,
  * uniquely identified by [profile] and [serverAddress].
  */
-interface Avatar : EventEmitter<AvatarEvent>, Service {
+interface Avatar : EventEmitter<AvatarEvent>, CoroutineScope, Service {
     val identifier get() = "${profile.name}@$serverAddress"
 
     val profile: GameProfile
@@ -53,7 +54,7 @@ interface Avatar : EventEmitter<AvatarEvent>, Service {
      * Indicates if the account has received all its state yet, such as
      * position, health/food/exp, and is also still [connected].
      */
-    val spawned: Boolean
+    val spawned: Boolean // TODO rename to 'ingame'?
         get() = (position != null
             && health != null
             && experience != null

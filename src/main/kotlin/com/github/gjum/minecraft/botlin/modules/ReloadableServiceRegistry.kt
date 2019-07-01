@@ -1,7 +1,12 @@
 package com.github.gjum.minecraft.botlin.modules
 
-import com.github.gjum.minecraft.botlin.api.*
-import kotlinx.coroutines.*
+import com.github.gjum.minecraft.botlin.api.Module
+import com.github.gjum.minecraft.botlin.api.Service
+import com.github.gjum.minecraft.botlin.api.ServiceChangeHandler
+import com.github.gjum.minecraft.botlin.api.ServiceRegistry
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
 import java.io.File
 import java.util.logging.Logger
 import kotlin.coroutines.resume
@@ -64,16 +69,13 @@ class ReloadableServiceRegistry(
         }
     }
 
+    suspend fun teardown() {
+        transition(emptyList())
+    }
+
     suspend fun reloadModules(modulesDirectory: File?) {
         val newModules = modulesLoader.reload(modulesDirectory) ?: emptyList()
         transition(newModules)
-    }
-
-    /**
-     * Unloads all modules to end the program.
-     */
-    suspend fun teardown() {
-        transition(emptyList())
     }
 
     /**
@@ -105,15 +107,8 @@ class ReloadableServiceRegistry(
         }
         logger.fine("Done activating ${newModulesMap.size} modules")
 
-        consumeService(CommandService::class.java) { commands ->
-            commands?.registerCommand("reload", "reload", "Reload all modules."
-            ) { command, context ->
-                runBlocking{ reloadModules(null) }
-            }
-        }
-
         // send null for unavailable wanted services
-        consumerHandlers.forEach { service, handlers ->
+        consumerHandlers.forEach { (service, handlers) ->
             val provider = providers[service]
             if (provider == null) {
                 handlers.forEach { it(provider) }

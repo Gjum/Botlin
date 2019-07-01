@@ -1,6 +1,6 @@
 package com.github.gjum.minecraft.botlin.defaults
 
-import com.github.gjum.minecraft.botlin.MainArgs
+import com.github.gjum.minecraft.botlin.api.MainArgs
 import com.github.gjum.minecraft.botlin.api.Authentication
 import com.github.gjum.minecraft.botlin.api.Module
 import com.github.gjum.minecraft.botlin.api.ServiceRegistry

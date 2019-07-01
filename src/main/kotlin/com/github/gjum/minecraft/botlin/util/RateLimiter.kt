@@ -1,11 +1,5 @@
 package com.github.gjum.minecraft.botlin.util
 
-/** For testing. Gets inlined by JVM JIT (hopefully). */
-internal object TimeProxy {
-    fun currentTimeMillis() = System.currentTimeMillis()
-    suspend fun delay(ms: Long) = kotlinx.coroutines.delay(ms)
-}
-
 class RateLimiter(private val params: Params) {
     private val rateQueue = mutableListOf<Long>()
     private var nextBackoff: Float = params.backoffStart.toFloat() / params.backoffFactor
@@ -54,4 +48,10 @@ suspend fun <T> RateLimiter.runWithRateLimitWhereNonNullIsSuccess(block: suspend
         val result = block()
         result to (result != null)
     }
+}
+
+/** For testing. Gets inlined by JVM JIT (hopefully). */
+internal object TimeProxy {
+    fun currentTimeMillis() = System.currentTimeMillis()
+    suspend fun delay(ms: Long) = kotlinx.coroutines.delay(ms)
 }
