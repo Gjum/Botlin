@@ -4,18 +4,17 @@ Command-line Minecraft client leveraging Kotlin [coroutines](https://kotlinlang.
 
 ## Installation
 
-- Install git ([Windows: use git-bash as a terminal](https://gitforwindows.org/)) and Java
-- Open a terminal and clone the repository: `git clone https://github.com/Gjum/Botlin.git`
+- On Windows, ([use git-bash as a terminal](https://gitforwindows.org/))
+- Download [the code](https://github.com/Gjum/Botlin/archive/master.zip) and extract it somewhere ("Botlin" directory)
 - Enter the repository directory: `cd Botlin`
 - Build the project binary: `./gradlew clean shadowJar`
 
 ## Usage
 
 - Open a terminal, `cd` to your Botlin installation
-- Provide your Minecraft password to the current terminal session: `export MINECRAFT_PASSWORD="my pas$word"`
-- If that doesn't work, create a file `.credentials` containing email and password separated by space: `your-email@example.com my pas$word`
+- Create a file `.credentials` in the same directory, containing email and password separated by space: `your-email@example.com my pas$word`
     You can add multiple accounts, one per line.
-- Run the bot's command-line interface (CLI): `java -DmcHost=mc.server-address.example.com -DmcUsername=your-email@example.com -jar build/libs/botlin-*-all.jar`
+- Run the bot's command-line interface (CLI): `java -jar build/libs/botlin-0.1.1-SNAPSHOT-all.jar your-email@example.com mc.server-address.example.com`
 
 To get started with the available commands, run `help`.
 
