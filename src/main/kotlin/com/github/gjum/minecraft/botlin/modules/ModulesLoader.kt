@@ -78,7 +78,6 @@ class DirectoryModulesLoader<T>(
         private val logger: Logger = Logger.getLogger(this::class.java.name)
 
         private fun makeContextClassLoaderWithModulesDir(dir: File): URLClassLoader {
-            println("Adding modules folder to class path")
             if (!dir.exists() && !dir.mkdir()) {
                 logger.warning("Could not create modules directory $dir")
             }

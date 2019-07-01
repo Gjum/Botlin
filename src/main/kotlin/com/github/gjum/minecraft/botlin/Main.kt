@@ -11,6 +11,9 @@ import com.github.gjum.minecraft.botlin.modules.ModulesLoader
 import com.github.gjum.minecraft.botlin.modules.ReloadableServiceRegistry
 import com.github.gjum.minecraft.botlin.modules.consumeService
 import com.github.gjum.minecraft.botlin.util.Cli
+import com.github.gjum.minecraft.botlin.util.Log
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import java.io.File
 import java.util.logging.Level
@@ -19,11 +22,13 @@ import java.util.logging.Logger
 object Main {
 	@JvmStatic
 	fun main(args: Array<String>) {
+		Log.reload() // TODO why is this needed? JUL should automatically read logging.properties
 		val modulesLoader = StaticModulesLoader(
 			setupDefaultModules() + MainArgsModule(args))
 		val serviceRegistry = ReloadableServiceRegistry(modulesLoader)
-
+		val reloadJob = GlobalScope.launch { serviceRegistry.reloadModules(null) }
 		trySetupCli(serviceRegistry)
+		runBlocking { reloadJob.join() }
 	}
 }
 
@@ -42,18 +47,18 @@ private fun setupDefaultModules() = listOf(
 )
 
 interface MainArgs : Service {
-	fun getArgs(): Array<String>
+	val args: Array<String>
 }
 
 private class MainArgsModule(private val args: Array<String>) : Module() {
 	override suspend fun activate(serviceRegistry: ServiceRegistry) {
 		serviceRegistry.provideService(MainArgs::class.java, object : MainArgs {
-			override fun getArgs() = args
+			override val args get() = this@MainArgsModule.args
 		})
 	}
 }
 
-private val commandLogger = Logger.getLogger("Commands")
+private val commandLogger = Logger.getLogger("com.github.gjum.minecraft.botlin.Commands")
 
 private class LoggingCommandContext(val cmdName: String) : CommandContext {
 	override fun respond(message: String) {
@@ -64,7 +69,7 @@ private class LoggingCommandContext(val cmdName: String) : CommandContext {
 private fun trySetupCli(services: ServiceRegistry) {
 	val commands = runBlocking {
 		services.consumeService(CommandService::class.java)
-	} ?: return
+	} ?: return // no commands, so no cli
 	try {
 		Cli.run { cmdLine ->
 			if (cmdLine.trim().isEmpty()) return@run

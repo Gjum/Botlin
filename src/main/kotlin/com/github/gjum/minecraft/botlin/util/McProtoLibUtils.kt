@@ -30,7 +30,7 @@ suspend fun lookupProfile(username: String, profileService: ProfileService): Gam
 
 fun splitHostPort(address: String): Pair<String, Int> {
 	val split = address.split(':')
-	val host = split[1]
+	val host = split[0]
 	val port = split.getOrNull(2)?.toInt() ?: 25565
 	return host to port
 }

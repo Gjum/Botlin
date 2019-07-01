@@ -1,6 +1,9 @@
 package com.github.gjum.minecraft.botlin.defaults
 
-import com.github.gjum.minecraft.botlin.api.*
+import com.github.gjum.minecraft.botlin.MainArgs
+import com.github.gjum.minecraft.botlin.api.Authentication
+import com.github.gjum.minecraft.botlin.api.Module
+import com.github.gjum.minecraft.botlin.api.ServiceRegistry
 import com.github.gjum.minecraft.botlin.modules.consumeService
 import com.github.gjum.minecraft.botlin.util.mcProtoFromAuth
 import com.github.gjum.minecraft.botlin.util.runOnThread
@@ -25,7 +28,7 @@ private class AuthenticationProvider(
     private val credentialsPath: String,
     private val authCachePath: String
 ) : Authentication {
-    private val logger: Logger = Logger.getLogger(this::class.java.name)
+    private val logger = Logger.getLogger(this::class.java.name)
 
     override suspend fun authenticate(): MinecraftProtocol? {
         var cToken: String = UUID.randomUUID().toString() // TODO allow providing default value
@@ -110,9 +113,15 @@ private class AuthenticationProvider(
 class AuthModule : Module() {
     override suspend fun activate(serviceRegistry: ServiceRegistry) {
         super.activate(serviceRegistry)
-        val avatar = serviceRegistry.consumeService(Avatar::class.java)!!
+
+        val args = serviceRegistry.consumeService(MainArgs::class.java)?.args
+        val username = args?.getOrNull(0)
+            ?: System.getProperty("username")
+            ?: System.getenv("MINECRAFT_USERNAME")
+            ?: "Botlin"
+
         val auth = AuthenticationProvider(
-            avatar.profile.name,
+            username,
             System.getProperty("mcAuthCredentials") ?: ".credentials",
             System.getProperty("mcAuthCache") ?: ".auth_tokens.json"
         )

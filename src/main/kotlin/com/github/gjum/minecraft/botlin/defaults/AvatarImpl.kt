@@ -3,11 +3,9 @@ package com.github.gjum.minecraft.botlin.defaults
 import com.github.gjum.minecraft.botlin.MainArgs
 import com.github.gjum.minecraft.botlin.api.*
 import com.github.gjum.minecraft.botlin.modules.consumeService
-import com.github.gjum.minecraft.botlin.util.lookupProfile
 import com.github.gjum.minecraft.botlin.util.normalizeServerAddress
 import com.github.gjum.minecraft.botlin.util.splitHostPort
 import com.github.steveice10.mc.auth.data.GameProfile
-import com.github.steveice10.mc.auth.service.ProfileService
 import com.github.steveice10.mc.protocol.MinecraftProtocol
 import com.github.steveice10.mc.protocol.data.game.PlayerListEntryAction
 import com.github.steveice10.mc.protocol.data.game.entity.player.GameMode
@@ -53,19 +51,15 @@ private val brandBytesVanilla = byteArrayOf(7, 118, 97, 110, 105, 108, 108, 97)
 class AvatarModule : Module() {
 	override suspend fun activate(serviceRegistry: ServiceRegistry) {
 		super.activate(serviceRegistry)
-		val args = serviceRegistry.consumeService(MainArgs::class.java)?.getArgs()
-		val username = args?.getOrNull(0)
-			?: System.getProperty("username")
-			?: System.getenv("MINECRAFT_USERNAME")
-			?: "Botlin"
+		val args = serviceRegistry.consumeService(MainArgs::class.java)?.args
 		val serverAddress = normalizeServerAddress(
 			args?.getOrNull(1)
 				?: System.getProperty("serverAddress")
 				?: System.getenv("MINECRAFT_SERVER_ADDRESS")
 				?: "localhost")
 
-		val profileService = ProfileService()
-		val profile = lookupProfile(username, profileService)
+		val auth = serviceRegistry.consumeService(Authentication::class.java)!!
+		val profile = auth.authenticate()?.profile!!
 		val avatar = AvatarImpl(profile, serverAddress)
 		serviceRegistry.provideService(Avatar::class.java, avatar)
 	}
@@ -89,7 +83,7 @@ class AvatarImpl(override val profile: GameProfile, serverAddr: String
     override var inventory: Window? = null
 
     override var world: World? = null
-    override var playerList: MutableMap<UUID, PlayerListItem>? = mutableMapOf()
+    override var playerList: MutableMap<UUID, PlayerListItem>? = null
 
     override var gameMode: GameMode?
         get() = entity?.playerListItem?.gameMode
@@ -124,21 +118,14 @@ class AvatarImpl(override val profile: GameProfile, serverAddr: String
 
     @Synchronized
     override fun useProtocol(proto: MinecraftProtocol) {
+        if (connection != null) TODO("already connected") // bail? close existing and use new one?
         val (host, port) = splitHostPort(serverAddress)
+        logger.fine("Connecting as ${profile.name} to $host $port")
         val client = Client(host, port, proto, TcpSessionFactory())
-        useConnection(client.session)
-        client.session.connect(true)
-    }
-
-    private fun useConnection(connection: Session) {
-        if (this.connection != null) TODO("already connected") // bail? close existing and use new one?
-        if (connection.remoteAddress.toString() != serverAddress) {
-            throw IllegalArgumentException(
-                "Avatar for $serverAddress cannot connect to ${connection.remoteAddress}")
-        }
         reset()
-        this.connection = connection
-        connection.addListener(this)
+        connection = client.session
+        client.session.addListener(this)
+        client.session.connect(true)
     }
 
     override fun connected(event: ConnectedEvent) {
@@ -156,12 +143,13 @@ class AvatarImpl(override val profile: GameProfile, serverAddr: String
     /**
      * Disconnects the client, blocking the current thread.
      */
+    @Synchronized
     override fun disconnect(reason: String?, cause: Throwable?) {
         val c = connection ?: return
         if (endReason == null) {
             emit(AvatarEvents.Disconnected(c, reason, cause))
         }
-        // reset() // TODO do we already reset here or remember the failstate?
+        // reset() // TODO do we already reset here or remember the fail state?
         endReason = reason
         // TODO submit upstream patch for TcpClientSession overriding all TcpSession#disconnect
         connection?.disconnect(reason, cause, false)
@@ -184,6 +172,7 @@ class AvatarImpl(override val profile: GameProfile, serverAddr: String
                 emit(AvatarEvents.ChatReceived(packet.message))
             }
             is ServerJoinGamePacket -> {
+                playerList = mutableMapOf()
                 world = World(packet.dimension)
                 entity = getEntityOrCreate(packet.entityId).apply { uuid = profile.id }
                 gameMode = packet.gameMode
