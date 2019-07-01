@@ -1,6 +1,5 @@
 package com.github.gjum.minecraft.botlin.modules
 
-import com.github.gjum.minecraft.botlin.api.Avatar
 import com.github.gjum.minecraft.botlin.api.Module
 import com.github.gjum.minecraft.botlin.api.Service
 import com.github.gjum.minecraft.botlin.api.ServiceRegistry
@@ -73,18 +72,27 @@ class ServiceRegistryTest {
 
         // execute test
         val serviceRegistry = ReloadableServiceRegistry(loader)
+        runBlocking { serviceRegistry.reloadModules(null) }
         providerModule.externalFooEvent("bar")
 
-        verifyOrder {
-            loader.getAvailableModules()
+        coVerifyOrder {
+            loader.reload(null)
             consumerModule.name
             providerModule.name
 
-            runBlocking { consumerModule.activate(serviceRegistry) }
+            consumerModule.name
+            consumerModule.name
 
-            runBlocking { providerModule.activate(serviceRegistry) }
+            providerModule.name
+            providerModule.name
+
+            consumerModule.activate(serviceRegistry)
+            consumerModule.name
+
+            providerModule.activate(serviceRegistry)
             consumerModule.handleTestServiceChange(provider)
             provider.subscribe(consumerModule, "foo", any())
+            providerModule.name
 
             providerModule.externalFooEvent("bar")
             provider.emit("foo", "bar")
@@ -107,14 +115,15 @@ class ServiceRegistryTest {
         every { loader.getAvailableModules() } returns modules
 
         val serviceRegistry = ReloadableServiceRegistry(loader)
+        runBlocking { serviceRegistry.reloadModules(null) }
 
-        verify(inverse = true) {
-            runBlocking { consumer1.activate(serviceRegistry) }
+        coVerify(inverse = true) {
+            consumer1.activate(serviceRegistry)
         }
-        verifyOrder {
+        coVerifyOrder {
             consumer1.name
             consumer2.name
-            runBlocking { consumer2.activate(serviceRegistry) }
+            consumer2.activate(serviceRegistry)
         }
     }
 }
