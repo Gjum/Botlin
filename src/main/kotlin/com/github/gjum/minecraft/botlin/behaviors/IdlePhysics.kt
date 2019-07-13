@@ -11,28 +11,28 @@ import com.github.steveice10.mc.protocol.packet.ingame.server.entity.player.Serv
  * Does simple physics (falling).
  */
 open class IdlePhysics : ModuleAutoEvents() {
-	override val name = "idle"
+	override val name = "IdlePhysics"
 
 	private var onGround = false // XXX set inside avatar
 	private var prevPos: Vec3d? = null
 
 	override suspend fun activate(serviceRegistry: ServiceRegistry) {
 		super.activate(serviceRegistry)
-		onEach(AvatarEvents.PreClientTick::class.java, ::onPhysicsTick)
-		onEach(AvatarEvents.TeleportedByServer::class.java, ::onTeleportByServer)
+		onEach(AvatarEvents.PreClientTick::class.java, ::doPhysicsTick)
+		onEach(AvatarEvents.TeleportedByServer::class.java, ::onTeleportedByServer)
 	}
 
-	private fun onPhysicsTick(event: AvatarEvents.PreClientTick) {
+	private fun doPhysicsTick(event: AvatarEvents.PreClientTick) {
 		if (!avatar.alive) return
 		if (!onGround) {
 			prevPos = avatar.entity!!.position!!
 			val newPos = prevPos!! - Vec3d(0.0, 1.0 / 8, 0.0)
-			avatar.entity!!.position = newPos
+			avatar.entity!!.position = newPos // XXX setting position should require movement lock
 		}
 		// TODO apply entity velocity (knockback)
 	}
 
-	private fun onTeleportByServer(event: AvatarEvents.TeleportedByServer) {
+	private fun onTeleportedByServer(event: AvatarEvents.TeleportedByServer) {
 		if (event.reason is ServerPlayerPositionRotationPacket) {
 			onGround = event.newPos == prevPos
 		} else if (event.reason is ServerVehicleMovePacket) {

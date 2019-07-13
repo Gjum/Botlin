@@ -2,8 +2,8 @@ package com.github.gjum.minecraft.botlin
 
 import com.github.gjum.minecraft.botlin.api.*
 import com.github.gjum.minecraft.botlin.behaviors.AutoReconnect
+import com.github.gjum.minecraft.botlin.behaviors.BlindPhysics
 import com.github.gjum.minecraft.botlin.behaviors.EventLogger
-import com.github.gjum.minecraft.botlin.behaviors.IdlePhysics
 import com.github.gjum.minecraft.botlin.defaults.AuthModule
 import com.github.gjum.minecraft.botlin.defaults.AvatarModule
 import com.github.gjum.minecraft.botlin.defaults.CliModule
@@ -37,10 +37,10 @@ private fun setupDefaultModules() = listOf(
 	AuthModule(),
 	AutoReconnect(),
 	AvatarModule(),
+	BlindPhysics(),
 	CliModule(),
 	CommandModule(),
 	EventLogger(),
-	IdlePhysics(),
 	UsefulCommandsModule()
 )
 
