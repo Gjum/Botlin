@@ -6,10 +6,9 @@ import com.github.gjum.minecraft.botlin.api.ServiceChangeHandler
 import com.github.gjum.minecraft.botlin.api.ServiceRegistry
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.suspendCancellableCoroutine
 import java.io.File
+import java.util.logging.Level
 import java.util.logging.Logger
-import kotlin.coroutines.resume
 
 /**
  * Lookup the service provider for [service].
@@ -97,10 +96,15 @@ class ReloadableServiceRegistry(
             // skip duplicate names by iterating newModulesMap instead of newModules
             newModulesMap.values.forEach {
                 logger.fine("Activating module ${it.name}")
-                modules[it.name] = it
                 launch {
-                    it.activate(this@ReloadableServiceRegistry)
-                    logger.fine("Done activating module ${it.name}")
+                    try {
+                        it.activate(this@ReloadableServiceRegistry)
+                        logger.fine("Done activating module ${it.name}")
+                    } catch (e: Exception) {
+                        logger.log(Level.SEVERE, "Failed activating module ${it.name}: $e", e)
+                        return@launch
+                    }
+                    modules[it.name] = it
                 }
             }
             logger.fine("Done kicking off modules activation")

@@ -18,7 +18,7 @@ import java.util.logging.Logger
 import kotlin.concurrent.thread
 
 object Cli {
-    private val logger: Logger = Logger.getLogger(this::class.java.name)
+    private val logger = Logger.getLogger(this::class.java.name)
 
     /**
      * may be changed on the fly

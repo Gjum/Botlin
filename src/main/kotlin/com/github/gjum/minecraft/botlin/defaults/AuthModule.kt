@@ -41,7 +41,7 @@ private class AuthenticationProvider(
             cToken = authCache.clientToken
             val aToken = authCache.sessions[username]
             if (aToken == null || aToken.isEmpty()) {
-                logger.info("Could not read auth token from $authCachePath")
+                logger.fine("Could not read auth token from $authCachePath")
             } else {
                 try {
                     val auth = AuthenticationService(cToken)
