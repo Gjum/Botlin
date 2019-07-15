@@ -1,7 +1,6 @@
 package com.github.gjum.minecraft.botlin.defaults
 
 import com.github.gjum.minecraft.botlin.api.*
-import com.github.gjum.minecraft.botlin.modules.consumeService
 import com.github.gjum.minecraft.botlin.util.normalizeServerAddress
 import com.github.gjum.minecraft.botlin.util.splitHostPort
 import com.github.steveice10.mc.auth.data.GameProfile
@@ -60,12 +59,15 @@ class AvatarModule : Module() {
 		val auth = serviceRegistry.consumeService(Authentication::class.java)!!
 		val profile = auth.authenticate()!!.profile
 		Logger.getLogger(javaClass.name).fine("Using profile ${profile.name} ${profile.idAsString}")
-		val avatar = AvatarImpl(profile, serverAddress)
+		val avatar = AvatarImpl(serviceRegistry, profile, serverAddress)
 		serviceRegistry.provideService(Avatar::class.java, avatar)
 	}
 }
 
-class AvatarImpl(override val profile: GameProfile, serverAddr: String
+class AvatarImpl(
+	override val serviceRegistry: ServiceRegistry,
+	override val profile: GameProfile,
+	serverAddr: String
 ) : Avatar, SessionListener, CoroutineScope by CoroutineScope(Dispatchers.Default), EventEmitterImpl<AvatarEvent>() {
     private val logger = Logger.getLogger(this::class.java.name)
     private var ticker: Job? = null
@@ -80,10 +82,24 @@ class AvatarImpl(override val profile: GameProfile, serverAddr: String
     override var food: Int? = null
     override var saturation: Float? = null
     override var experience: Experience? = null
-    override var inventory: Window? = null
 
+    override var inventory: Window? = null
     override var world: World? = null
     override var playerList: MutableMap<UUID, PlayerListItem>? = null
+
+    override var position: Vec3d?
+        get() = entity?.position
+        set(value) {
+            entity?.position = value
+        }
+
+    override var look: Look?
+        get() = entity?.look
+        set(value) {
+            entity?.look = value
+        }
+
+    override val onGround: Boolean? get() = entity?.onGround
 
     override var gameMode: GameMode?
         get() = entity?.playerListItem?.gameMode

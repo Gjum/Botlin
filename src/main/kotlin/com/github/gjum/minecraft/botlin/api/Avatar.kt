@@ -11,58 +11,59 @@ import java.util.UUID
  * State (embodiment) of an account on one server,
  * uniquely identified by [profile] and [serverAddress].
  */
-interface Avatar : EventEmitter<AvatarEvent>, CoroutineScope, Service {
-    val identifier get() = "${profile.name}@$serverAddress"
+interface Avatar : EventEmitter<AvatarEvent>, Service {
+	val serviceRegistry: ServiceRegistry // XXX
 
-    val profile: GameProfile
+	val identifier get() = "${profile.name}@$serverAddress"
 
-    /** Normalized to format "host:port". */
-    val serverAddress: String
+	val profile: GameProfile
 
-    val connection: Session?
-    val endReason: String?
-    val entity: Entity?
-    val health: Float?
-    val food: Int?
-    val saturation: Float?
-    val experience: Experience?
-    val inventory: Window?
-    val position: Vec3d? get() = entity?.position
-    val look: Look? get() = entity?.look
-    val onGround: Boolean? get() = entity?.onGround
-    val gameMode: GameMode?
+	/** Normalized to format "host:port". */
+	val serverAddress: String
 
-    val world: World?
-    val playerList: Map<UUID, PlayerListItem>?
+	val connection: Session?
+	val endReason: String?
+	val entity: Entity?
+	val health: Float?
+	val food: Int?
+	val saturation: Float?
+	val experience: Experience?
+	var position: Vec3d?
+	var look: Look?
+	val onGround: Boolean?
+	val gameMode: GameMode?
+	val inventory: Window?
+	val world: World?
+	val playerList: Map<UUID, PlayerListItem>?
 
-    fun useProtocol(proto: MinecraftProtocol)
+	fun useProtocol(proto: MinecraftProtocol)
 
-    /**
-     * Disconnects the client, blocking the current thread.
-     */
-    fun disconnect(reason: String?, cause: Throwable? = null)
+	/**
+	 * Disconnects the client, blocking the current thread.
+	 */
+	fun disconnect(reason: String?, cause: Throwable? = null)
 
-    /**
-     * Indicates if the account is logged into the server at this time.
-     *
-     * depends on endReason because connection remains
-     * set after disconnection, for info/debugging purposes
-     */
-    val connected get() = connection != null && endReason == null
+	/**
+	 * Indicates if the account is logged into the server at this time.
+	 *
+	 * depends on endReason because connection remains
+	 * set after disconnection, for info/debugging purposes
+	 */
+	val connected get() = connection != null && endReason == null
 
-    /**
-     * Indicates if the account has received all its state yet, such as
-     * position, health/food/exp, and is also still [connected].
-     */
-    val spawned: Boolean // TODO rename to 'ingame'?
-        get() = (position != null
-            && health != null
-            && experience != null
-            && world != null
-            && connected)
+	/**
+	 * Indicates if the account has received all its state yet, such as
+	 * position, health/food/exp, and is also still [connected].
+	 */
+	val spawned: Boolean // TODO rename to 'ingame'?
+		get() = (position != null
+			&& health != null
+			&& experience != null
+			&& world != null
+			&& connected)
 
-    /**
-     * Indicates if the account is alive at this time, including being [spawned].
-     */
-    val alive get() = health ?: 0.0f > 0.0f && spawned
+	/**
+	 * Indicates if the account is alive at this time, including being [spawned].
+	 */
+	val alive get() = health ?: 0.0f > 0.0f && spawned
 }

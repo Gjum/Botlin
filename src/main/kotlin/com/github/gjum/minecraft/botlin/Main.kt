@@ -10,7 +10,6 @@ import com.github.gjum.minecraft.botlin.defaults.CliModule
 import com.github.gjum.minecraft.botlin.defaults.CommandModule
 import com.github.gjum.minecraft.botlin.modules.ModulesLoader
 import com.github.gjum.minecraft.botlin.modules.ReloadableServiceRegistry
-import com.github.gjum.minecraft.botlin.modules.consumeService
 import com.github.gjum.minecraft.botlin.util.Log
 import com.github.gjum.minecraft.botlin.util.toAnsi
 import com.github.steveice10.mc.protocol.packet.ingame.client.ClientChatPacket

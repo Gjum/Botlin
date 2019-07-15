@@ -1,11 +1,11 @@
 package com.github.gjum.minecraft.botlin.behaviors
 
 import com.github.gjum.minecraft.botlin.api.*
-import com.github.gjum.minecraft.botlin.modules.consumeService
 import com.github.gjum.minecraft.botlin.util.RateLimiter
 import com.github.gjum.minecraft.botlin.util.ScriptModule
 import com.github.gjum.minecraft.botlin.util.awaitEventCondition
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.isActive
 import java.util.logging.Logger
 
 open class AutoReconnect : ScriptModule() {

@@ -11,16 +11,6 @@ import java.util.logging.Level
 import java.util.logging.Logger
 
 /**
- * Lookup the service provider for [service].
- * Returns null if no provider is registered.
- */
-suspend inline fun <reified T : Service> ServiceRegistry.consumeService(service: Class<T>): T? {
-    return suspendCancellableCoroutine { cont ->
-        consumeService(service, cont::resume)
-    }
-}
-
-/**
  * Keeps track of modules and services. Allows hot reloading modules in one directory.
  */
 class ReloadableServiceRegistry(

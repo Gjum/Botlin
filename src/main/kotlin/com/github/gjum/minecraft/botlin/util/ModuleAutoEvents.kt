@@ -1,7 +1,6 @@
 package com.github.gjum.minecraft.botlin.util
 
 import com.github.gjum.minecraft.botlin.api.*
-import com.github.gjum.minecraft.botlin.modules.consumeService
 
 /**
  * [Module] that automatically unregisters [AvatarEvents] during [deactivate]

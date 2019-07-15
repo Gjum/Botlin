@@ -3,7 +3,7 @@ package com.github.gjum.minecraft.botlin.util
 import com.github.gjum.minecraft.botlin.api.Event
 import com.github.gjum.minecraft.botlin.api.EventEmitter
 import com.github.gjum.minecraft.botlin.api.Unregister
-import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.*
 import kotlin.coroutines.resume
 
 /**

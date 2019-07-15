@@ -81,17 +81,16 @@ class ServiceRegistryTest {
             providerModule.name
 
             consumerModule.name
-            consumerModule.name
-
-            providerModule.name
             providerModule.name
 
             consumerModule.activate(serviceRegistry)
+            consumerModule.name
             consumerModule.name
 
             providerModule.activate(serviceRegistry)
             consumerModule.handleTestServiceChange(provider)
             provider.subscribe(consumerModule, "foo", any())
+            providerModule.name
             providerModule.name
 
             providerModule.externalFooEvent("bar")
@@ -102,7 +101,8 @@ class ServiceRegistryTest {
             consumerModule.handleTestServiceChange(null)
         }
 
-        confirmVerified(loader, consumerModule, provider, providerModule)
+        confirmVerified(loader, provider)
+        confirmVerified(consumerModule, providerModule)
     }
 
     @Test
