@@ -1,5 +1,6 @@
 package com.github.gjum.minecraft.botlin.api
 
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
 
@@ -8,7 +9,7 @@ typealias ServiceChangeHandler<T> = (provider: T?) -> Unit
 /**
  * Keeps track of modules and services. Allows hot reloading modules in one directory.
  */
-interface ServiceRegistry {
+interface ServiceRegistry: CoroutineScope {
     /**
      * Signal interest in consuming the [service].
      * The [handler] will get called exactly once with the [service]'s provider.

@@ -4,6 +4,7 @@ import com.github.gjum.minecraft.botlin.api.*
 import com.github.gjum.minecraft.botlin.util.mcProtoFromAuth
 import com.github.gjum.minecraft.botlin.util.runOnThread
 import com.github.steveice10.mc.auth.exception.request.InvalidCredentialsException
+import com.github.steveice10.mc.auth.exception.request.RequestException
 import com.github.steveice10.mc.auth.service.AuthenticationService
 import com.github.steveice10.mc.protocol.MinecraftProtocol
 import com.google.gson.Gson
@@ -26,7 +27,7 @@ private class AuthenticationProvider(
 ) : Authentication {
     private val logger = Logger.getLogger(this::class.java.name)
 
-    override suspend fun authenticate(): MinecraftProtocol? {
+    override suspend fun authenticate(): Result<MinecraftProtocol, RequestException> {
         var cToken: String = UUID.randomUUID().toString() // TODO allow providing default value
 
         // try loading cached token, and maybe client token
@@ -67,13 +68,13 @@ private class AuthenticationProvider(
         val credentials = readCredentialsFile(credentialsPath)
         if (credentials == null) {
             logger.info("Failed to authenticate $username: Could not read credentials from $credentialsPath and no password provided via env ($mcPasswordEnv)")
-            return null
+            return Result.Failure(RequestException("Failed to authenticate $username: Could not read credentials from $credentialsPath and no password provided via env ($mcPasswordEnv)"))
         }
 
         val credPassword = credentials[username] ?: ""
         if (credPassword.isEmpty()) {
             logger.info("Failed to authenticate $username: No password provided via env ($mcPasswordEnv) or $credentialsPath")
-            return null
+            return Result.Failure(RequestException("Failed to authenticate $username: No password provided via env ($mcPasswordEnv) or $credentialsPath"))
         }
 
         try {
@@ -83,16 +84,27 @@ private class AuthenticationProvider(
             return tryLoginAndCacheToken(auth)
         } catch (e: InvalidCredentialsException) {
             logger.warning("Failed to authenticate $username: Invalid password provided via $credentialsPath")
-            return null
+            return Result.Failure(RequestException("Failed to authenticate $username: Invalid password provided via $credentialsPath"))
         }
     }
 
-    @Throws(InvalidCredentialsException::class)
-    private suspend fun tryLoginAndCacheToken(auth: AuthenticationService): MinecraftProtocol {
-        runOnThread { auth.login() } // this may throw, in which case no token is cached
-        // success!
-        cacheToken(authCachePath, auth)
-        return mcProtoFromAuth(auth)
+    private suspend fun tryLoginAndCacheToken(auth: AuthenticationService): Result<MinecraftProtocol, RequestException> {
+        val result = tryLogin(auth)
+        if (result.value != null) cacheToken(authCachePath, auth)
+        return result
+    }
+
+    private suspend fun tryLogin(auth: AuthenticationService): Result<MinecraftProtocol, RequestException> {
+        val error = runOnThread {
+            try {
+                auth.login()
+                null
+            } catch (e: RequestException) {
+                e
+            }
+        }
+        if (error != null) return Result.Failure(error)
+        return Result.Success(mcProtoFromAuth(auth))
     }
 
     private fun cacheToken(authCachePath: String, auth: AuthenticationService, authCacheArg: AuthTokenCache? = null) {
@@ -128,6 +140,7 @@ class AuthModule : Module() {
 private fun readAuthTokenCache(authCachePath: String): AuthTokenCache? {
     val configStr: String
     try {
+        // TODO do non-blocking read
         configStr = String(Files.readAllBytes(Paths.get(authCachePath)))
     } catch (e: IOException) {
         return null

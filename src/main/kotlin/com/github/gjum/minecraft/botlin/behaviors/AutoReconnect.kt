@@ -4,21 +4,19 @@ import com.github.gjum.minecraft.botlin.api.*
 import com.github.gjum.minecraft.botlin.util.RateLimiter
 import com.github.gjum.minecraft.botlin.util.ScriptModule
 import com.github.gjum.minecraft.botlin.util.awaitEventCondition
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.isActive
 import java.util.logging.Logger
 
 open class AutoReconnect : ScriptModule() {
 	override val name = "autoreconnect"
 
-	override suspend fun script(coroutineScope: CoroutineScope, serviceRegistry: ServiceRegistry) {
+	override suspend fun script(serviceRegistry: ServiceRegistry) {
 		val avatar = serviceRegistry.consumeService(Avatar::class.java)!!
 		val auth = serviceRegistry.consumeService(Authentication::class.java)!!
 		val rateLimiter = RateLimiter(RateParamsFromSysProps())
-		while (coroutineScope.isActive) {
+		while (true) {
 			avatar.awaitEventCondition(AvatarEvents.Disconnected::class.java) { !avatar.connected }
 			rateLimiter.runWithRateLimit {
-				val proto = auth.authenticate()
+				val (proto, authError) = auth.authenticate()
 				if (proto == null) {
 					Logger.getLogger(javaClass.name).warning("Failed to authenticate")
 					null to false

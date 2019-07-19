@@ -2,7 +2,6 @@ package com.github.gjum.minecraft.botlin.defaults
 
 import com.github.gjum.minecraft.botlin.api.*
 import com.github.gjum.minecraft.botlin.util.Cli
-import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import java.util.logging.Level
 import java.util.logging.Logger
@@ -16,7 +15,7 @@ class CliModule : Module() {
 			?: return // no commands, no cli
 
 		// non-blocking
-		GlobalScope.launch {
+		serviceRegistry.launch {
 			try {
 				Cli.run { cmdLineRaw ->
 					if (cmdLineRaw.trim().isEmpty()) return@run

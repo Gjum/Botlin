@@ -4,8 +4,7 @@ import com.github.gjum.minecraft.botlin.api.*
 import com.github.gjum.minecraft.botlin.util.ModuleAutoEvents
 import com.github.steveice10.mc.protocol.packet.ingame.server.entity.ServerVehicleMovePacket
 import com.github.steveice10.mc.protocol.packet.ingame.server.entity.player.ServerPlayerPositionRotationPacket
-import kotlinx.coroutines.CancellableContinuation
-import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.*
 import kotlin.coroutines.resume
 import kotlin.math.ceil
 
@@ -51,7 +50,7 @@ open class BlindPhysics : ModuleAutoEvents(), PhysicsService {
 		movementTarget = null
 	}
 
-	@Synchronized
+	// TODO make sure other calls finish before this runs; @Synchronized doesn't work like that, synchronized(){} is deprecated
 	override suspend fun moveStraightTo(destination: Vec3d): Result<Route, MoveError> {
 		arrivalContinuation?.resume(Result.Success(Unit))
 		arrivalContinuation = null
@@ -68,7 +67,7 @@ open class BlindPhysics : ModuleAutoEvents(), PhysicsService {
 	 * - stepping -> jump with force 0.5?
 	 * - TODO rising-/falling-only/-and-moving -> same state; throw error? | queue jump?
 	 */
-	@Synchronized
+	// TODO make sure other calls finish before this runs; @Synchronized doesn't work like that, synchronized(){} is deprecated
 	override suspend fun jump() {
 		if (!onGround) throw Error("Tried jumping while not standing on ground")
 		return suspendCancellableCoroutine { cont ->
@@ -104,7 +103,9 @@ open class BlindPhysics : ModuleAutoEvents(), PhysicsService {
 			if (jumpQueued) {
 				velocity.y = JUMP_FORCE
 //				jumpQueued = false // this would not unset it if we tried to jump in mid-air
-			} else velocity.y = 0.0
+			} else {
+				velocity.y = 0.0
+			}
 		}
 		jumpQueued = false
 
@@ -134,20 +135,13 @@ open class BlindPhysics : ModuleAutoEvents(), PhysicsService {
 		if (stepping) velocity.y = 0.0
 	}
 
-	/**
-	 * XXX state -> cause -> new state:
-	 * - standing -> teleported -> falling
-	 * - falling-only -> hit floor -> standing
-	 * - rising-only -> hit ceiling -> falling
-	 * - moving-only -> hit wall/step -> stepping
-	 * - stepping -> hit wall/ceiling -> standing
-	 * - rising-and-moving -> hit ceiling (or wall?) -> falling-and-moving
-	 * - falling-and-moving -> hit wall (or floor?) -> falling
-	 */
 	private fun onTeleportedByServer(event: AvatarEvents.TeleportedByServer) {
 		stepping = false
 		if (event.reason is ServerVehicleMovePacket) {
-			onGround = true // in vehicle
+			// in vehicle
+			onGround = true
+			stepping = false
+			velocity = Vec3d.origin
 			return
 		}
 		if (event.reason !is ServerPlayerPositionRotationPacket) return
@@ -162,13 +156,24 @@ open class BlindPhysics : ModuleAutoEvents(), PhysicsService {
 		if (movingHorizontally) {
 			velocity.x = 0.0
 			velocity.z = 0.0
-			// TODO when to try stepping? - record vanilla stepping/stairs
-		} else {
-			if (falling) {
-				onGround = true // hit floor
-				jumpLandedContinuation?.resume(Unit)
+			if (!stepping) {
+				// XXX only when not jumping
+				stepping = true
+			} else {
+				// hit a wall, movement failed
+				stepping = false
+				movementTarget = null
+				arrivalContinuation?.resume(Result.Failure(MoveError()))
 			}
-			velocity.y = 0.0 // hit ceiling/floor
+		} else {
+			stepping = false
 		}
+
+		if (falling) {
+			onGround = true // hit floor
+			jumpLandedContinuation?.resume(Unit)
+		}
+
+		velocity.y = 0.0 // hit ceiling/floor
 	}
 }

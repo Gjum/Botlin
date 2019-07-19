@@ -4,15 +4,16 @@ import com.github.steveice10.mc.auth.data.GameProfile
 import com.github.steveice10.mc.protocol.MinecraftProtocol
 import com.github.steveice10.mc.protocol.data.game.entity.player.GameMode
 import com.github.steveice10.packetlib.Session
-import kotlinx.coroutines.CoroutineScope
 import java.util.UUID
+
+suspend fun ServiceRegistry.getAvatar() = consumeService(Avatar::class.java)!!
 
 /**
  * State (embodiment) of an account on one server,
  * uniquely identified by [profile] and [serverAddress].
  */
 interface Avatar : EventEmitter<AvatarEvent>, Service {
-	val serviceRegistry: ServiceRegistry // XXX
+	val serviceRegistry: ServiceRegistry // XXX really does not belong here
 
 	val identifier get() = "${profile.name}@$serverAddress"
 
@@ -36,7 +37,11 @@ interface Avatar : EventEmitter<AvatarEvent>, Service {
 	val world: World?
 	val playerList: Map<UUID, PlayerListItem>?
 
-	fun useProtocol(proto: MinecraftProtocol)
+	/**
+	 * Starts connecting to [serverAddress] as [profile].
+	 * Does not wait for connection to succeed.
+	 */
+	fun useProtocol(proto: MinecraftProtocol) // XXX rename
 
 	/**
 	 * Disconnects the client, blocking the current thread.

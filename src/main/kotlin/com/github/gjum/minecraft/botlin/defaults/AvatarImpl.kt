@@ -57,7 +57,7 @@ class AvatarModule : Module() {
 				?: "localhost")
 
 		val auth = serviceRegistry.consumeService(Authentication::class.java)!!
-		val profile = auth.authenticate()!!.profile
+        val profile = auth.authenticate().value!!.profile
 		Logger.getLogger(javaClass.name).fine("Using profile ${profile.name} ${profile.idAsString}")
 		val avatar = AvatarImpl(serviceRegistry, profile, serverAddress)
 		serviceRegistry.provideService(Avatar::class.java, avatar)
@@ -65,10 +65,10 @@ class AvatarModule : Module() {
 }
 
 class AvatarImpl(
-	override val serviceRegistry: ServiceRegistry,
-	override val profile: GameProfile,
-	serverAddr: String
-) : Avatar, SessionListener, CoroutineScope by CoroutineScope(Dispatchers.Default), EventEmitterImpl<AvatarEvent>() {
+    override val serviceRegistry: ServiceRegistry,
+    override val profile: GameProfile,
+    serverAddr: String
+) : Avatar, SessionListener, EventEmitterImpl<AvatarEvent>() {
     private val logger = Logger.getLogger(this::class.java.name)
     private var ticker: Job? = null
 
@@ -482,7 +482,7 @@ class AvatarImpl(
 
     private fun startTicker() {
         if (ticker != null) return
-        ticker = launch {
+        ticker = serviceRegistry.launch {
             val timer = fixedRateTimer(period = 50) { doTick() }
             // bind timer lifetime to coroutineContext
             try {

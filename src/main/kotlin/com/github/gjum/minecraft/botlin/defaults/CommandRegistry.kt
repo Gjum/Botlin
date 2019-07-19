@@ -27,7 +27,7 @@ class CommandRegistry : CommandService {
 				if (cmd != null) {
 					context.respond("${cmd.usage} - ${cmd.description}")
 				} else {
-					context.respond("Unknown command `$cmdName` - try just `help` for a list of commands.")
+					context.respond("Unknown command '$cmdName' - try just 'help' for a list of commands.")
 				}
 			}
 		}
@@ -36,10 +36,10 @@ class CommandRegistry : CommandService {
 	override fun registerCommand(command: Command): Boolean {
 		val alreadyRegisteredCmd = commands.putIfAbsent(command.name, command)
 		if (alreadyRegisteredCmd != null) {
-			logger.warning("Command ${command.name} already registered, ignoring")
+			logger.warning("Command '${command.name}' already registered, ignoring")
 			return false
 		} else {
-			logger.fine("Registered command ${command.usage} - ${command.description}")
+			logger.fine("Registered command: ${command.usage} - ${command.description}")
 			return true
 		}
 	}

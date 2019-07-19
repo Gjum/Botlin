@@ -4,6 +4,8 @@ import com.github.gjum.minecraft.botlin.api.Module
 import com.github.gjum.minecraft.botlin.api.Service
 import com.github.gjum.minecraft.botlin.api.ServiceChangeHandler
 import com.github.gjum.minecraft.botlin.api.ServiceRegistry
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import java.io.File
@@ -15,7 +17,7 @@ import java.util.logging.Logger
  */
 class ReloadableServiceRegistry(
     private val modulesLoader: ModulesLoader<Module>
-) : ServiceRegistry {
+) : ServiceRegistry, CoroutineScope by CoroutineScope(Dispatchers.Default) {
     private val logger = Logger.getLogger(this::class.java.name)
 
     /**
@@ -33,6 +35,7 @@ class ReloadableServiceRegistry(
      */
     private val consumerHandlers = mutableMapOf<Class<out Service>,
         MutableCollection<ServiceChangeHandler<Any>>>()
+    // TODO remove handler after calling once
 
     override fun <T : Service> consumeService(service: Class<T>, handler: ServiceChangeHandler<T>) {
         val knownProvider = providers[service]
@@ -82,24 +85,22 @@ class ReloadableServiceRegistry(
         logger.fine("Done deactivating $numOldModules modules")
 
         val newModulesMap = newModules.map { it.name to it }.toMap()
+        logger.fine("Activating ${newModulesMap.size} modules: ${newModulesMap.keys.joinToString(", ")}")
         coroutineScope {
             // skip duplicate names by iterating newModulesMap instead of newModules
             newModulesMap.values.forEach {
-                logger.fine("Activating module ${it.name}")
                 launch {
                     try {
                         it.activate(this@ReloadableServiceRegistry)
                         logger.fine("Done activating module ${it.name}")
-                    } catch (e: Exception) {
+                        modules[it.name] = it
+                    } catch (e: Throwable) {
                         logger.log(Level.SEVERE, "Failed activating module ${it.name}: $e", e)
-                        return@launch
                     }
-                    modules[it.name] = it
                 }
             }
-            logger.fine("Done kicking off modules activation")
         }
-        logger.fine("Done activating ${newModulesMap.size} modules")
+        logger.fine("Done activating all ${newModulesMap.size} modules")
 
         // send null for unavailable wanted services
         consumerHandlers.forEach { (service, handlers) ->

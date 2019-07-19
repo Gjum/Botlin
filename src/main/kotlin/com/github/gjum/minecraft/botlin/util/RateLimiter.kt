@@ -13,19 +13,22 @@ class RateLimiter(private val params: Params) {
         val connectRateInterval: Int
     }
 
-    @Synchronized
     suspend fun <T> runWithRateLimit(block: suspend () -> Pair<T, Boolean>): T {
         val callTime = TimeProxy.currentTimeMillis()
 
         // remove unused entries
-        while (rateQueue.isNotEmpty() && rateQueue[0] < callTime - params.connectRateInterval) rateQueue.removeAt(0)
+        while (rateQueue.isNotEmpty() && rateQueue[0] < callTime - params.connectRateInterval) {
+            rateQueue.removeAt(0)
+        }
         // apply success rate limit
         val nextRateSlot = if (rateQueue.size >= params.connectRateLimit) {
             rateQueue[0] + params.connectRateInterval
         } else callTime
 
         val nextAttempt = prevAttempt + nextBackoff.toLong()
-        val waitMs = java.lang.Long.max(nextAttempt - callTime, nextRateSlot - callTime)
+        val waitMs = java.lang.Long.max(
+            nextAttempt - callTime,
+            nextRateSlot - callTime)
         if (waitMs > 0) TimeProxy.delay(waitMs)
 
         prevAttempt = TimeProxy.currentTimeMillis()
