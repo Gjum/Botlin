@@ -2,7 +2,7 @@ package com.github.gjum.minecraft.botlin.defaults
 
 import com.github.gjum.minecraft.botlin.api.*
 
-open class EventEmitterImpl<E : Event> : EventEmitter<E> {
+abstract class EventEmitterImpl<E : Event> : EventEmitter<E> {
     private val handlers = mutableMapOf<EventClass<E>,
         MutableCollection<EventHandler<*>>>()
 

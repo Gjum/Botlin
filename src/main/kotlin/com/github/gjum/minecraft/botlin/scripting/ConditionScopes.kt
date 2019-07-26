@@ -1,4 +1,4 @@
-package com.github.gjum.minecraft.botlin.util
+package com.github.gjum.minecraft.botlin.scripting
 
 import com.github.gjum.minecraft.botlin.api.Event
 import com.github.gjum.minecraft.botlin.api.EventEmitter
@@ -22,8 +22,8 @@ suspend fun <E : Event> EventEmitter<in E>.awaitEventCondition(
 	}
 	try {
 		return suspendCancellableCoroutine { cont ->
-			continueWithEvent = {
-				if (check(it)) cont.resume(it)
+			continueWithEvent = { event ->
+				if (check(event)) cont.resume(event)
 			}
 			seenEvents.forEach { continueWithEvent!!(it) }
 			seenEvents.clear()
@@ -40,7 +40,7 @@ suspend fun <E : Event> EventEmitter<in E>.awaitEvent(eventClass: Class<E>): E {
 	var unregister: Unregister? = null
 	try {
 		return suspendCancellableCoroutine { cont ->
-			unregister = onEach(eventClass) { cont.resume(it) }
+			unregister = onEach(eventClass) { event -> cont.resume(event) }
 		}
 	} finally {
 		unregister?.invoke()

@@ -1,11 +1,13 @@
 package com.github.gjum.minecraft.botlin.behaviors
 
 import com.github.gjum.minecraft.botlin.api.*
-import com.github.gjum.minecraft.botlin.util.ModuleAutoEvents
+import com.github.gjum.minecraft.botlin.util.AutoEventsModule
 import com.github.steveice10.mc.protocol.packet.ingame.server.entity.ServerVehicleMovePacket
 import com.github.steveice10.mc.protocol.packet.ingame.server.entity.player.ServerPlayerPositionRotationPacket
 import kotlinx.coroutines.*
+import kotlin.coroutines.Continuation
 import kotlin.coroutines.resume
+import kotlin.coroutines.suspendCoroutine
 import kotlin.math.ceil
 
 private const val DRAG = 0.98 // y velocity multiplicator per tick when not on ground
@@ -18,13 +20,13 @@ private const val PIXEL_SIZE = 1.0 / 16 // largest common divisor of all block h
 /**
  * Relies on server's position resets to detect bumping into blocks.
  */
-open class BlindPhysics : ModuleAutoEvents(), PhysicsService {
+open class BlindPhysics : AutoEventsModule(), PhysicsService {
 	override val name = "BlindPhysics"
 
 	var movementTarget: Vec3d? = null
 
 	private var arrivalContinuation: CancellableContinuation<Result<Route, MoveError>>? = null
-	private var jumpLandedContinuation: CancellableContinuation<Unit>? = null
+	private var jumpLandedContinuation: Continuation<Unit>? = null
 
 	private var onGround = false
 	private var prevPos: Vec3d? = null
@@ -70,7 +72,7 @@ open class BlindPhysics : ModuleAutoEvents(), PhysicsService {
 	// TODO make sure other calls finish before this runs; @Synchronized doesn't work like that, synchronized(){} is deprecated
 	override suspend fun jump() {
 		if (!onGround) throw Error("Tried jumping while not standing on ground")
-		return suspendCancellableCoroutine { cont ->
+		return suspendCoroutine { cont ->
 			jumpLandedContinuation = cont
 			jumpQueued = true
 		}
@@ -78,11 +80,11 @@ open class BlindPhysics : ModuleAutoEvents(), PhysicsService {
 
 	override suspend fun activate(serviceRegistry: ServiceRegistry) {
 		super.activate(serviceRegistry)
-		onEach(AvatarEvents.PreClientTick::class.java, ::doPhysicsTick)
-		onEach(AvatarEvents.TeleportedByServer::class.java, ::onTeleportedByServer)
+		onEach(AvatarEvent.PreClientTick::class.java, ::doPhysicsTick)
+		onEach(AvatarEvent.TeleportedByServer::class.java, ::onTeleportedByServer)
 	}
 
-	private fun doPhysicsTick(event: AvatarEvents.PreClientTick) {
+	private fun doPhysicsTick(event: AvatarEvent.PreClientTick) {
 		if (!avatar.alive) return
 		prevPos = position
 
@@ -135,8 +137,9 @@ open class BlindPhysics : ModuleAutoEvents(), PhysicsService {
 		if (stepping) velocity.y = 0.0
 	}
 
-	private fun onTeleportedByServer(event: AvatarEvents.TeleportedByServer) {
-		stepping = false
+	private fun onTeleportedByServer(event: AvatarEvent.TeleportedByServer) {
+		// XXX just set a flag; move whole body into doPhysicsTick() - no clear separation of concerns over setting velocity, similar dependency on state machine
+
 		if (event.reason is ServerVehicleMovePacket) {
 			// in vehicle
 			onGround = true

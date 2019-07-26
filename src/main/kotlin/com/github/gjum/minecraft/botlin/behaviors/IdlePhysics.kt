@@ -1,16 +1,16 @@
 package com.github.gjum.minecraft.botlin.behaviors
 
-import com.github.gjum.minecraft.botlin.api.AvatarEvents
+import com.github.gjum.minecraft.botlin.api.AvatarEvent
 import com.github.gjum.minecraft.botlin.api.ServiceRegistry
 import com.github.gjum.minecraft.botlin.api.Vec3d
-import com.github.gjum.minecraft.botlin.util.ModuleAutoEvents
+import com.github.gjum.minecraft.botlin.util.AutoEventsModule
 import com.github.steveice10.mc.protocol.packet.ingame.server.entity.ServerVehicleMovePacket
 import com.github.steveice10.mc.protocol.packet.ingame.server.entity.player.ServerPlayerPositionRotationPacket
 
 /**
  * Does simple physics (falling).
  */
-open class IdlePhysics : ModuleAutoEvents() {
+open class IdlePhysics : AutoEventsModule() {
 	override val name = "IdlePhysics"
 
 	private var onGround = false // XXX set inside avatar
@@ -18,11 +18,11 @@ open class IdlePhysics : ModuleAutoEvents() {
 
 	override suspend fun activate(serviceRegistry: ServiceRegistry) {
 		super.activate(serviceRegistry)
-		onEach(AvatarEvents.PreClientTick::class.java, ::doPhysicsTick)
-		onEach(AvatarEvents.TeleportedByServer::class.java, ::onTeleportedByServer)
+		onEach(AvatarEvent.PreClientTick::class.java, ::doPhysicsTick)
+		onEach(AvatarEvent.TeleportedByServer::class.java, ::onTeleportedByServer)
 	}
 
-	private fun doPhysicsTick(event: AvatarEvents.PreClientTick) {
+	private fun doPhysicsTick(event: AvatarEvent.PreClientTick) {
 		if (!avatar.alive) return
 		if (!onGround) {
 			prevPos = avatar.entity!!.position!!
@@ -32,7 +32,7 @@ open class IdlePhysics : ModuleAutoEvents() {
 		// TODO apply entity velocity (knockback)
 	}
 
-	private fun onTeleportedByServer(event: AvatarEvents.TeleportedByServer) {
+	private fun onTeleportedByServer(event: AvatarEvent.TeleportedByServer) {
 		if (event.reason is ServerPlayerPositionRotationPacket) {
 			onGround = event.newPos == prevPos
 		} else if (event.reason is ServerVehicleMovePacket) {

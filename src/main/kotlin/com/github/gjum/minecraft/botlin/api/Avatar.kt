@@ -41,7 +41,7 @@ interface Avatar : EventEmitter<AvatarEvent>, Service {
 	 * Starts connecting to [serverAddress] as [profile].
 	 * Does not wait for connection to succeed.
 	 */
-	fun useProtocol(proto: MinecraftProtocol) // XXX rename
+	fun connect(proto: MinecraftProtocol)
 
 	/**
 	 * Disconnects the client, blocking the current thread.
@@ -58,9 +58,9 @@ interface Avatar : EventEmitter<AvatarEvent>, Service {
 
 	/**
 	 * Indicates if the account has received all its state yet, such as
-	 * position, health/food/exp, and is also still [connected].
+	 * position, health/food/exp, and is also [connected].
 	 */
-	val spawned: Boolean // TODO rename to 'ingame'?
+	val ingame: Boolean
 		get() = (position != null
 			&& health != null
 			&& experience != null
@@ -68,7 +68,7 @@ interface Avatar : EventEmitter<AvatarEvent>, Service {
 			&& connected)
 
 	/**
-	 * Indicates if the account is alive at this time, including being [spawned].
+	 * Indicates if the account is alive at this time, including being [ingame].
 	 */
-	val alive get() = health ?: 0.0f > 0.0f && spawned
+	val alive get() = health ?: 0.0f > 0.0f && ingame
 }

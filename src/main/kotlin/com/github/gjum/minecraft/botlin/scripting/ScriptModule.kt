@@ -1,4 +1,4 @@
-package com.github.gjum.minecraft.botlin.util
+package com.github.gjum.minecraft.botlin.scripting
 
 import com.github.gjum.minecraft.botlin.api.Module
 import com.github.gjum.minecraft.botlin.api.ServiceRegistry

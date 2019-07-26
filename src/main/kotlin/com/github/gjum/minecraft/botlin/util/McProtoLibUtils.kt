@@ -4,16 +4,16 @@ import com.github.steveice10.mc.auth.data.GameProfile
 import com.github.steveice10.mc.auth.service.AuthenticationService
 import com.github.steveice10.mc.auth.service.ProfileService
 import com.github.steveice10.mc.protocol.MinecraftProtocol
-import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
+import kotlin.coroutines.suspendCoroutine
 
 fun mcProtoFromAuth(auth: AuthenticationService): MinecraftProtocol {
-    return MinecraftProtocol(auth.selectedProfile.name, auth.clientToken, auth.accessToken)
+	return MinecraftProtocol(auth.selectedProfile.name, auth.clientToken, auth.accessToken)
 }
 
 suspend fun lookupProfile(username: String, profileService: ProfileService): GameProfile {
-	return suspendCancellableCoroutine { cont ->
+	return suspendCoroutine { cont ->
 		profileService.findProfilesByName(arrayOf(username),
 			object : ProfileService.ProfileLookupCallback {
 				override fun onProfileLookupSucceeded(profile: GameProfile?) {
@@ -36,6 +36,6 @@ fun splitHostPort(address: String): Pair<String, Int> {
 }
 
 fun normalizeServerAddress(serverAddress: String): String {
-    return (serverAddress.split(':') + "25565")
-        .take(2).joinToString(":")
+	return (serverAddress.split(':') + "25565")
+		.take(2).joinToString(":")
 }

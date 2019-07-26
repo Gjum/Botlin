@@ -3,10 +3,10 @@ package com.github.gjum.minecraft.botlin.util
 import com.github.gjum.minecraft.botlin.api.*
 
 /**
- * [Module] that automatically unregisters [AvatarEvents] during [deactivate]
+ * [Module] that automatically unregisters [AvatarEvent] during [deactivate]
  * if they were registered with [onEach].
  */
-abstract class ModuleAutoEvents : Module() {
+abstract class AutoEventsModule : Module() {
 	protected val eventUnregisters = mutableListOf<Unregister>()
 
 	protected var serviceRegistry: ServiceRegistry? = null
