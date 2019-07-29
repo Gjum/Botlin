@@ -47,6 +47,8 @@ import kotlin.concurrent.fixedRateTimer
 private val brandBytesVanilla = byteArrayOf(7, 118, 97, 110, 105, 108, 108, 97)
 
 class AvatarModule : Module() {
+	override val name = "AvatarModule"
+
 	override suspend fun activate(serviceRegistry: ServiceRegistry) {
 		super.activate(serviceRegistry)
 		val args = serviceRegistry.consumeService(MainArgs::class.java)?.args
@@ -57,7 +59,9 @@ class AvatarModule : Module() {
 				?: "localhost")
 
 		val auth = serviceRegistry.consumeService(Authentication::class.java)!!
-        val profile = auth.authenticate().value!!.profile
+		val (proto, authError) = auth.authenticate()
+		if (proto == null) throw IllegalArgumentException("Failed to setup Avatar: $authError")
+		val profile = proto.profile
 		Logger.getLogger(javaClass.name).fine("Using profile ${profile.name} ${profile.idAsString}")
 		val avatar = AvatarImpl(serviceRegistry, profile, serverAddress)
 		serviceRegistry.provideService(Avatar::class.java, avatar)

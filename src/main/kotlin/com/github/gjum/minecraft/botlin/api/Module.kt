@@ -25,6 +25,5 @@ abstract class Module {
 	 * May throw [NotImplementedError] if this module does not support deactivation.
 	 */
 	open fun deactivate() {
-		throw NotImplementedError("Deactivation not supported for $name")
 	}
 }

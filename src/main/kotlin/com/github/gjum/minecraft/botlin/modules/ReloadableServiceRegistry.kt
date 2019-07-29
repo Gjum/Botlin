@@ -16,6 +16,8 @@ interface ModulesLoader<T> {
     fun getAvailableModules(): Collection<T>
 }
 
+// XXX race conditions galore: lock everything - visible e.g. during teardown
+
 /**
  * Keeps track of modules and services. Allows hot reloading modules in one directory.
  */

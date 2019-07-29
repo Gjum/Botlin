@@ -1,6 +1,7 @@
 package com.github.gjum.minecraft.botlin.defaults
 
 import com.github.gjum.minecraft.botlin.api.*
+import com.github.gjum.minecraft.botlin.modules.ReloadableServiceRegistry
 import com.github.gjum.minecraft.botlin.util.Cli
 import kotlinx.coroutines.launch
 import java.util.logging.Level
@@ -29,16 +30,17 @@ class CliModule : Module() {
 						}
 					} catch (e: Exception) {
 						context.respond("Error while running command: $e")
-						commandLogger.log(Level.WARNING, "Error while running command $cmdName", e)
+						commandLogger.log(Level.WARNING, "Error while running command '$cmdName'", e)
 					}
 				}
 			} catch (e: Throwable) {
 				commandLogger.log(Level.SEVERE, "Error in CLI: $e", e)
-				e.printStackTrace()
+				throw e
 			} finally {
 				Cli.stop()
+				// TODO emit some endRequested event
+				(serviceRegistry as ReloadableServiceRegistry).teardown() // XXX
 			}
-			// TODO emit some endRequested event
 		}
 	}
 
