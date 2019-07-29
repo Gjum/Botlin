@@ -25,7 +25,7 @@ class UsefulCommandsModule : Module() {
 		) { _, _ ->
 			runBlocking {
 				(serviceRegistry as ReloadableServiceRegistry)
-					.reloadModules(null)
+					.reloadModules()
 			}
 		}
 		commands.registerCommand("info", "Show bot info: connection, location, health, etc."

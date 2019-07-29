@@ -20,12 +20,12 @@ object Main {
 		val modulesLoader = StaticModulesLoader(
 			setupDefaultModules() + MainArgsModule(args))
 		val serviceRegistry = ReloadableServiceRegistry(modulesLoader)
-		runBlocking { serviceRegistry.reloadModules(null) }
+		runBlocking { serviceRegistry.reloadModules() }
 	}
 }
 
 private class StaticModulesLoader(private val modules: Collection<Module>) : ModulesLoader<Module> {
-	override fun reload(modulesDir: File?): Collection<Module>? = modules
+	override fun reload(): Collection<Module>? = modules
 	override fun getAvailableModules(): Collection<Module> = modules
 }
 

@@ -8,19 +8,14 @@ import java.net.URLConnection
 import java.util.*
 import java.util.logging.Logger
 
-interface ModulesLoader<T> {
-    fun reload(modulesDir: File? = null): Collection<T>?
-    fun getAvailableModules(): Collection<T>
-}
-
 class DirectoryModulesLoader<T>(
     private val moduleClass: Class<T>,
-    private val defaultModulesDir: File = File("modules")
+    private val modulesDir: File = File("modules")
 ) : ModulesLoader<T> {
     private var classLoader: URLClassLoader? = null
 
     @Synchronized
-    override fun reload(modulesDir: File?): Collection<T>? {
+    override fun reload(): Collection<T> {
         if (classLoader != null) {
             try {
                 classLoader!!.close() // TODO when is a good time to close it? do we actually need to? is this a memleak?
@@ -39,7 +34,7 @@ class DirectoryModulesLoader<T>(
             e.printStackTrace()
         }
 
-        classLoader = makeContextClassLoaderWithModulesDir(modulesDir ?: defaultModulesDir)
+        classLoader = makeContextClassLoaderWithModulesDir(modulesDir)
         val modules = getAvailableModules()
 
         if (urlConnection != null) {

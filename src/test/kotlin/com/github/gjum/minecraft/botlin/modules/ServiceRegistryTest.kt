@@ -72,11 +72,11 @@ class ServiceRegistryTest {
 
         // execute test
         val serviceRegistry = ReloadableServiceRegistry(loader)
-        runBlocking { serviceRegistry.reloadModules(null) }
+        runBlocking { serviceRegistry.reloadModules() }
         providerModule.externalFooEvent("bar")
 
         coVerifyOrder {
-            loader.reload(null)
+            loader.reload()
 
             consumerModule.activate(serviceRegistry)
 
@@ -106,7 +106,7 @@ class ServiceRegistryTest {
         every { loader.getAvailableModules() } returns modules
 
         val serviceRegistry = ReloadableServiceRegistry(loader)
-        runBlocking { serviceRegistry.reloadModules(null) }
+        runBlocking { serviceRegistry.reloadModules() }
 
         coVerify(inverse = true) {
             consumer1.activate(serviceRegistry)

@@ -12,6 +12,11 @@ import java.io.File
 import java.util.logging.Level
 import java.util.logging.Logger
 
+interface ModulesLoader<T> {
+    fun reload(): Collection<T>
+    fun getAvailableModules(): Collection<T>
+}
+
 /**
  * Keeps track of modules and services. Allows hot reloading modules in one directory.
  */
@@ -65,8 +70,8 @@ class ReloadableServiceRegistry(
         transition(emptyList())
     }
 
-    suspend fun reloadModules(modulesDirectory: File?) {
-        val newModules = modulesLoader.reload(modulesDirectory) ?: emptyList()
+    suspend fun reloadModules() {
+        val newModules = modulesLoader.reload() ?: emptyList()
         transition(newModules)
     }
 
