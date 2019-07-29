@@ -19,9 +19,11 @@ apply plugin: 'java'
 apply plugin: "kotlin"
 apply plugin: "application"
 apply plugin: 'com.github.johnrengelman.shadow'
+apply plugin: 'maven'
+apply plugin: "maven-publish"
 
 version = '0.1.1-SNAPSHOT'
-group = "com.github.gjum.minecraft.botlin"
+group = "com.github.gjum.botlin"
 archivesBaseName = "botlin"
 mainClassName = "com.github.gjum.minecraft.botlin.Main"
 
@@ -44,4 +46,33 @@ dependencies {
     testImplementation "org.jetbrains.kotlin:kotlin-test-junit:$kotlin_version"
     testImplementation 'junit:junit:4.11'
     testImplementation "io.mockk:mockk:1.9.3"
+}
+
+task sourcesJar(type: Jar, dependsOn: classes) {
+    classifier = 'sources'
+    from sourceSets.main.allSource
+}
+
+task javadocJar(type: Jar, dependsOn: javadoc) {
+    classifier = 'javadoc'
+    from javadoc.destinationDir
+}
+
+artifacts {
+    archives sourcesJar
+    archives javadocJar
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+            artifact sourcesJar {
+              classifier "sources"
+            }
+            artifact javadocJar {
+              classifier "javadocs"
+            }
+        }
+    }
 }
