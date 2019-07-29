@@ -10,6 +10,7 @@ import com.github.gjum.minecraft.botlin.defaults.*
 import com.github.gjum.minecraft.botlin.modules.ConfigFileModulesLoader
 import com.github.gjum.minecraft.botlin.modules.ReloadableServiceRegistry
 import com.github.gjum.minecraft.botlin.util.Log
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.runBlocking
 import java.io.File
 
@@ -33,7 +34,10 @@ object Main {
 		val configPath = System.getProperty("modulesConfig")?.let { File(it) }
 		val modulesLoader = ConfigFileModulesLoader(configPath, ::constructDefaultModules)
 		val serviceRegistry = ReloadableServiceRegistry(modulesLoader)
-		runBlocking { serviceRegistry.reloadModules() }
+		runBlocking {
+			serviceRegistry.reloadModules()
+			serviceRegistry.coroutineContext[Job]!!.join()
+		}
 	}
 }
 
