@@ -8,7 +8,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
-import java.io.File
 import java.util.logging.Level
 import java.util.logging.Logger
 
@@ -71,7 +70,7 @@ class ReloadableServiceRegistry(
     }
 
     suspend fun reloadModules() {
-        val newModules = modulesLoader.reload() ?: emptyList()
+        val newModules = modulesLoader.reload()
         transition(newModules)
     }
 
