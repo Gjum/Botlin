@@ -14,6 +14,7 @@ import java.nio.file.Paths
 import java.util.UUID
 import java.util.logging.Logger
 
+const val mcUsernameEnv = "MINECRAFT_USERNAME"
 const val mcPasswordEnv = "MINECRAFT_PASSWORD"
 
 private class AuthTokenCache(val clientToken: String, val sessions: MutableMap<String, String> = mutableMapOf())
@@ -28,6 +29,7 @@ private class AuthenticationProvider(
     private val logger = Logger.getLogger(this::class.java.name)
 
     override suspend fun authenticate(): Result<MinecraftProtocol, RequestException> {
+        logger.fine("Authenticating $username")
         var cToken: String = UUID.randomUUID().toString() // TODO allow providing default value
 
         // try loading cached token, and maybe client token
@@ -52,8 +54,9 @@ private class AuthenticationProvider(
         }
 
         // try password from env
+        val envUsername = System.getenv(mcUsernameEnv) ?: ""
         val envPassword = System.getenv(mcPasswordEnv) ?: ""
-        if (envPassword.isNotEmpty()) {
+        if (envPassword.isNotEmpty() && username == envUsername) {
             try {
                 val auth = AuthenticationService(cToken)
                 auth.username = username
@@ -62,6 +65,10 @@ private class AuthenticationProvider(
             } catch (e: InvalidCredentialsException) {
                 logger.warning("Invalid password provided via env ($mcPasswordEnv)")
             }
+        }
+
+        if ('@' !in username) { // fall back to offline mode
+            return Result.Success(MinecraftProtocol(username))
         }
 
         // try password from .credentials
@@ -125,7 +132,7 @@ class AuthModule : Module() {
         val args = serviceRegistry.consumeService(MainArgs::class.java)?.args
         val username = args?.getOrNull(0)
             ?: System.getProperty("username")
-            ?: System.getenv("MINECRAFT_USERNAME")
+            ?: System.getenv(mcUsernameEnv)
             ?: "Botlin"
 
         val auth = AuthenticationProvider(
