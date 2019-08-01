@@ -71,7 +71,7 @@ open class BlindPhysics : AutoEventsModule(), PhysicsService {
 	 */
 	// TODO make sure other calls finish before this runs; @Synchronized doesn't work like that, synchronized(){} is deprecated
 	override suspend fun jump() {
-		if (!onGround) throw Error("Tried jumping while not standing on ground")
+		if (!onGround) throw JumpError("Tried to jump while not standing on ground")
 		return suspendCoroutine { cont ->
 			jumpLandedContinuation = cont
 			jumpQueued = true
@@ -82,6 +82,7 @@ open class BlindPhysics : AutoEventsModule(), PhysicsService {
 		super.activate(serviceRegistry)
 		onEach(AvatarEvent.PreClientTick::class.java, ::doPhysicsTick)
 		onEach(AvatarEvent.TeleportedByServer::class.java, ::onTeleportedByServer)
+		serviceRegistry.provideService(PhysicsService::class.java, this)
 	}
 
 	private fun doPhysicsTick(event: AvatarEvent.PreClientTick) {

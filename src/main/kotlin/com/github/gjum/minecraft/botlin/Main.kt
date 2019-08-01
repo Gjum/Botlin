@@ -19,22 +19,24 @@ object Main {
 	fun main(args: Array<String>) {
 		Log.reload() // TODO why is this needed? JUL should automatically read logging.properties
 
+		val forcedModules = listOf(
+			MainArgsModule(args)
+		)
 		fun constructDefaultModules() = listOf(
 			AuthModule(),
-			AutoReconnect(),
+			AutoReconnect(), // problematic; all others are fine to use with bot scripts
 			AvatarModule(),
 			BlindPhysics(),
 			CliModule(),
 			CommandModule(),
 			EventLogger(),
-			MainArgsModule(args), // special
 			UsefulCommandsModule()
 		)
 
 		val configPath = System.getProperty("modulesConfig")?.let { File(it) }
-		val modulesLoader = ConfigFileModulesLoader(configPath, ::constructDefaultModules)
-		val serviceRegistry = ReloadableServiceRegistry(modulesLoader)
+		val modulesLoader = ConfigFileModulesLoader(configPath, forcedModules, ::constructDefaultModules)
 		runBlocking {
+			val serviceRegistry = ReloadableServiceRegistry(modulesLoader, coroutineContext)
 			serviceRegistry.reloadModules()
 			serviceRegistry.coroutineContext[Job]!!.join()
 		}

@@ -5,9 +5,15 @@ import com.github.gjum.minecraft.botlin.api.*
 typealias Route = Unit // TODO return route from move*() to allow better movement planning
 
 class MoveError
+class JumpError(msg: String, cause: Throwable? = null) : IllegalStateException(msg, cause)
 
 interface PhysicsService : Service {
 	suspend fun moveStraightTo(destination: Vec3d): Result<Route, MoveError>
+
+	/**
+	 * Jumps if currently on ground. Suspends until landed.
+	 * If not on ground when called, throws [JumpError].
+	 */
 	suspend fun jump()
 }
 

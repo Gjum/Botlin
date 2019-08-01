@@ -35,7 +35,7 @@ fun CommandService.registerCommand(
 	usage: String,
 	description: String,
 	block: (String, CommandContext) -> Unit
-) = registerCommand(object : CommandHelper(usage.split(' ')[0], usage, description) {
+) = registerCommand(object : CommandHelper(usage.substringBefore(' '), usage, description) {
 	override fun handle(command: String, context: CommandContext) {
 		block(command, context)
 	}

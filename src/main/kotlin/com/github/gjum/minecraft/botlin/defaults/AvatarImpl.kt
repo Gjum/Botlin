@@ -60,7 +60,7 @@ class AvatarModule : Module() {
 
 		val auth = serviceRegistry.consumeService(Authentication::class.java)!!
 		val (proto, authError) = auth.authenticate()
-		if (proto == null) throw IllegalArgumentException("Failed to setup Avatar: $authError")
+		if (proto == null) throw IllegalArgumentException("Failed to setup Avatar: $authError", authError)
 		val profile = proto.profile
 		Logger.getLogger(javaClass.name).fine("Using profile ${profile.name} ${profile.idAsString}")
 		val avatar = AvatarImpl(serviceRegistry, profile, serverAddress)
@@ -181,8 +181,9 @@ class AvatarImpl(
         val packet = event.getPacket<Packet>()
         try {
             processPacket(packet)
-        } catch (e: Throwable) {
+        } catch (e: Throwable) { // and rethrow
             logger.log(Level.SEVERE, "Failed to process received packet $packet", e)
+            throw e
         }
         emit(AvatarEvent.ServerPacketReceived(packet))
     }

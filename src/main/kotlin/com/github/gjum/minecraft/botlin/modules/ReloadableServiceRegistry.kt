@@ -4,12 +4,10 @@ import com.github.gjum.minecraft.botlin.api.Module
 import com.github.gjum.minecraft.botlin.api.Service
 import com.github.gjum.minecraft.botlin.api.ServiceChangeHandler
 import com.github.gjum.minecraft.botlin.api.ServiceRegistry
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
 import java.util.logging.Level
 import java.util.logging.Logger
+import kotlin.coroutines.CoroutineContext
 
 interface ModulesLoader<T> {
     fun reload(): Collection<T>
@@ -22,8 +20,9 @@ interface ModulesLoader<T> {
  * Keeps track of modules and services. Allows hot reloading modules in one directory.
  */
 class ReloadableServiceRegistry(
-    private val modulesLoader: ModulesLoader<Module>
-) : ServiceRegistry, CoroutineScope by CoroutineScope(Dispatchers.Default) {
+    private val modulesLoader: ModulesLoader<Module>,
+    coroutineContext: CoroutineContext
+) : ServiceRegistry, CoroutineScope by CoroutineScope(coroutineContext) {
     private val logger = Logger.getLogger(this::class.java.name)
 
     /**
@@ -51,6 +50,8 @@ class ReloadableServiceRegistry(
             handler(tProvider)
             return
         }
+
+        // XXX return null straight away if no module is still loading
 
         @Suppress("UNCHECKED_CAST")
         val handlerAny = handler as ServiceChangeHandler<Any>
@@ -94,17 +95,28 @@ class ReloadableServiceRegistry(
         logger.fine("Activating ${newModulesMap.size} modules: ${newModulesMap.keys.joinToString(", ")}")
         coroutineScope {
             // skip duplicate names by iterating newModulesMap instead of newModules
-            newModulesMap.values.forEach {
+            val launchJobs = newModulesMap.values.map {
                 launch {
                     try {
                         it.activate(this@ReloadableServiceRegistry)
                         logger.fine("Done activating module ${it.name}")
                         modules[it.name] = it
-                    } catch (e: Throwable) {
+                    } catch (e: Throwable) { // and rethrow
+                        // we don't allow loading only part of the modules; all or nothing
+                        // otherwise might result in unintended behavior
+                        // (e.g., security module does not load, app runs insecurely)
                         logger.log(Level.SEVERE, "Failed activating module ${it.name}: $e", e)
+                        throw e // TODO cleanly disable so-far-activated modules?
                     }
                 }
             }
+            val delayedInitInfo = launch {
+                delay(1000)
+                val wanted = consumerHandlers.keys.joinToString(", ") { it.name }
+                logger.warning("Still loading ... waiting for $wanted") // TODO list the modules that are still loading
+            }
+            launchJobs.forEach { it.join() }
+            delayedInitInfo.cancel()
         }
         logger.fine("Done activating all ${newModulesMap.size} modules")
 

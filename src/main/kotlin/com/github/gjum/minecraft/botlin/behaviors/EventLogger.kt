@@ -22,8 +22,7 @@ class EventLogger : AutoEventsModule() {
 		}
 		onEach(AvatarEvent.Disconnected::class.java) {
 			it.run {
-				if (cause != null) logger.log(Level.FINE, cause.toString(), cause)
-				logger.warning("Disconnected from ${connection.remoteAddress} Reason: $reason")
+				logger.log(Level.WARNING, "Disconnected from ${connection.remoteAddress} Reason: $reason Cause: $cause", cause)
 			}
 		}
 		onEach(AvatarEvent.Spawned::class.java) {

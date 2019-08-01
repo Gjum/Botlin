@@ -68,8 +68,9 @@ object Cli {
             }
         } catch (e: InterruptedIOException) {
             logger.log(Level.FINE, "Ending CLI log reader")
-        } catch (e: Throwable) {
+        } catch (e: Throwable) { // and rethrow
             logger.log(Level.SEVERE, "Error in CLI log reader: $e", e)
+            throw e
         } finally {
             stop()
         }
@@ -79,11 +80,7 @@ object Cli {
         try {
             while (true) {
                 val line = cliReader.readLine(prompt)
-                try {
-                    commandHandler(line)
-                } catch (e: Throwable) {
-                    logger.log(Level.WARNING, "CLI command handler threw exception: $e", e)
-                }
+                commandHandler(line)
             }
         } catch (e: UserInterruptException) {
             logger.log(Level.FINE, "Ctrl+C pressed")
@@ -91,8 +88,9 @@ object Cli {
             logger.log(Level.FINE, "StdIn closed")
         } catch (e: InterruptedException) {
             logger.log(Level.FINE, "Ending CLI command handler")
-        } catch (e: Throwable) {
+        } catch (e: Throwable) { // and rethrow
             logger.log(Level.SEVERE, "Error in CLI command handler: $e", e)
+            throw e
         } finally {
             stop()
         }
@@ -117,8 +115,9 @@ object Cli {
                 readThread = null
                 if (prompt != "") println() // end the partial command line
             }
-        } catch (e: Exception) {
+        } catch (e: Throwable) { // and rethrow
             logger.log(Level.SEVERE, "Error while stopping CLI: $e", e)
+            throw e
         }
     }
 }

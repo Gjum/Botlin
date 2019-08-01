@@ -23,9 +23,10 @@ abstract class EventEmitterImpl<E : Event> : EventEmitter<E> {
             val theHandler = handler as EventHandler<T>
             try {
                 theHandler.invoke(event)
-            } catch (e: Exception) {
+            } catch (e: Throwable) { // and rethrow TODO do we need an exception barrier here?
                 e.printStackTrace()
                 // TODO remove failed handler?
+                throw e
             }
         }
     }

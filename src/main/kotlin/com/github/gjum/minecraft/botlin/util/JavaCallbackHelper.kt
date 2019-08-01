@@ -29,18 +29,19 @@ suspend inline fun <T> runOnThread(crossinline block: () -> T): T {
 		return suspendCancellableCoroutine { cont ->
 			synchronized(cont) {
 				t = thread(start = true) {
-					synchronized(cont) {
-						if (cont.isCancelled) return@thread
-					}
 					try {
+						synchronized(cont) {
+							if (cont.isCancelled) return@thread
+						}
 						cont.resume(block())
 					} catch (e: InterruptedException) {
 						throw e
-					} catch (e: Throwable) {
+					} catch (e: Throwable) { // and pass to parent
 						cont.resumeWithException(e)
 					}
 				}
 			}
+			cont.invokeOnCancellation { t?.interrupt() }
 		}
 	} catch (e: CancellationException) {
 		t?.interrupt()
