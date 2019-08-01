@@ -34,6 +34,7 @@ object Cli {
      * Takes control of stdin/stderr, printing any output above a persistent prompt.
      * Blocks until [stop] is called or an error occurs.
      */
+    // TODO return end reason: Ctrl+C, stop(), stdin/out closed, internal error
     fun run(commandHandler: (String) -> Unit) {
         try {
             val readThread_ = synchronized(this) {

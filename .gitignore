@@ -6,4 +6,5 @@
 *.jar
 .*
 *.log
+*.log.gz
 *.log.lck

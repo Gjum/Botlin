@@ -1,0 +1,16 @@
+# Use this configuration by passing its path to the `modulesConfig` property:
+# java -DmodulesConfig=modules.yml -jar build/libs/botlin-0.1.1-SNAPSHOT.jar
+
+#loadDefaultModules: false
+#baseDir: .
+modules:
+  demo/build/libs/botlin-demo-0.1.0-SNAPSHOT.jar:
+    - com.github.gjum.minecraft.botlin.demo.Demo
+  build/libs/botlin-0.1.1-SNAPSHOT.jar:
+    - com.github.gjum.minecraft.botlin.behaviors.BlindPhysics
+    - com.github.gjum.minecraft.botlin.behaviors.EventLogger
+    - com.github.gjum.minecraft.botlin.defaults.AuthModule
+    - com.github.gjum.minecraft.botlin.defaults.AvatarModule
+    - com.github.gjum.minecraft.botlin.defaults.CliModule
+    - com.github.gjum.minecraft.botlin.defaults.CommandModule
+    - com.github.gjum.minecraft.botlin.defaults.UsefulCommandsModule
