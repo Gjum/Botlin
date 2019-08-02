@@ -14,14 +14,24 @@ Command-line Minecraft client leveraging Kotlin [coroutines](https://kotlinlang.
 - Open a terminal, `cd` to your Botlin installation
 - Create a file `.credentials` in the same directory, containing email and password separated by space: `your-email@example.com my pas$word`
     You can add multiple accounts, one per line.
-- Run the bot's command-line interface (CLI): `java -jar build/libs/botlin-0.1.1-SNAPSHOT-all.jar your-email@example.com mc.server-address.example.com`
+- Run the bot's command-line interface (CLI), specifying username and server address: `java -jar build/libs/botlin-0.1.1-SNAPSHOT-all.jar your-email@example.com mc.server-address.example.com:12345`
 
-To get started with the available commands, run `help`.
+To get started with the commands available in the CLI, type `help`.
 
 ![Botlin example session](https://i.imgur.com/eJ2Iai2.png)
 
 ## License
 
-Botlin is licensed under the **[MIT license](http://www.opensource.org/licenses/mit-license.html)**.
+Botlin is licensed under the **[GNU General Public License version 3](https://www.gnu.org/licenses/gpl-3.0.html)**.
 
-[![Build Status](https://travis-ci.org/Gjum/Botlin.svg?branch=master)](https://travis-ci.org/Gjum/Botlin)
+Copyright (C) 2019  Gjum
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
