@@ -54,7 +54,7 @@ inline fun <reified T : Any> EventSink.post(noinline buildPayload: () -> T) = po
 
 inline fun <reified T : Any> EventSource.receiveAll() = receiveAll(T::class.java)
 
-suspend inline fun <reified E : Any> EventSource.onEach(crossinline handler: suspend (E) -> Unit) {
+suspend inline fun <reified E : Any> EventSource.onEachSuspend(crossinline handler: suspend (E) -> Unit) {
 	for (payload in receiveAll<E>()) {
 		handler(payload)
 	}

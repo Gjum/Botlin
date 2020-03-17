@@ -97,6 +97,7 @@ interface Window {
 }
 
 interface PlayerListItem {
+	val profile: GameProfile
 	val displayName: Message?
 	val gameMode: GameMode?
 	val ping: Int?

@@ -29,6 +29,21 @@ sealed class MutableEntity(override val eid: Int) : Entity {
 	override var health: Float? = null
 	override val metadata = mutableMapOf<Int, EntityMetadata>()
 
+	/**
+	 * Call this before respawning to mark fields as unknown.
+	 */
+	fun reset() {
+		position = null
+		look = null
+		velocity = null
+		onGround = null
+		headYaw = null
+		passengers = emptyList()
+		vehicle = null
+		health = null
+		metadata.clear()
+	}
+
 	fun updateMetadata(metadataNew: Array<EntityMetadata>) {
 		for (meta in metadataNew) {
 			this.metadata[meta.id] = meta
@@ -68,7 +83,7 @@ class MutablePlayerEntity(eid: Int) : MutableEntity(eid), PlayerEntity {
 	override var playerListItem: MutablePlayerListItem? = null
 }
 
-class MutablePlayerListItem(val profile: GameProfile) : PlayerListItem {
+class MutablePlayerListItem(override val profile: GameProfile) : PlayerListItem {
 	override var displayName: Message? = null
 	override var gameMode: GameMode? = null
 	override var ping: Int? = null
