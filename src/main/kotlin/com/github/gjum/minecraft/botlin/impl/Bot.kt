@@ -6,13 +6,24 @@ import com.github.gjum.minecraft.botlin.behaviors.ClientTicker
 import com.github.gjum.minecraft.botlin.data.MinecraftData
 import com.github.gjum.minecraft.botlin.util.AuthenticationProvider
 import com.github.steveice10.mc.protocol.data.game.ClientRequest
+import com.github.steveice10.mc.protocol.data.game.entity.metadata.Position
 import com.github.steveice10.mc.protocol.data.game.entity.player.Hand
+import com.github.steveice10.mc.protocol.data.game.entity.player.InteractAction
+import com.github.steveice10.mc.protocol.data.game.entity.player.PlayerAction
+import com.github.steveice10.mc.protocol.data.game.entity.player.PlayerState
 import com.github.steveice10.mc.protocol.data.game.world.block.BlockFace
 import com.github.steveice10.mc.protocol.packet.ingame.client.ClientChatPacket
 import com.github.steveice10.mc.protocol.packet.ingame.client.ClientRequestPacket
+import com.github.steveice10.mc.protocol.packet.ingame.client.player.*
 import com.github.steveice10.mc.protocol.packet.ingame.client.window.ClientCloseWindowPacket
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
+import kotlin.concurrent.fixedRateTimer
 import kotlin.coroutines.coroutineContext
+
+// TODO swing every 200 or 250 ms?
+const val swingInterval: Long = 200 // ms
 
 suspend fun setupClient(
 	serverAddress: String = "localhost:25565",
@@ -70,55 +81,71 @@ class MutableBot(
 	}
 
 	override suspend fun respawn() {
-		TODO("respawn")
+		sendPacket(ClientRequestPacket(ClientRequest.RESPAWN))
+		avatar.playerEntity!!.reset()
+		receiveSingle(AvatarEvent.Spawned::class.java)
 	}
 
 	override suspend fun chat(msg: String, skipQueue: Boolean): Int {
-		TODO("chat")
+		// TODO split chat at spaces
+		val chunks = msg.chunked(255)
+		for (part in chunks) {
+			sendPacket(ClientChatPacket(part))
+			if (!skipQueue) delay(1000) // TODO chat queue
+		}
+		return chunks.size
 	}
 
-	override suspend fun lookAt(pos: Vec3d) {
-		TODO("lookAt")
-	}
+	override suspend fun lookAt(pos: Vec3d) = lookVec(pos - playerEntity!!.position!!)
 
 	override suspend fun lookVec(vec: Vec3d) {
-		TODO("lookVec")
+		avatar.playerEntity!!.look = avatar.playerEntity!!.look!!.turnToVec3(vec)
+		// wait for look to be sent to server
+		receiveSingle(AvatarEvent.ClientTick::class.java)
 	}
 
 	override suspend fun sneak(sneaking: Boolean) {
-		TODO("sneak")
+		val sneakState = if (sneaking) PlayerState.START_SNEAKING else PlayerState.STOP_SNEAKING
+		sendPacket(ClientPlayerStatePacket(playerEntity!!.eid, sneakState))
 	}
 
 	override suspend fun sprint(sprinting: Boolean) {
-		TODO("sprint")
+		val sprintState = if (sprinting) PlayerState.START_SPRINTING else PlayerState.STOP_SPRINTING
+		sendPacket(ClientPlayerStatePacket(playerEntity!!.eid, sprintState))
 	}
 
 	override suspend fun moveStraightTo(destination: Vec3d): Result<Route, MoveError> {
-		TODO("moveStraightTo")
+		return physics.moveStraightTo(destination)
 	}
 
-	override suspend fun jumpUntilLanded() {
-		TODO("jumpUntilLanded")
-	}
+	override suspend fun jumpUntilLanded() = physics.jump()
 
 	override suspend fun jumpToHeight(height: Double): Boolean {
 		TODO("jumpToHeight")
 	}
 
 	override suspend fun activateItem(hand: Hand) {
-		TODO("activateItem")
+		sendPacket(ClientPlayerUseItemPacket(hand))
 	}
 
 	override suspend fun deactivateItem() {
-		TODO("deactivateItem")
+		sendPacket(ClientPlayerActionPacket(
+			PlayerAction.RELEASE_USE_ITEM,
+			Position(0, 0, 0),
+			BlockFace.DOWN))
 	}
 
 	override suspend fun selectHotbar(hotbarIndex: Int) {
-		TODO("selectHotbar")
+		if (hotbarSelection == hotbarIndex) return // nothing to do
+		sendPacket(ClientPlayerChangeHeldItemPacket(hotbarIndex))
+		avatar.hotbarSelection = hotbarIndex
 	}
 
 	override suspend fun swapHands() {
-		TODO("swapHands")
+		sendPacket(ClientPlayerActionPacket(
+			PlayerAction.SWAP_HANDS,
+			Position(0, 0, 0),
+			BlockFace.DOWN))
 	}
 
 	override suspend fun swapHotbar(slotNr: Int, hbIndex: Int) {
@@ -154,22 +181,73 @@ class MutableBot(
 	}
 
 	override suspend fun attackEntity(entity: Entity, hand: Hand, look: Boolean) {
-		TODO("attackEntity")
+		if (look) lookAtEntity(entity)
+		sendPacket(ClientPlayerInteractEntityPacket(entity.eid, InteractAction.ATTACK, hand))
+		sendPacket(ClientPlayerSwingArmPacket(hand))
 	}
 
 	override suspend fun interactEntity(entity: Entity, hand: Hand, look: Boolean) {
-		TODO("interactEntity")
+		if (look) lookAtEntity(entity)
+		sendPacket(ClientPlayerInteractEntityPacket(entity.eid, InteractAction.INTERACT, hand))
+		sendPacket(ClientPlayerSwingArmPacket(hand))
+	}
+
+	private suspend fun lookAtEntity(entity: Entity) {
+		val eyeOffset = Vec3d.origin.withAxis(Axis.Y, 1.64)
+		lookAt(entity.position!! + eyeOffset) // TODO if that's too far away, look at closest corner or look orthogonally at closest bounding box face
 	}
 
 	override suspend fun placeBlock(pos: Vec3d, face: BlockFace, hand: Hand, look: Boolean) {
-		TODO("placeBlock")
+		// TODO check reach or fail
+		if (look) lookAt(pos)
+
+		// TODO sneak+place+unsneak, so we never activate blocks
+		// ... or make that optional so this method can be reused for activateBlock too
+
+		val blockPos = pos.floored()
+		val position = Position(blockPos.x, blockPos.y, blockPos.z)
+		val cursor = pos - blockPos.asVec3d()
+		sendPacket(ClientPlayerPlaceBlockPacket(position, face, hand,
+			cursor.x.toFloat(), cursor.y.toFloat(), cursor.z.toFloat(),
+			false)) // TODO insideBlock?
+
+		sendPacket(ClientPlayerSwingArmPacket(hand))
+
+		// TODO decrement count of slot item
 	}
 
 	override suspend fun activateBlock(pos: Vec3d, face: BlockFace, hand: Hand, look: Boolean) {
-		TODO("activateBlock")
+		// TODO check reach or fail
+		if (look) lookAt(pos)
+		val blockPos = pos.floored()
+		val position = Position(blockPos.x, blockPos.y, blockPos.z)
+		val cursor = pos - blockPos.asVec3d()
+		// TODO unsneak?
+		sendPacket(ClientPlayerPlaceBlockPacket(position, face, hand,
+			cursor.x.toFloat(), cursor.y.toFloat(), cursor.z.toFloat(),
+			false)) // TODO insideBlock?
+		sendPacket(ClientPlayerSwingArmPacket(hand))
 	}
 
-	override suspend fun breakBlock(pos: Vec3i, face: BlockFace, breakMs: Long, look: Boolean) {
-		TODO("breakBlock")
+	override suspend fun breakBlock(pos: Vec3d, face: BlockFace, breakMs: Long, look: Boolean) {
+		val position = pos.floored().run { Position(x, y, z) }
+
+		if (look) lookAt(pos)
+
+		coroutineScope {
+			val animation = fixedRateTimer(period = swingInterval) {
+				sendPacket(ClientPlayerSwingArmPacket(Hand.MAIN_HAND))
+			}
+			try {
+				sendPacket(ClientPlayerActionPacket(PlayerAction.START_DIGGING, position, face))
+				delay(breakMs)
+				sendPacket(ClientPlayerActionPacket(PlayerAction.FINISH_DIGGING, position, face))
+			} catch (e: Throwable) { // and rethrow
+				sendPacket(ClientPlayerActionPacket(PlayerAction.CANCEL_DIGGING, position, face))
+				throw e
+			} finally {
+				animation.cancel()
+			}
+		}
 	}
 }

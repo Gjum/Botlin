@@ -269,7 +269,7 @@ interface Bot : Avatar, ClientConnection, EventSource {
 	suspend fun placeBlock(pos: Vec3d, face: BlockFace = BlockFace.UP, hand: Hand = Hand.MAIN_HAND, look: Boolean = true)
 
 	/**
-	 * Shorthand for [placeBlock].
+	 * Shorthand for [placeBlock] with integer coordinates.
 	 * @see placeBlock
 	 */
 	suspend fun placeBlock(
@@ -288,7 +288,7 @@ interface Bot : Avatar, ClientConnection, EventSource {
 	suspend fun activateBlock(pos: Vec3d, face: BlockFace = BlockFace.UP, hand: Hand = Hand.MAIN_HAND, look: Boolean = true)
 
 	/**
-	 * Shorthand for [activateBlock].
+	 * Shorthand for [activateBlock] with integer coordinates.
 	 * @see activateBlock
 	 */
 	suspend fun activateBlock(
@@ -305,18 +305,22 @@ interface Bot : Avatar, ClientConnection, EventSource {
 	 * Cancel this coroutine to cancel the breaking.
 	 * [pos] can include sub-block resolution coordinates.
 	 */
-	suspend fun breakBlock(pos: Vec3i, face: BlockFace = BlockFace.UP, breakMs: Long = 50, look: Boolean = true)
-
-	/**
-	 * Shorthand for [breakBlock].
-	 * @see breakBlock
-	 */
 	suspend fun breakBlock(
 		pos: Vec3d,
 		face: BlockFace = BlockFace.UP,
 		breakMs: Long = 50,
+		look: Boolean = true)
+
+	/**
+	 * Shorthand for [breakBlock] with integer coordinates.
+	 * @see breakBlock
+	 */
+	suspend fun breakBlock(
+		pos: Vec3i,
+		face: BlockFace = BlockFace.UP,
+		breakMs: Long = 50,
 		look: Boolean = true
-	) = breakBlock(pos.floored(), face, breakMs, look)
+	) = breakBlock(closestBlockSubcoord(pos), face, breakMs, look)
 
 	// TODO start/cancel/finish digging - scoped?
 
