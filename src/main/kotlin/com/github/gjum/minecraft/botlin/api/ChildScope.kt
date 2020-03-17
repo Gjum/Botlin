@@ -1,10 +1,13 @@
 package com.github.gjum.minecraft.botlin.api
 
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.newCoroutineContext
 
 open class ChildScope(parentScope: CoroutineScope) : CoroutineScope by parentScope.makeChildScope() {
 
-	fun disable() {
+	open fun disable() {
 		coroutineContext.cancel()
 	}
 }

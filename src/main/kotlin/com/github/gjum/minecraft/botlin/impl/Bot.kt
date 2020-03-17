@@ -5,8 +5,11 @@ import com.github.gjum.minecraft.botlin.behaviors.BlockPhysics
 import com.github.gjum.minecraft.botlin.behaviors.ClientTicker
 import com.github.gjum.minecraft.botlin.data.MinecraftData
 import com.github.gjum.minecraft.botlin.util.AuthenticationProvider
+import com.github.steveice10.mc.protocol.data.game.ClientRequest
 import com.github.steveice10.mc.protocol.data.game.entity.player.Hand
 import com.github.steveice10.mc.protocol.data.game.world.block.BlockFace
+import com.github.steveice10.mc.protocol.packet.ingame.client.ClientChatPacket
+import com.github.steveice10.mc.protocol.packet.ingame.client.ClientRequestPacket
 import com.github.steveice10.mc.protocol.packet.ingame.client.window.ClientCloseWindowPacket
 import kotlinx.coroutines.CoroutineScope
 import kotlin.coroutines.coroutineContext
@@ -52,10 +55,19 @@ class MutableBot(
 
 	val ticker = ClientTicker(this)
 	val physics = BlockPhysics(this)
+	private val behaviors = mutableListOf<Behavior>()
 
 	override val mcData = MinecraftData("mcdata")
 
 	override val connected get() = connection.connected && avatar.connected
+
+	fun registerBehavior(behavior: Behavior) {
+		behaviors.add(behavior)
+	}
+
+	override fun unregisterBehavior(behavior: Behavior) {
+		behaviors.remove(behavior)
+	}
 
 	override suspend fun respawn() {
 		TODO("respawn")

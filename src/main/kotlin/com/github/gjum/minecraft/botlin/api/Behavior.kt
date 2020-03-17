@@ -9,4 +9,12 @@ import kotlinx.coroutines.CoroutineScope
  */
 interface ApiBot : Bot, CoroutineScope, EventBoard {
 	val avatar: MutableAvatar
+	fun unregisterBehavior(behavior: Behavior)
+}
+
+open class Behavior(protected val bot: ApiBot) : ChildScope(bot) {
+	override fun disable() {
+		bot.unregisterBehavior(this)
+		super.disable()
+	}
 }
