@@ -7,6 +7,8 @@ package com.github.gjum.minecraft.botlin.behaviors
 import com.github.gjum.minecraft.botlin.api.*
 import com.github.gjum.minecraft.botlin.util.Ray
 import com.github.gjum.minecraft.botlin.util.calculateIntercept
+import com.github.steveice10.mc.protocol.packet.ingame.client.player.ClientPlayerPositionRotationPacket
+import com.github.steveice10.mc.protocol.packet.ingame.client.world.ClientTeleportConfirmPacket
 import com.github.steveice10.mc.protocol.packet.ingame.server.entity.ServerVehicleMovePacket
 import com.github.steveice10.mc.protocol.packet.ingame.server.entity.player.ServerPlayerPositionRotationPacket
 import kotlinx.coroutines.CancellableContinuation
@@ -46,7 +48,6 @@ class BlockPhysics(private val bot: ApiBot) : ChildScope(bot) {
 		launch { bot.onEach(::onTeleportedByServer) }
 	}
 
-	// XXX when to reset physics?
 	private fun reset() {
 		onGround = false
 		// start in falling-only state
@@ -92,8 +93,11 @@ class BlockPhysics(private val bot: ApiBot) : ChildScope(bot) {
 			arrivalContinuation?.resume(Result.Success(Unit))
 		}
 
+		if (jumpQueued && onGround) {
+			jumpQueued = false
+			velocity = velocity.withAxis(Axis.Y, JUMP_FORCE)
+		}
 		// XXX apply entity velocity (knockback)
-		// XXX execute queued jumps
 		// TODO floating up water/ladders
 
 		var moveHorizVec = Vec3d.origin
@@ -175,7 +179,22 @@ class BlockPhysics(private val bot: ApiBot) : ChildScope(bot) {
 			return
 		}
 
-		// XXX apply position reset
+		bot.post(ClientTeleportConfirmPacket(event.packet.teleportId))
+		bot.playerEntity!!.apply {
+			bot.sendPacket(
+				ClientPlayerPositionRotationPacket(
+					(onGround ?: true),
+					position!!.x,
+					position!!.y,
+					position!!.z,
+					look!!.yawDegrees.toFloat(),
+					look!!.pitchDegrees.toFloat()
+				)
+			)
+
+		}
+
+		reset()
 	}
 }
 

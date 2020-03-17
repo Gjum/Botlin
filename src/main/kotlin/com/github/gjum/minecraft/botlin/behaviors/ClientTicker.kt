@@ -22,22 +22,6 @@ class ClientTicker(private val bot: ApiBot) : ChildScope(bot) {
 	}
 
 	private fun onSpawned(event: AvatarEvent.TeleportedByServer) {
-		if (event.packet !is ServerPlayerPositionRotationPacket) return
-
-		bot.post(ClientTeleportConfirmPacket(event.packet.teleportId))
-		bot.playerEntity!!.apply {
-			bot.sendPacket(
-				ClientPlayerPositionRotationPacket(
-					(onGround ?: true),
-					position!!.x,
-					position!!.y,
-					position!!.z,
-					look!!.yawDegrees.toFloat(),
-					look!!.pitchDegrees.toFloat()
-				)
-			)
-
-		}
 		startTicker()
 	}
 
