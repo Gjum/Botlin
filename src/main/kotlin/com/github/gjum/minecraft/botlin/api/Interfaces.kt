@@ -267,7 +267,7 @@ interface Bot : Avatar, ClientConnection, EventSource {
 
 	/**
 	 * Shorthand for [placeBlock] with integer coordinates.
-	 * @see placeBlock
+	 * See [closestBlockSubcoord] for how the float coords are determined.
 	 */
 	suspend fun placeBlock(
 		pos: Vec3i,
@@ -286,7 +286,7 @@ interface Bot : Avatar, ClientConnection, EventSource {
 
 	/**
 	 * Shorthand for [activateBlock] with integer coordinates.
-	 * @see activateBlock
+	 * See [closestBlockSubcoord] for how the float coords are determined.
 	 */
 	suspend fun activateBlock(
 		pos: Vec3i,
@@ -310,7 +310,7 @@ interface Bot : Avatar, ClientConnection, EventSource {
 
 	/**
 	 * Shorthand for [breakBlock] with integer coordinates.
-	 * @see breakBlock
+	 * See [closestBlockSubcoord] for how the float coords are determined.
 	 */
 	suspend fun breakBlock(
 		pos: Vec3i,

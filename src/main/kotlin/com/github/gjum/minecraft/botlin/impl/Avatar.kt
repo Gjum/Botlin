@@ -76,7 +76,10 @@ class MutableAvatar(
 	}
 
 	fun handleServerPacket(packet: Packet) = synchronized(this) {
+		handleServerPacketPlayer(packet)
 		handleServerPacketEntitySpawn(packet)
+		handleServerPacketEntityAction(packet)
+		handleServerPacketEntityProps(packet)
 		handleServerPacketInventory(packet)
 		handleServerPacketBlocks(packet)
 		handleServerPacketWorld(packet)
