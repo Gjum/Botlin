@@ -1,6 +1,5 @@
 package com.github.gjum.minecraft.botlin.demo
 
-import com.github.gjum.minecraft.botlin.api.Slot
 import com.github.gjum.minecraft.botlin.api.Vec3d
 import com.github.gjum.minecraft.botlin.impl.setupBot
 import com.github.steveice10.mc.protocol.data.game.entity.player.Hand
@@ -23,14 +22,14 @@ fun main() = runBlocking {
 	bot.jumpUntilLanded()
 	withTimeout(1000) { arrival.await() }
 
-	// search inventory for any block with a bounding box
-	fun Slot.canPillar(): Boolean {
-		val block = bot.mcData.getItemInfo(itemId)?.block ?: return false
-		return block.defaultState.collisionShape.boxes.isNotEmpty()
+	// search inventory for any solid block (with a bounding box)
+	bot.holdItem {
+		if (it.empty) return@holdItem false
+		val block = bot.mcData.getItemInfo(it.itemId)?.block
+			?: return@holdItem false // item is not a block
+		val solid = block.defaultState.collisionShape.boxes.isNotEmpty()
+		return@holdItem solid
 	}
-
-	val blockSlot = bot.window!!.slots.indexOfFirst { it.canPillar() }
-	if (blockSlot != -1) bot.swapHotbar(blockSlot, bot.hotbarSelection!!)
 
 	// pillar up
 	val floorPos = bot.playerEntity!!.position!!

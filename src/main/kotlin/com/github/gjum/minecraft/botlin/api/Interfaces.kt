@@ -4,6 +4,7 @@ import com.github.gjum.minecraft.botlin.data.MinecraftData
 import com.github.steveice10.mc.auth.data.GameProfile
 import com.github.steveice10.mc.protocol.data.game.chunk.Column
 import com.github.steveice10.mc.protocol.data.game.entity.metadata.EntityMetadata
+import com.github.steveice10.mc.protocol.data.game.entity.metadata.ItemStack
 import com.github.steveice10.mc.protocol.data.game.entity.player.GameMode
 import com.github.steveice10.mc.protocol.data.game.entity.player.Hand
 import com.github.steveice10.mc.protocol.data.game.entity.type.GlobalEntityType
@@ -72,14 +73,22 @@ interface PlayerEntity : Entity {
 interface Slot {
 	val index: Int
 	val itemId: Int
-	val itemMeta: Int
 	val amount: Int
 	val nbtData: CompoundTag?
-	val empty: Boolean
 	val maxStackSize: Int
 	val name: String
 	val customName: String?
-	fun stacksWith(other: Slot): Boolean
+
+	val empty: Boolean get() = amount <= 0 || itemId <= 0
+
+	fun stacksWith(other: Slot): Boolean {
+		if (itemId != other.itemId) return false
+		if (maxStackSize <= 1) return false
+		if (nbtData != other.nbtData) return false // TODO implement stacking correctly (NBT data comparison)
+		return true
+	}
+
+	fun toStack() = ItemStack(itemId, amount, nbtData)
 }
 
 interface Window {
@@ -248,8 +257,18 @@ interface Bot : Avatar, ClientConnection, EventSource {
 	 * Tries to hold a stack of a desired item in [hand].
 	 * Of all slots in the inventory, the stack with the highest [itemScore] is used.
 	 * Slots with [itemScore] of 0 or less will be ignored.
+	 * @throws IllegalArgumentException if no matching items were found.
 	 */
-	suspend fun holdItem(itemScore: (Slot?) -> Int, hand: Hand = Hand.MAIN_HAND)
+	suspend fun holdBestItem(hand: Hand = Hand.MAIN_HAND, itemScore: (Slot) -> Int)
+
+	/**
+	 * Shorthand for [holdBestItem] with a boolean [predicate].
+	 * If [predicate] is true, the [holdBestItem] score is 1, otherwise 0.
+	 * @throws IllegalArgumentException if no matching items were found.
+	 */
+	suspend fun holdItem(hand: Hand = Hand.MAIN_HAND, predicate: (Slot) -> Boolean) {
+		return holdBestItem(hand) { if (predicate(it)) 1 else 0 }
+	}
 
 	fun closeWindow()
 
@@ -259,7 +278,7 @@ interface Bot : Avatar, ClientConnection, EventSource {
 
 	/**
 	 * Places a block onto [pos] from [face] using [hand].
-	 * If necessary, un-sneaks for a tiny moment, to ensure placement.
+	 * Sneaks for a tiny moment if necessary to prevent interacting with the block.
 	 * [pos] can include sub-block resolution coordinates.
 	 * @see activateBlock
 	 */
@@ -267,18 +286,18 @@ interface Bot : Avatar, ClientConnection, EventSource {
 
 	/**
 	 * Shorthand for [placeBlock] with integer coordinates.
-	 * See [closestBlockSubcoord] for how the float coords are determined.
+	 * See [closestBlockSubCoord] for how the float coords are determined.
 	 */
 	suspend fun placeBlock(
 		pos: Vec3i,
 		face: BlockFace = BlockFace.UP,
 		hand: Hand = Hand.MAIN_HAND,
 		look: Boolean = true
-	) = placeBlock(closestBlockSubcoord(pos), face, hand, look)
+	) = placeBlock(closestBlockSubCoord(pos), face, hand, look)
 
 	/**
 	 * Activates (right-click) the block at [pos] from [face] using [hand].
-	 * Sneaks if a place-able item is in any hand, to prevent placement.
+	 * Un-sneaks for a tiny moment if necessary.
 	 * [pos] can include sub-block resolution coordinates.
 	 * @see placeBlock
 	 */
@@ -286,16 +305,14 @@ interface Bot : Avatar, ClientConnection, EventSource {
 
 	/**
 	 * Shorthand for [activateBlock] with integer coordinates.
-	 * See [closestBlockSubcoord] for how the float coords are determined.
+	 * @see closestBlockSubCoord for how the float coords are determined.
 	 */
 	suspend fun activateBlock(
 		pos: Vec3i,
 		face: BlockFace = BlockFace.UP,
 		hand: Hand = Hand.MAIN_HAND,
 		look: Boolean = true
-	) = activateBlock(closestBlockSubcoord(pos), face, hand, look)
-
-	private fun closestBlockSubcoord(pos: Vec3i) = pos.asVec3d() + Vec3d(.5, .5, .5) // TODO click nearest face/edge
+	) = activateBlock(closestBlockSubCoord(pos), face, hand, look)
 
 	/**
 	 * Breaks the block at [pos] from [face], taking [breakMs].
@@ -310,14 +327,16 @@ interface Bot : Avatar, ClientConnection, EventSource {
 
 	/**
 	 * Shorthand for [breakBlock] with integer coordinates.
-	 * See [closestBlockSubcoord] for how the float coords are determined.
+	 * @see closestBlockSubCoord for how the float coords are determined.
 	 */
 	suspend fun breakBlock(
 		pos: Vec3i,
 		face: BlockFace = BlockFace.UP,
 		breakMs: Long = 50,
 		look: Boolean = true
-	) = breakBlock(closestBlockSubcoord(pos), face, breakMs, look)
+	) = breakBlock(closestBlockSubCoord(pos), face, breakMs, look)
+
+	private fun closestBlockSubCoord(pos: Vec3i) = pos.asVec3d() + Vec3d(.5, .5, .5) // TODO click nearest face/edge
 
 	// TODO start/cancel/finish digging - scoped?
 

@@ -9,33 +9,21 @@ import com.github.steveice10.opennbt.tag.builtin.CompoundTag
 data class MutableSlot(
 	override var index: Int,
 	override var itemId: Int,
-	override var itemMeta: Int,
 	override var amount: Int,
 	override var nbtData: CompoundTag?
 ) : Slot {
-	override val empty: Boolean get() = itemId <= 0 || amount <= 0
 	override val maxStackSize: Int get() = TODO("look up stack size in mc-data")
 	override val name: String get() = "TODO" // TODO look up slot name in mc-data
 	override val customName: String? get() = null // TODO look up custom name in NBT
-
-	override fun stacksWith(other: Slot): Boolean {
-		if (itemId != other.itemId) return false
-		if (itemMeta != other.itemMeta) return false
-		if (maxStackSize <= 1) return false
-		if (nbtData != other.nbtData) return false // TODO implement stacking correctly (NBT data comparison)
-		return true
-	}
 }
 
 fun MutableSlot.updateFromStack(itemStack: ItemStack) {
-	itemId = itemStack.id
 	amount = itemStack.amount
 	nbtData = itemStack.nbt
+	itemId = if (amount > 0) itemStack.id else 0
 }
 
-fun MutableSlot.toStack() = ItemStack(itemId, amount, nbtData)
-
-fun makeEmptySlot(index: Int) = MutableSlot(index, 0, 0, 0, null)
+fun makeEmptySlot(index: Int) = MutableSlot(index, 0, 0, null)
 
 const val PLAYER_WINDOW_ID = 0
 const val CURSOR_WINDOW_ID = -1
@@ -53,7 +41,8 @@ class MutableWindow(
 	override var cursorSlot = makeEmptySlot(CURSOR_SLOT_NR)
 	override val properties = mutableMapOf<Int, Int>() // TODO access props by name, via mc-data
 
-	override val hotbar: List<MutableSlot>
+	override val hotbar: List<Slot> get() = hotbarMut
+	val hotbarMut: List<MutableSlot>
 		get() {
 			// special case for player window: last slot is offhand
 			val end = if (windowId == PLAYER_WINDOW_ID) slots.size - 1 else slots.size

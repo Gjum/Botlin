@@ -181,15 +181,46 @@ class MutableBot(
 	}
 
 	override suspend fun dropHand(fullStack: Boolean) {
-		TODO("dropHand")
+		val action = if (fullStack) PlayerAction.DROP_ITEM_STACK else PlayerAction.DROP_ITEM
+		sendPacket(ClientPlayerActionPacket(
+			action,
+			Position(0, 0, 0),
+			BlockFace.DOWN))
 	}
 
 	override suspend fun dragSlots(slotNrs: List<Int>, rmb: Boolean, shift: Boolean) {
 		TODO("dragSlots")
 	}
 
-	override suspend fun holdItem(itemScore: (Slot?) -> Int, hand: Hand) {
-		TODO("holdItem")
+	override suspend fun holdBestItem(hand: Hand, itemScore: (Slot) -> Int) {
+		val scoredSlots = window!!.slots.mapIndexed { i, s -> IndexedValue(i, itemScore(s)) }
+		val bestScore = scoredSlots.map { it.value }.max() ?: 0
+		if (bestScore <= 0) {
+			throw IllegalArgumentException("No matching slot found")
+		}
+
+		// prefer hotbar
+		val bestHotbarSlot = window.hotbar.withIndex()
+			.maxBy { itemScore(it.value) }
+		if (bestHotbarSlot != null && itemScore(bestHotbarSlot.value) >= bestScore) {
+			selectHotbar(bestHotbarSlot.index)
+			return
+		}
+
+		// none found in hotbar, search full inventory
+		val sourceNr = window.slots.withIndex()
+			.maxBy { itemScore(it.value) }?.index
+			?: error("Inventory changed while searching item to hold")
+
+		val targetHb = if (mainHandSlot?.empty == true) hotbarSelection!! else {
+			window.hotbar.withIndex()
+				.firstOrNull { it.value.empty }?.index
+				?: hotbarSelection!! // TODO if hotbar is full, use least recently used hotbar slot
+		}
+
+		// TODO handle cases when source is a restricted slot (armor, craft result, etc.) and target is not empty
+		swapHotbar(sourceNr, targetHb)
+		selectHotbar(targetHb)
 	}
 
 	override fun closeWindow() {
@@ -255,12 +286,15 @@ class MutableBot(
 		if (look) lookAt(pos)
 
 		coroutineScope {
+			// TODO use coroutine-based timer instead of thread-based
 			val animation = fixedRateTimer(period = swingInterval) {
 				sendPacket(ClientPlayerSwingArmPacket(Hand.MAIN_HAND))
 			}
 			try {
 				sendPacket(ClientPlayerActionPacket(PlayerAction.START_DIGGING, position, face))
+
 				delay(breakMs)
+
 				sendPacket(ClientPlayerActionPacket(PlayerAction.FINISH_DIGGING, position, face))
 			} catch (e: Throwable) { // and rethrow
 				sendPacket(ClientPlayerActionPacket(PlayerAction.CANCEL_DIGGING, position, face))
