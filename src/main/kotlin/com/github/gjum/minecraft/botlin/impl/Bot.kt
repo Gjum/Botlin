@@ -12,11 +12,13 @@ import com.github.steveice10.mc.protocol.data.game.entity.player.Hand
 import com.github.steveice10.mc.protocol.data.game.entity.player.InteractAction
 import com.github.steveice10.mc.protocol.data.game.entity.player.PlayerAction
 import com.github.steveice10.mc.protocol.data.game.entity.player.PlayerState
+import com.github.steveice10.mc.protocol.data.game.window.*
 import com.github.steveice10.mc.protocol.data.game.world.block.BlockFace
 import com.github.steveice10.mc.protocol.packet.ingame.client.ClientChatPacket
 import com.github.steveice10.mc.protocol.packet.ingame.client.ClientRequestPacket
 import com.github.steveice10.mc.protocol.packet.ingame.client.player.*
 import com.github.steveice10.mc.protocol.packet.ingame.client.window.ClientCloseWindowPacket
+import com.github.steveice10.mc.protocol.packet.ingame.client.window.ClientWindowActionPacket
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
@@ -69,6 +71,7 @@ class MutableBot(
 	EventBoard by eventBoard,
 	ClientConnection by connection {
 
+	var actionId = 0
 	val ticker = ClientTicker(this)
 	val physics = BlockPhysics(this)
 	private val behaviors = mutableListOf<Behavior>()
@@ -168,16 +171,107 @@ class MutableBot(
 			BlockFace.DOWN))
 	}
 
-	override suspend fun swapHotbar(slotNr: Int, hbIndex: Int) {
-		TODO("swapHotbar")
+	/**
+	 * Immediately updates [window] with [updateSlots] (optimistically)
+	 * after sending the click packet.
+	 * Waits for the corresponding [AvatarEvent.TransactionResponse] before returning.
+	 * @throws ClickFailed
+	 */
+	private suspend fun sendClickAndAwaitResult(
+		slot: Slot,
+		action: WindowAction,
+		param: WindowActionParam,
+		updateSlots: () -> Unit
+	) {
+		val myWindowId = window!!.windowId
+		val myActionId = ++actionId
+		sendPacket(ClientWindowActionPacket(
+			myWindowId, myActionId, slot.index, slot.toStack(), action, param))
+
+		updateSlots()
+
+		val response = receiveNext<AvatarEvent.TransactionResponse> {
+			it.actionId == myActionId && it.windowId == myWindowId
+		}
+		if (!response.accepted) {
+			throw ClickFailed("Click failed: ${action.javaClass.name}.${action.name}")
+		}
 	}
 
-	override suspend fun clickSlot(slotNr: Int, rmb: Boolean, shift: Boolean) {
+	private suspend fun sendClickAndAwaitResult(
+		slotNr: Int, action: WindowAction, param: WindowActionParam, updateSlots: () -> Unit
+	) = sendClickAndAwaitResult(avatar.window!!.slots[slotNr], action, param, updateSlots)
+
+	private fun swapSlots(a: MutableSlot, b: MutableSlot) = avatar.window!!.apply {
+		val slot = a.copy()
+		a.updateFrom(b)
+		b.updateFrom(slot)
+	}
+
+	private fun transferItems(from: MutableSlot, to: MutableSlot, amount: Int = 64) {
+		val transferred = amount.coerceAtMost(from.amount)
+			.coerceAtMost(to.maxStackSize - to.amount)
+		from.amount -= transferred
+		to.amount += transferred
+	}
+
+	/**
+	 * Find the first slot this [slot] will be transferred to when shift clicked.
+	 * First, tries to find a slot that stacks with [slot], is not full,
+	 * and is in the opposite part of the window.
+	 * If all these are exhausted, selects the next empty slot there.
+	 */
+	private fun findShiftClickDest(slot: Slot): MutableSlot? {
+		val oppositeSlots = avatar.window!!.slots // TODO opposite slots
+		return oppositeSlots.firstOrNull { !it.full && it.stacksWith(slot) }
+			?: oppositeSlots.firstOrNull { it.empty }
+	}
+
+	override suspend fun swapHotbar(slotNr: Int, hbIndex: Int) {
+		val param = MoveToHotbarParam.values()[hbIndex]
+		sendClickAndAwaitResult(slotNr, WindowAction.MOVE_TO_HOTBAR_SLOT, param) {
+			avatar.window!!.run { swapSlots(slots[slotNr], hotbar[hbIndex]) }
+		}
+	}
+
+	override suspend fun clickSlot(slotNr: Int, right: Boolean, shift: Boolean) {
+		val action = if (shift) WindowAction.SHIFT_CLICK_ITEM else WindowAction.CLICK_ITEM
+		val param: WindowActionParam = if (shift) {
+			if (right) ShiftClickItemParam.RIGHT_CLICK else ShiftClickItemParam.LEFT_CLICK
+		} else {
+			if (right) ClickItemParam.RIGHT_CLICK else ClickItemParam.LEFT_CLICK
+		}
+		sendClickAndAwaitResult(slotNr, action, param) {
+			avatar.window!!.run {
+				val clicked = slots[slotNr]
+				if (shift) {
+					while (!clicked.empty) {
+						val destination = findShiftClickDest(clicked) ?: break
+						transferItems(clicked, destination)
+					}
+				} else if (right) {
+					transferItems(clicked, cursorSlot, amount = when {
+						cursorSlot.empty -> clicked.amount - clicked.amount / 2 // bigger half
+						clicked.full -> 0
+						else -> -1
+					})
+				} else if (!cursorSlot.empty && cursorSlot.stacksWith(clicked)) {
+					transferItems(cursorSlot, clicked)
+				} else {
+					swapSlots(clicked, cursorSlot)
+				}
+			}
+		}
 		TODO("clickSlot")
 	}
 
 	override suspend fun dropSlot(slotNr: Int, fullStack: Boolean) {
-		TODO("dropSlot")
+		val slot = avatar.window!!.run { if (slotNr < 0) cursorSlot else slots[slotNr] }
+		val param = if (fullStack) DropItemParam.DROP_SELECTED_STACK else DropItemParam.DROP_FROM_SELECTED
+		sendClickAndAwaitResult(slot, WindowAction.DROP_ITEM, param) {
+			slot.amount -= if (fullStack) 64 else 1
+			if (slot.empty) slot.itemId = 0
+		}
 	}
 
 	override suspend fun dropHand(fullStack: Boolean) {

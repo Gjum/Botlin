@@ -79,6 +79,7 @@ interface Stack {
 	val customName: String?
 
 	val empty: Boolean get() = amount <= 0 || itemId <= 0
+	val full: Boolean get() = amount >= maxStackSize
 
 	fun stacksWith(other: Stack): Boolean {
 		if (itemId != other.itemId) return false
@@ -249,7 +250,8 @@ interface Bot : Avatar, ClientConnection, EventSource {
 	 */
 	suspend fun swapHotbar(slotNr: Int, hbIndex: Int)
 
-	suspend fun clickSlot(slotNr: Int, rmb: Boolean = false, shift: Boolean = false)
+	// TODO double clicking slots
+	suspend fun clickSlot(slotNr: Int, right: Boolean = false, shift: Boolean = false)
 
 	/**
 	 * Drops items from [slotNr], or from the cursor slot if [slotNr] is negative.
@@ -359,3 +361,5 @@ interface Bot : Avatar, ClientConnection, EventSource {
 	// TODO signBook(slot, author, title)
 	// TODO writeBook(text, title="", sign=False/signWith=me)
 }
+
+class ClickFailed(message: String) : RuntimeException(message)
