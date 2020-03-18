@@ -5,6 +5,7 @@ import com.github.gjum.minecraft.botlin.behaviors.BlockPhysics
 import com.github.gjum.minecraft.botlin.behaviors.ClientTicker
 import com.github.gjum.minecraft.botlin.data.MinecraftData
 import com.github.gjum.minecraft.botlin.util.AuthenticationProvider
+import com.github.gjum.minecraft.botlin.util.race
 import com.github.steveice10.mc.protocol.data.game.ClientRequest
 import com.github.steveice10.mc.protocol.data.game.entity.metadata.Position
 import com.github.steveice10.mc.protocol.data.game.entity.player.Hand
@@ -17,6 +18,7 @@ import com.github.steveice10.mc.protocol.packet.ingame.client.ClientRequestPacke
 import com.github.steveice10.mc.protocol.packet.ingame.client.player.*
 import com.github.steveice10.mc.protocol.packet.ingame.client.window.ClientCloseWindowPacket
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlin.concurrent.fixedRateTimer
@@ -126,8 +128,20 @@ class MutableBot(
 
 	override suspend fun jumpUntilLanded() = physics.jump()
 
-	override suspend fun jumpToHeight(height: Double): Boolean {
-		TODO("jumpToHeight")
+	override suspend fun jumpToHeight(height: Double): Boolean = coroutineScope {
+		val targetY = playerEntity!!.position!!.y + height
+		race(
+			async {
+				receiveNext<AvatarEvent.ClientTick>() {
+					playerEntity.position!!.y >= targetY
+				}
+				true // reached height
+			},
+			async {
+				jumpUntilLanded()
+				false // landed before reaching height
+			}
+		)
 	}
 
 	override suspend fun activateItem(hand: Hand) {
