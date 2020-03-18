@@ -336,9 +336,9 @@ class MutableAvatar(
 				val window = window // cache because of concurrent modification
 				if (packet.windowId == window?.windowId) {
 					val indices = packet.items.indices
-					val oldSlots = window.slotsMut.map { it.copy() }
+					val oldSlots = window.slots.map { it.copy() }
 					for ((i, itemStack) in packet.items.withIndex()) {
-						window.slotsMut[i].updateFromStack(itemStack)
+						window.slots[i].updateFromStack(itemStack)
 					}
 					val newSlots = window.slots
 					emit(AvatarEvent.SlotsChanged(window, indices, oldSlots, newSlots))
@@ -367,8 +367,8 @@ class MutableAvatar(
 						emit(AvatarEvent.WindowReady(window))
 					}
 				} else if (packet.windowId == window?.windowId) {
-					val oldSlots = window.slotsMut.slice(indices).map { it.copy() }
-					window.slotsMut[packet.slot].updateFromStack(packet.item)
+					val oldSlots = window.slots.slice(indices).map { it.copy() }
+					window.slots[packet.slot].updateFromStack(packet.item)
 					val newSlots = window.slots.slice(indices)
 					emit(AvatarEvent.SlotsChanged(window, indices, oldSlots, newSlots))
 				}

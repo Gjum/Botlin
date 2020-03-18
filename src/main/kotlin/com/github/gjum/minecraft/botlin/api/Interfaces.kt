@@ -70,8 +70,7 @@ interface PlayerEntity : Entity {
 	val playerListItem: PlayerListItem?
 }
 
-interface Slot {
-	val index: Int
+interface Stack {
 	val itemId: Int
 	val amount: Int
 	val nbtData: CompoundTag?
@@ -81,7 +80,7 @@ interface Slot {
 
 	val empty: Boolean get() = amount <= 0 || itemId <= 0
 
-	fun stacksWith(other: Slot): Boolean {
+	fun stacksWith(other: Stack): Boolean {
 		if (itemId != other.itemId) return false
 		if (maxStackSize <= 1) return false
 		if (nbtData != other.nbtData) return false // TODO implement stacking correctly (NBT data comparison)
@@ -89,6 +88,10 @@ interface Slot {
 	}
 
 	fun toStack() = ItemStack(itemId, amount, nbtData)
+}
+
+interface Slot : Stack {
+	val index: Int
 }
 
 interface Window {
@@ -102,7 +105,14 @@ interface Window {
 	val cursorSlot: Slot
 	val properties: Map<Int, Int>
 	// TODO access window props by name, via mc-data
+
+	val hotbarStart: Int
 	val hotbar: List<Slot>
+	val inventoryStart: Int
+	val inventory: List<Slot>
+
+	fun isInHotbar(slotNr: Int) = slotNr - hotbarStart in 0..9
+	fun isInInventory(slotNr: Int) = slotNr - inventoryStart in 0..(9 * 3)
 }
 
 interface PlayerListItem {

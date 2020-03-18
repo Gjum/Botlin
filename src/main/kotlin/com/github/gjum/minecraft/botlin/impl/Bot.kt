@@ -192,29 +192,32 @@ class MutableBot(
 		TODO("dragSlots")
 	}
 
+	private data class ScoredSlot(val slotNr: Int, val score: Int)
+
 	override suspend fun holdBestItem(hand: Hand, itemScore: (Slot) -> Int) {
-		val scoredSlots = window!!.slots.mapIndexed { i, s -> IndexedValue(i, itemScore(s)) }
-		val bestScore = scoredSlots.map { it.value }.max() ?: 0
+		val scoredSlots = window!!.slots.map { ScoredSlot(it.index, itemScore(it)) }
+		val bestScore = scoredSlots.map { it.score }.max() ?: 0
 		if (bestScore <= 0) {
 			throw IllegalArgumentException("No matching slot found")
 		}
+		// find all slots that have the best score (all equally good)
+		val bestSlots = scoredSlots.filter { it.score >= bestScore }
 
-		// prefer hotbar
-		val bestHotbarSlot = window.hotbar.withIndex()
-			.maxBy { itemScore(it.value) }
-		if (bestHotbarSlot != null && itemScore(bestHotbarSlot.value) >= bestScore) {
-			selectHotbar(bestHotbarSlot.index)
+		// prefer slots from hotbar
+		val bestHotbarSlot = bestSlots.firstOrNull { window.isInHotbar(it.slotNr) }
+		if (bestHotbarSlot != null) {
+			selectHotbar(bestHotbarSlot.slotNr - window.hotbarStart)
 			return
 		}
 
 		// none found in hotbar, search full inventory
-		val sourceNr = window.slots.withIndex()
-			.maxBy { itemScore(it.value) }?.index
+		val sourceNr = bestSlots.maxBy { it.score }?.slotNr
 			?: error("Inventory changed while searching item to hold")
 
-		val targetHb = if (mainHandSlot?.empty == true) hotbarSelection!! else {
-			window.hotbar.withIndex()
-				.firstOrNull { it.value.empty }?.index
+		val targetHb = if (mainHandSlot?.empty == true) {
+			hotbarSelection!!
+		} else {
+			window.hotbar.firstOrNull { it.empty }?.index
 				?: hotbarSelection!! // TODO if hotbar is full, use least recently used hotbar slot
 		}
 
