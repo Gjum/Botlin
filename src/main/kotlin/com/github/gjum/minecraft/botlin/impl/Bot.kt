@@ -356,8 +356,7 @@ class MutableBot(
 		val position = Position(blockPos.x, blockPos.y, blockPos.z)
 		val cursor = pos - blockPos.asVec3d()
 		sendPacket(ClientPlayerPlaceBlockPacket(position, face, hand,
-			cursor.x.toFloat(), cursor.y.toFloat(), cursor.z.toFloat(),
-			false)) // TODO insideBlock?
+			cursor.x.toFloat(), cursor.y.toFloat(), cursor.z.toFloat())) // TODO insideBlock?
 
 		sendPacket(ClientPlayerSwingArmPacket(hand))
 
@@ -372,8 +371,7 @@ class MutableBot(
 		val cursor = pos - blockPos.asVec3d()
 		// TODO unsneak?
 		sendPacket(ClientPlayerPlaceBlockPacket(position, face, hand,
-			cursor.x.toFloat(), cursor.y.toFloat(), cursor.z.toFloat(),
-			false)) // TODO insideBlock?
+			cursor.x.toFloat(), cursor.y.toFloat(), cursor.z.toFloat())) // TODO insideBlock?
 		sendPacket(ClientPlayerSwingArmPacket(hand))
 	}
 

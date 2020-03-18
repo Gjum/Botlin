@@ -72,6 +72,7 @@ interface PlayerEntity : Entity {
 
 interface Stack {
 	val itemId: Int
+	val meta: Int
 	val amount: Int
 	val nbtData: CompoundTag?
 	val maxStackSize: Int
@@ -88,7 +89,7 @@ interface Stack {
 		return true
 	}
 
-	fun toStack() = ItemStack(itemId, amount, nbtData)
+	fun toStack() = ItemStack(itemId, meta, amount, nbtData)
 }
 
 interface Slot : Stack {

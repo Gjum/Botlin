@@ -9,6 +9,7 @@ import com.github.steveice10.opennbt.tag.builtin.CompoundTag
 
 open class MutableStack(
 	itemIdInitially: Int,
+	override var meta: Int,
 	amountInitially: Int,
 	override var nbtData: CompoundTag?
 ) : Stack {
@@ -33,26 +34,29 @@ fun MutableStack.updateFrom(stack: Stack) {
 	amount = stack.amount
 	nbtData = stack.nbtData
 	itemId = if (amount > 0) stack.itemId else 0
+	meta = stack.meta
 }
 
 fun MutableStack.updateFromStack(itemStack: ItemStack) {
 	amount = itemStack.amount
 	nbtData = itemStack.nbt
 	itemId = if (amount > 0) itemStack.id else 0
+	meta = itemStack.data
 }
 
-fun Stack.copy() = MutableStack(itemId, amount, nbtData)
+fun Stack.copy() = MutableStack(itemId, meta, amount, nbtData)
 
 class MutableSlot(
 	override val index: Int,
 	itemId: Int,
+	meta: Int,
 	amount: Int,
 	nbtData: CompoundTag?
-) : Slot, MutableStack(itemId, amount, nbtData)
+) : Slot, MutableStack(itemId, meta, amount, nbtData)
 
-fun Slot.copy() = MutableSlot(index, itemId, amount, nbtData)
+fun Slot.copy() = MutableSlot(index, itemId, meta, amount, nbtData)
 
-fun makeEmptySlot(index: Int) = MutableSlot(index, 0, 0, null)
+fun makeEmptySlot(index: Int) = MutableSlot(index, 0, 0, 0, null)
 
 const val PLAYER_WINDOW_ID = 0
 const val CURSOR_WINDOW_ID = -1

@@ -114,7 +114,7 @@ class MutableWorld(override val dimension: Int) : World {
 	fun setBlockState(position: Position, block: BlockState) {
 		position.apply {
 			val section = getSectionForBlock(x, y, z) ?: return
-			section.blocks.set(x.mod16, y.mod16, z.mod16, com.github.steveice10.mc.protocol.data.game.world.block.BlockState(block.id))
+			section.blocks.set(x.mod16, y.mod16, z.mod16, BlockState(block.id, block.data))
 		}
 	}
 
