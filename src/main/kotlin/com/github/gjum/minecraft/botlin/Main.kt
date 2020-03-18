@@ -70,28 +70,28 @@ private class LoggingCommandContext(val cmdName: String) : CommandContext {
 }
 
 fun registerUsefulCommands(commands: CommandRegistry, bot: Bot, parentScope: CoroutineScope) {
-	commands.registerCommand("quit", "Close the program."
+	commands.registerCommand("quit", "Close the program.", listOf("exit", "close")
 	) { _, _ ->
 		bot.disconnect("Closing the program")
 		parentScope.coroutineContext.cancel()
 	}
-	commands.registerCommand("connect <address>", "Connect to server."
+	commands.registerCommand("connect <address>", "Connect to server.", listOf("login")
 	) { cmdLine, _ ->
 		// TODO bail if already connected, before authenticating - Mojang doesn't allow multiple sessions with same token
 		parentScope.launch { bot.connect(cmdLine.split(' ')[1]) }
 	}
-	commands.registerCommand("disconnect", "Disconnect from server."
+	commands.registerCommand("logout", "Disconnect from server.", listOf("disconnect")
 	) { _, _ ->
 		bot.disconnect("CLI disconnect command")
 	}
-	commands.registerCommand("info", "Show bot info: connection, location, health, etc."
+	commands.registerCommand("info", "Show bot info: connection, location, health, etc.", listOf("status", "state")
 	) { _, context ->
 		bot.playerEntity?.run {
 			context.respond("${bot.profile.name} at $position $look on ${bot.serverAddress}")
 			context.respond("health=$health food=$food sat=$saturation exp=${experience?.total} (${experience?.level} lvl)")
 		} ?: context.respond("${bot.profile.name} (not spawned)")
 	}
-	commands.registerCommand("list", "Show connected players list."
+	commands.registerCommand("players", "Show connected players list.", listOf("online", "list")
 	) { _, context ->
 		val namesSpaceSep = bot.playerList.values
 			.sortedBy { it.profile.name }
@@ -100,7 +100,7 @@ fun registerUsefulCommands(commands: CommandRegistry, bot: Bot, parentScope: Cor
 			}
 		context.respond("Connected players: $namesSpaceSep")
 	}
-	commands.registerCommand("say <message>", "Send a chat message to the server."
+	commands.registerCommand("say <message>", "Send a chat message to the server.", listOf("chat", "talk")
 	) { cmdLine, context ->
 		val msg = cmdLine.substring("say ".length)
 		if (bot.alive) parentScope.launch { bot.chat(msg) }

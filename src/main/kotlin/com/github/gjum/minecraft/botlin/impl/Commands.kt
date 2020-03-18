@@ -14,27 +14,10 @@ interface CommandContext {
  */
 interface Command {
 	val name: String
+	val aliases: List<String>
 	val usage: String
 	val description: String
 	fun handle(commandLine: String, context: CommandContext)
-}
-
-/**
- * Service specification of command registration and execution.
- */
-interface CommandRegistry {
-	/**
-	 * Register the given [command].
-	 * Returns false if a command with the same name is already registered,
-	 * in which case this [command] is ignored.
-	 */
-	fun registerCommand(command: Command): Boolean
-
-	/**
-	 * Execute the given [commandLine] with the given [context].
-	 * Returns false if no registered command matches the [commandLine].
-	 */
-	fun executeCommand(commandLine: String, context: CommandContext): Boolean
 }
 
 /**
@@ -43,9 +26,28 @@ interface CommandRegistry {
  */
 abstract class CommandHelper(
 	override val name: String,
+	override val aliases: List<String> = emptyList(),
 	override val usage: String,
 	override val description: String
 ) : Command
+
+/**
+ * Service specification of command registration and execution.
+ */
+interface CommandRegistry {
+	/**
+	 * Register [command] under its [Command.name] and [Command.aliases].
+	 * Skips if another command with the same name is already registered.
+	 * @return true if the [command] was registered under any name.
+	 */
+	fun registerCommand(command: Command): Boolean
+
+	/**
+	 * Execute the given [commandLine] with the given [context].
+	 * @return false if no registered command matches the [commandLine].
+	 */
+	fun executeCommand(commandLine: String, context: CommandContext): Boolean
+}
 
 /**
  * [Command] creation helper that accepts the required info and handler
@@ -54,12 +56,13 @@ abstract class CommandHelper(
 fun CommandRegistry.registerCommand(
 	usage: String,
 	description: String,
+	aliases: List<String> = emptyList(),
 	block: (String, CommandContext) -> Unit
 ): Boolean {
 	val cmdName = usage.substringBefore(' ')
-	return registerCommand(object : CommandHelper(cmdName, usage, description) {
-		override fun handle(command: String, context: CommandContext) {
-			block(command, context)
+	return registerCommand(object : CommandHelper(cmdName, aliases, usage, description) {
+		override fun handle(commandLine: String, context: CommandContext) {
+			block(commandLine, context)
 		}
 	})
 }
@@ -92,14 +95,18 @@ class CommandRegistryImpl : CommandRegistry {
 	}
 
 	override fun registerCommand(command: Command): Boolean {
-		val alreadyRegisteredCmd = commands.putIfAbsent(command.name, command)
-		return if (alreadyRegisteredCmd == null) {
-			logger.fine("Registered command: ${command.usage} - ${command.description}")
-			true
-		} else {
-			logger.warning("Command '${command.name}' already registered, ignoring")
-			false
+		var registeredAny = false
+		for (name in command.aliases.plus(command.name)) {
+			val alreadyRegisteredCmd = commands.putIfAbsent(name, command)
+			if (alreadyRegisteredCmd == null) {
+				val usage = name + ' ' + command.usage.substringAfter(' ')
+				logger.fine("Registered command: $usage - ${command.description}")
+				registeredAny = true
+			} else {
+				logger.warning("Command '$name' already registered, ignoring")
+			}
 		}
+		return registeredAny
 	}
 
 	override fun executeCommand(commandLine: String, context: CommandContext): Boolean {
