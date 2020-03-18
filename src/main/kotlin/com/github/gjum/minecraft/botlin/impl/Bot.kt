@@ -37,6 +37,7 @@ suspend fun setupClient(
 
 suspend fun setupBot(
 	username: String = "Botlin",
+	extraBehaviors: List<(ApiBot) -> Behavior> = emptyList(),
 	parentScopeArg: CoroutineScope? = null
 ): Bot {
 	val parentScope = parentScopeArg ?: CoroutineScope(coroutineContext)
@@ -48,7 +49,11 @@ suspend fun setupBot(
 	)
 	val avatar = setupClient(auth, eventBoard)
 	val connection = ClientConnectionImpl(eventBoard, avatar, auth)
-	return MutableBot(avatar, eventBoard, connection, parentScope)
+	val bot = MutableBot(avatar, eventBoard, connection, parentScope)
+	for (behavior in extraBehaviors) {
+		bot.registerBehavior(behavior(bot))
+	}
+	return bot
 }
 
 class MutableBot(
