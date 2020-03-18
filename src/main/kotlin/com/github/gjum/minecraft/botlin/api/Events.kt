@@ -2,6 +2,7 @@ package com.github.gjum.minecraft.botlin.api
 
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.channels.ReceiveChannel
+import kotlinx.coroutines.channels.first
 
 /**
  * Emits events.
@@ -53,6 +54,8 @@ inline fun <reified T : Any> EventSink.post(payload: T) = post(T::class.java, pa
 inline fun <reified T : Any> EventSink.post(noinline buildPayload: () -> T) = post(T::class.java, buildPayload)
 
 inline fun <reified T : Any> EventSource.receiveAll() = receiveAll(T::class.java)
+
+suspend inline fun <reified T : Any> EventSource.receiveNext(predicate: (T) -> Boolean) = receiveAll(T::class.java).first(predicate)
 
 suspend inline fun <reified E : Any> EventSource.onEachSuspend(crossinline handler: suspend (E) -> Unit) {
 	for (payload in receiveAll<E>()) {
