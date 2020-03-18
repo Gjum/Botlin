@@ -1,6 +1,5 @@
 package com.github.gjum.minecraft.botlin.demo
 
-import com.github.gjum.minecraft.botlin.api.AvatarEvent
 import com.github.gjum.minecraft.botlin.api.Slot
 import com.github.gjum.minecraft.botlin.api.Vec3d
 import com.github.gjum.minecraft.botlin.impl.setupBot
@@ -11,14 +10,13 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 
 fun main() = runBlocking {
-	val bot = setupBot("Botlin", "localhost:25565")
-	bot.connect()
-	bot.receiveSingle(AvatarEvent.Spawned::class.java) // wait until spawned TODO make less verbose
+	val bot = setupBot("Botlin")
+	bot.connect("localhost:25565") // waits until spawned
 
-	if (bot.alive) { // check bot state
-		bot.chat("hello") // rate limited chat
-		bot.sendPacket(ClientPlayerSwingArmPacket(Hand.MAIN_HAND)) // send raw packets for not-yet implemented features
-	}
+	if (!bot.alive) bot.respawn() // check bot state
+
+	bot.chat("hello") // rate limited chat
+	bot.sendPacket(ClientPlayerSwingArmPacket(Hand.MAIN_HAND)) // send raw packets for not-yet implemented features
 
 	// jump while moving
 	val arrival = async { bot.moveStraightBy(Vec3d(1.0, 0.0, 0.0)) }

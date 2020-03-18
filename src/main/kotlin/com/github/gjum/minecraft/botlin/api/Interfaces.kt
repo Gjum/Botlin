@@ -115,17 +115,6 @@ interface World {
 
 interface Avatar {
 	val profile: GameProfile
-	/** Normalized to format "host:port". */
-	val serverAddress: String
-	/**
-	 * Kick/disconnect message, or null if still online.
-	 */
-	val endReason: String?
-
-	/**
-	 * Indicates if the account is logged into the server at this time.
-	 */
-	val connected: Boolean
 
 	val playerEntity: PlayerEntity?
 	val world: World?
@@ -135,18 +124,15 @@ interface Avatar {
 
 	val mainHandSlot: Slot? get() = window?.hotbar?.get(hotbarSelection ?: 0)
 
-	val identifier get() = "${profile.name}@$serverAddress"
-
 	/**
-	 * Indicates if the account has received all its state yet, such as
-	 * position, health/food/exp, and is also [connected].
+	 * Indicates if the account has received all its state yet,
+	 * such as position/health/food/exp/chunks.
 	 */
 	val ingame: Boolean
 		get() = (playerEntity?.position != null
 			&& playerEntity?.health != null
 			&& playerEntity?.experience != null
-			&& world != null
-			&& connected)
+			&& world != null)
 
 	/**
 	 * Indicates if the account is alive and [ingame].
@@ -155,15 +141,26 @@ interface Avatar {
 }
 
 interface ClientConnection {
+	/**
+	 * Normalized to format "host:port".
+	 * Null if this was never connected to a server.
+	 */
+	val serverAddress: String?
+
 	val connected: Boolean
 
 	/**
-	 * Connects to the [Avatar.serverAddress].
+	 * Kick/disconnect message, or null if still online.
+	 */
+	val endReason: String?
+
+	/**
+	 * Connects to the [serverAddress].
 	 * Waits until [AvatarEvent.Spawned], unless when [waitForSpawn] is false,
 	 * in which case this only waits until the connection succeeded/failed.
 	 * Throws an error if the connection failed.
 	 */
-	suspend fun connect(waitForSpawn: Boolean = true)
+	suspend fun connect(serverAddress: String, waitForSpawn: Boolean = true)
 
 	fun disconnect(reason: String? = null, cause: Throwable? = null)
 

@@ -26,19 +26,17 @@ import kotlin.coroutines.coroutineContext
 const val swingInterval: Long = 200 // ms
 
 suspend fun setupClient(
-	serverAddress: String = "localhost:25565",
 	auth: AuthenticationProvider,
 	eventBoard: EventBoardImpl
 ): MutableAvatar {
 	val (proto, authError) = auth.authenticate()
 	if (proto == null) throw IllegalArgumentException("Failed to setup Avatar: $authError", authError)
 	val profile = proto.profile
-	return MutableAvatar(profile, serverAddress, eventBoard)
+	return MutableAvatar(profile, eventBoard)
 }
 
 suspend fun setupBot(
 	username: String = "Botlin",
-	serverAddress: String = "localhost:25565",
 	parentScopeArg: CoroutineScope? = null
 ): Bot {
 	val parentScope = parentScopeArg ?: CoroutineScope(coroutineContext)
@@ -48,7 +46,7 @@ suspend fun setupBot(
 		System.getProperty("mcAuthCredentials") ?: ".credentials",
 		System.getProperty("mcAuthCache") ?: ".auth_tokens.json"
 	)
-	val avatar = setupClient(serverAddress, auth, eventBoard)
+	val avatar = setupClient(auth, eventBoard)
 	val connection = ClientConnectionImpl(eventBoard, avatar, auth)
 	return MutableBot(avatar, eventBoard, connection, parentScope)
 }
@@ -70,14 +68,17 @@ class MutableBot(
 
 	override val mcData = MinecraftData("mcdata")
 
-	override val connected get() = connection.connected && avatar.connected
-
 	fun registerBehavior(behavior: Behavior) {
 		behaviors.add(behavior)
 	}
 
 	override fun unregisterBehavior(behavior: Behavior) {
 		behaviors.remove(behavior)
+	}
+
+	override fun toString(): String {
+		val connStr = if (connected) "on $serverAddress" else "(disconnected)"
+		return "Bot(${profile.name} $connStr at ${playerEntity?.position})"
 	}
 
 	override suspend fun respawn() {

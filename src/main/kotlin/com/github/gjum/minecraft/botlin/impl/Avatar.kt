@@ -1,7 +1,6 @@
 package com.github.gjum.minecraft.botlin.impl
 
 import com.github.gjum.minecraft.botlin.api.*
-import com.github.gjum.minecraft.botlin.util.normalizeServerAddress
 import com.github.steveice10.mc.auth.data.GameProfile
 import com.github.steveice10.mc.protocol.data.game.PlayerListEntryAction
 import com.github.steveice10.mc.protocol.data.game.entity.player.GameMode
@@ -29,14 +28,9 @@ import java.util.logging.Logger
 
 class MutableAvatar(
 	override val profile: GameProfile,
-	serverAddressArg: String,
 	private val eventBoard: EventBoardImpl
 ) : Avatar {
 	private val logger = Logger.getLogger(this::class.java.name)
-
-	override val serverAddress = normalizeServerAddress(serverAddressArg)
-
-	override var endReason: String? = "Not connected yet"
 
 	override var world: MutableWorld? = null
 	override var playerEntity: MutablePlayerEntity? = null
@@ -45,13 +39,10 @@ class MutableAvatar(
 	override var hotbarSelection: Int? = null
 	var settings = ClientSettingsPacket("en_us", 10, ChatVisibility.FULL, true, emptyArray(), Hand.MAIN_HAND) // TODO expose client settings in interface
 
-	override val connected get() = endReason == null
-
 	/**
 	 * Call this before connecting again to mark fields as unset.
 	 */
 	fun reset() = synchronized(this) {
-		endReason = null
 		playerEntity = null
 		world = null
 		playerList.clear()
@@ -465,11 +456,6 @@ class MutableAvatar(
 				}
 			}
 		}
-	}
-
-	override fun toString(): String {
-		val connStatus = if (connected) "online" else "offline"
-		return "AvatarImpl($identifier $connStatus at ${playerEntity?.position})"
 	}
 }
 
