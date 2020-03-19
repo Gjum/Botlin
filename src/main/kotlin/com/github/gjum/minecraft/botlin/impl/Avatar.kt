@@ -49,7 +49,7 @@ class MutableAvatar(
 		hotbarSelection = null
 	}
 
-	private fun emit(e: AvatarEvent) {
+	private inline fun <reified E : AvatarEvent> emit(e: E) {
 		eventBoard.post(e)
 	}
 
