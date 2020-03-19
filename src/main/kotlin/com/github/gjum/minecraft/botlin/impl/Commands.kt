@@ -78,9 +78,12 @@ class CommandRegistryImpl : CommandRegistry {
 			if (cmdLine.trim() == "help") {
 				context.respond("Available commands:\n"
 					+ (commands.values
+					.distinct()
 					.sortedBy { it.name }
 					.joinToString("\n") {
-						"${it.usage} - ${it.description}"
+						val aliases = if (it.aliases.isEmpty()) ""
+						else " Aliases: " + it.aliases.joinToString(", ")
+						"${it.usage} - ${it.description}$aliases"
 					}))
 			} else {
 				val cmdName = cmdLine.split(" +".toRegex())[1]
