@@ -167,7 +167,7 @@ interface Bot : Avatar, ClientConnection, EventSource {
 		look: Boolean = true
 	) = breakBlock(closestBlockSubCoord(pos), face, breakMs, look)
 
-	private fun closestBlockSubCoord(pos: Vec3i) = pos.asVec3d() + Vec3d(.5, .5, .5) // TODO click nearest face/edge
+	private fun closestBlockSubCoord(pos: Vec3i) = pos.asVec3d + Vec3d(.5, .5, .5) // TODO click nearest face/edge
 
 	// TODO start/cancel/finish digging - scoped?
 

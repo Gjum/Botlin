@@ -354,7 +354,7 @@ class MutableBot(
 
 		val blockPos = pos.floored()
 		val position = Position(blockPos.x, blockPos.y, blockPos.z)
-		val cursor = pos - blockPos.asVec3d()
+		val cursor = pos - blockPos.asVec3d
 		sendPacket(ClientPlayerPlaceBlockPacket(position, face, hand,
 			cursor.x.toFloat(), cursor.y.toFloat(), cursor.z.toFloat())) // TODO insideBlock?
 
@@ -368,7 +368,7 @@ class MutableBot(
 		if (look) lookAt(pos)
 		val blockPos = pos.floored()
 		val position = Position(blockPos.x, blockPos.y, blockPos.z)
-		val cursor = pos - blockPos.asVec3d()
+		val cursor = pos - blockPos.asVec3d
 		// TODO unsneak?
 		sendPacket(ClientPlayerPlaceBlockPacket(position, face, hand,
 			cursor.x.toFloat(), cursor.y.toFloat(), cursor.z.toFloat())) // TODO insideBlock?

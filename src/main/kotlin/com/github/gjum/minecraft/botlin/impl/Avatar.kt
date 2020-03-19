@@ -210,7 +210,7 @@ class MutableAvatar(
 					MutablePaintingEntity(packet.entityId, packet.paintingType, packet.direction)
 				}.apply {
 					uuid = packet.uuid
-					position = packet.position.run { Vec3i(x, y, z).asVec3d() }
+					position = packet.position.run { Vec3i(x, y, z).asVec3d }
 				}
 			}
 			is ServerSpawnExpOrbPacket -> {

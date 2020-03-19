@@ -35,7 +35,9 @@ enum class Cardinal(val axis: Axis, val sign: Int) {
 	DOWN(Axis.Y, -1),
 	UP(Axis.Y, 1),
 	NORTH(Axis.Z, -1),
-	SOUTH(Axis.Z, 1)
+	SOUTH(Axis.Z, 1);
+
+	val asVec3i get() = Vec3i.origin.withAxis(axis, sign)
 }
 
 // TODO separate Pos3d type, to detect math errors at compile time
@@ -83,7 +85,7 @@ data class Vec3i(val x: Int, val y: Int, val z: Int) {
 	operator fun unaryMinus() = Vec3i(-x, -y, -z)
 	operator fun minus(other: Vec3i) = other.let { Vec3i(x - it.x, y - it.y, z - it.z) }
 
-	fun asVec3d() = this * 1.0
+	val asVec3d get() = this * 1.0
 	fun normed() = Vec3i(x, y, z) / length()
 	fun length() = sqrt(lengthSquared().toDouble())
 	fun lengthSquared() = x * x + y * y + z * z
@@ -146,7 +148,7 @@ data class Look(val yaw: Radians, val pitch: Radians) {
 		return Look(yawNew, pitchNew)
 	}
 
-	val asVec3 by lazy {
+	val asVec3d by lazy {
 		Vec3d(
 			-cos(pitch) * sin(yaw),
 			-sin(pitch),
