@@ -1,11 +1,7 @@
-package com.github.gjum.minecraft.botlin
+package com.github.gjum.minecraft.botlin.cli
 
 import com.github.gjum.minecraft.botlin.api.Bot
 import com.github.gjum.minecraft.botlin.api.Vec3d
-import com.github.gjum.minecraft.botlin.impl.Command
-import com.github.gjum.minecraft.botlin.impl.CommandContext
-import com.github.gjum.minecraft.botlin.impl.CommandRegistry
-import com.github.gjum.minecraft.botlin.impl.registerCommand
 import com.github.gjum.minecraft.botlin.util.toAnsi
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancel

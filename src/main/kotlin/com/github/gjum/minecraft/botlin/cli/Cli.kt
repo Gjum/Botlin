@@ -1,5 +1,7 @@
-package com.github.gjum.minecraft.botlin.util
+package com.github.gjum.minecraft.botlin.cli
 
+import com.github.gjum.minecraft.botlin.util.Formatting
+import com.github.gjum.minecraft.botlin.util.Log
 import org.jline.reader.EndOfFileException
 import org.jline.reader.LineReader
 import org.jline.reader.LineReaderBuilder
@@ -10,7 +12,7 @@ import java.io.BufferedReader
 import java.io.InterruptedIOException
 import java.io.PrintStream
 import java.nio.charset.Charset
-import java.util.*
+import java.util.Date
 import java.util.logging.Formatter
 import java.util.logging.Level
 import java.util.logging.LogRecord

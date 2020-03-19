@@ -1,4 +1,4 @@
-package com.github.gjum.minecraft.botlin.impl
+package com.github.gjum.minecraft.botlin.cli
 
 import java.util.logging.Logger
 
