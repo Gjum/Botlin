@@ -20,10 +20,11 @@ object Main {
 		val username = args.getOrNull(0) ?: "Botlin"
 		val address = args.getOrNull(1)
 
+		val parentScope = this
 		val bot = setupBot(username, listOf(::EventLogger))
 
 		val commandRegistry = CommandRegistryImpl()
-		registerUsefulCommands(commandRegistry, bot, this)
+		registerUsefulCommands(commandRegistry, bot, parentScope)
 
 		launch {
 			try {
@@ -37,7 +38,8 @@ object Main {
 				throw e
 			} finally {
 				Cli.stop()
-				// TODO emit some endRequested event
+				bot.disconnect("Closing the CLI")
+				parentScope.coroutineContext.cancel() // TODO emit some endRequested event
 			}
 		}
 
