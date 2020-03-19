@@ -1,17 +1,16 @@
 package com.github.gjum.minecraft.botlin.api
 
-import com.github.steveice10.mc.auth.exception.request.RequestException
 import com.github.steveice10.mc.protocol.data.message.Message
 import com.github.steveice10.packetlib.Session
 import com.github.steveice10.packetlib.packet.Packet
 
 // TODO add all events missing to make the spectator module
 sealed class AvatarEvent {
-	/** [Avatar.connected] switched from false to true. */
+	/** [ClientConnection.connected] switched from false to true. */
 	data class Connected(val connection: Session) : AvatarEvent()
 
 	/**
-	 * [Avatar.connected] switched from true to false.
+	 * [ClientConnection.connected] switched from true to false.
 	 * This happens when the client intentionally disconnects,
 	 * when the server disconnects the client, when a network error occurs, etc.
 	 * Check the reason/cause to differentiate between these.
@@ -105,8 +104,6 @@ sealed class AvatarEvent {
 	data class TransactionResponse(val windowId: Int, val actionId: Int, val accepted: Boolean) : AvatarEvent()
 
 	class PlayerEntityStatusChanged : AvatarEvent() // TODO PlayerEntityStatusChanged args? split into several events?
-
-	data class ConnectFailed(val error: RequestException) : AvatarEvent() // XXX
 }
 
 // TODO observe vehicle entity
