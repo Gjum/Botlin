@@ -57,7 +57,7 @@ fun CommandRegistry.registerCommand(
 	usage: String,
 	description: String,
 	aliases: List<String> = emptyList(),
-	block: (String, CommandContext) -> Unit
+	block: Command.(String, CommandContext) -> Unit
 ): Boolean {
 	val cmdName = usage.substringBefore(' ')
 	return registerCommand(object : CommandHelper(cmdName, aliases, usage, description) {

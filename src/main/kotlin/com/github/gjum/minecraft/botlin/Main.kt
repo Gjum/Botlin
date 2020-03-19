@@ -1,6 +1,7 @@
 package com.github.gjum.minecraft.botlin
 
 import com.github.gjum.minecraft.botlin.api.Bot
+import com.github.gjum.minecraft.botlin.api.Vec3d
 import com.github.gjum.minecraft.botlin.impl.*
 import com.github.gjum.minecraft.botlin.util.Cli
 import com.github.gjum.minecraft.botlin.util.runOnThread
@@ -11,6 +12,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import java.util.logging.Level
 import java.util.logging.Logger
+import java.util.regex.Pattern
 
 object Main {
 	@JvmStatic
@@ -54,10 +56,9 @@ private fun handleCommand(cmdLineRaw: String, commands: CommandRegistry) {
 		if (!commands.executeCommand(cmdLine, context)) {
 			commandLogger.warning("Unknown command: $cmdLine")
 		}
-	} catch (e: Throwable) { // and rethrow
-		context.respond("Error while running command: $e")
+	} catch (e: Throwable) {
+		context.respond("Error: $e")
 		commandLogger.log(Level.WARNING, "Error while running command '$cmdName'", e)
-		throw e
 	}
 }
 
@@ -66,45 +67,5 @@ private val commandLogger = Logger.getLogger("com.github.gjum.minecraft.botlin.C
 private class LoggingCommandContext(val cmdName: String) : CommandContext {
 	override fun respond(message: String) {
 		commandLogger.info("[$cmdName] $message")
-	}
-}
-
-fun registerUsefulCommands(commands: CommandRegistry, bot: Bot, parentScope: CoroutineScope) {
-	commands.registerCommand("quit", "Close the program.", listOf("exit", "close")
-	) { _, _ ->
-		bot.disconnect("Closing the program")
-		parentScope.coroutineContext.cancel()
-	}
-	commands.registerCommand("connect <address>", "Connect to server.", listOf("login")
-	) { cmdLine, _ ->
-		// TODO bail if already connected, before authenticating - Mojang doesn't allow multiple sessions with same token
-		parentScope.launch { bot.connect(cmdLine.split(' ')[1]) }
-	}
-	commands.registerCommand("logout", "Disconnect from server.", listOf("disconnect")
-	) { _, _ ->
-		bot.disconnect("CLI disconnect command")
-	}
-	commands.registerCommand("info", "Show bot info: connection, location, health, etc.", listOf("status", "state")
-	) { _, context ->
-		bot.playerEntity?.run {
-			context.respond("${bot.profile.name} at $position $look on ${bot.serverAddress}")
-			context.respond("health=$health food=$food sat=$saturation exp=${experience?.total} (${experience?.level} lvl)")
-		} ?: context.respond("${bot.profile.name} (not spawned)")
-	}
-	commands.registerCommand("players", "Show connected players list.", listOf("online", "list")
-	) { _, context ->
-		val namesSpaceSep = bot.playerList.values
-			.sortedBy { it.profile.name }
-			.joinToString(" ") {
-				it.displayName?.toAnsi() ?: it.profile.name
-			}
-		context.respond("Connected players: $namesSpaceSep")
-	}
-	commands.registerCommand("say <message>", "Send a chat message to the server.", listOf("chat", "talk")
-	) { cmdLine, context ->
-		val msg = cmdLine.substring("say ".length)
-		if (bot.alive) parentScope.launch { bot.chat(msg) }
-		else if (bot.connected) context.respond("Can't chat while dead")
-		else context.respond("Not connected to any server")
 	}
 }
