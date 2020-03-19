@@ -1,18 +1,17 @@
 package com.github.gjum.minecraft.botlin
 
-import com.github.gjum.minecraft.botlin.api.Bot
-import com.github.gjum.minecraft.botlin.api.Vec3d
-import com.github.gjum.minecraft.botlin.impl.*
+import com.github.gjum.minecraft.botlin.behaviors.EventLogger
+import com.github.gjum.minecraft.botlin.impl.CommandContext
+import com.github.gjum.minecraft.botlin.impl.CommandRegistry
+import com.github.gjum.minecraft.botlin.impl.CommandRegistryImpl
+import com.github.gjum.minecraft.botlin.impl.setupBot
 import com.github.gjum.minecraft.botlin.util.Cli
 import com.github.gjum.minecraft.botlin.util.runOnThread
-import com.github.gjum.minecraft.botlin.util.toAnsi
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import java.util.logging.Level
 import java.util.logging.Logger
-import java.util.regex.Pattern
 
 object Main {
 	@JvmStatic
