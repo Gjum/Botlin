@@ -31,17 +31,24 @@ open class MutableStack(
 }
 
 fun MutableStack.updateFrom(stack: Stack) {
-	amount = stack.amount
-	nbtData = stack.nbtData
 	itemId = if (amount > 0) stack.itemId else 0
 	meta = stack.meta
+	amount = stack.amount
+	nbtData = stack.nbtData
 }
 
-fun MutableStack.updateFromStack(itemStack: ItemStack) {
-	amount = itemStack.amount
-	nbtData = itemStack.nbt
-	itemId = if (amount > 0) itemStack.id else 0
-	meta = itemStack.data
+fun MutableStack.updateFromStack(itemStack: ItemStack?) {
+	if (itemStack == null) {
+		itemId = 0
+		meta = 0
+		amount = 0
+		nbtData = null
+	} else {
+		itemId = if (amount > 0) itemStack.id else 0
+		meta = itemStack.data
+		amount = itemStack.amount
+		nbtData = itemStack.nbt
+	}
 }
 
 fun Stack.copy() = MutableStack(itemId, meta, amount, nbtData)
@@ -68,7 +75,7 @@ class MutableWindow(
 	override val windowTitle: String?
 ) : Window {
 	override var ready = false
-	override val slotCount = 0 // XXX window slotCount from mc-data
+	override val slotCount = 10 // XXX window slotCount from mc-data
 	override val slots = MutableList(slotCount + 36, ::makeEmptySlot)
 	override var cursorSlot = makeEmptySlot(CURSOR_SLOT_NR)
 	override val properties = mutableMapOf<Int, Int>()
