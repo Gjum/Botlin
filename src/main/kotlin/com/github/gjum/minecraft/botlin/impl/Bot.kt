@@ -4,7 +4,6 @@ import com.github.gjum.minecraft.botlin.api.*
 import com.github.gjum.minecraft.botlin.behaviors.BlockPhysics
 import com.github.gjum.minecraft.botlin.behaviors.ClientTicker
 import com.github.gjum.minecraft.botlin.data.MinecraftData
-import com.github.gjum.minecraft.botlin.util.AuthenticationProvider
 import com.github.gjum.minecraft.botlin.util.race
 import com.github.steveice10.mc.protocol.data.game.ClientRequest
 import com.github.steveice10.mc.protocol.data.game.entity.metadata.Position
@@ -24,41 +23,9 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlin.concurrent.fixedRateTimer
-import kotlin.coroutines.coroutineContext
 
 // TODO swing every 200 or 250 ms?
 const val swingInterval: Long = 200 // ms
-
-suspend fun setupClient(
-	auth: AuthenticationProvider,
-	eventBoard: EventBoardImpl
-): MutableAvatar {
-	val (proto, authError) = auth.authenticate()
-	if (proto == null) throw IllegalArgumentException("Failed to setup Avatar: $authError", authError)
-	val profile = proto.profile
-	return MutableAvatar(profile, eventBoard)
-}
-
-suspend fun setupBot(
-	username: String = "Botlin",
-	extraBehaviors: List<(ApiBot) -> Behavior> = emptyList(),
-	parentScopeArg: CoroutineScope? = null
-): Bot {
-	val parentScope = parentScopeArg ?: CoroutineScope(coroutineContext)
-	val eventBoard = EventBoardImpl(parentScope)
-	val auth = AuthenticationProvider(
-		username,
-		System.getProperty("mcAuthCredentials") ?: ".credentials",
-		System.getProperty("mcAuthCache") ?: ".auth_tokens.json"
-	)
-	val avatar = setupClient(auth, eventBoard)
-	val connection = ClientConnectionImpl(eventBoard, avatar, auth)
-	val bot = MutableBot(avatar, eventBoard, connection, parentScope)
-	for (behavior in extraBehaviors) {
-		bot.registerBehavior(behavior(bot))
-	}
-	return bot
-}
 
 class MutableBot(
 	override val avatar: MutableAvatar,
@@ -286,28 +253,17 @@ class MutableBot(
 		TODO("dragSlots")
 	}
 
-	private data class ScoredSlot(val slotNr: Int, val score: Int)
+	override suspend fun holdBestItem(hand: Hand, itemScore: (Slot) -> Int): Result<Slot, String> {
+		val bestSlot = findBestSlot(itemScore)
+			?: return Result.Failure("No matching slot found")
 
-	override suspend fun holdBestItem(hand: Hand, itemScore: (Slot) -> Int) {
-		val scoredSlots = window!!.slots.map { ScoredSlot(it.index, itemScore(it)) }
-		val bestScore = scoredSlots.map { it.score }.max() ?: 0
-		if (bestScore <= 0) {
-			throw IllegalArgumentException("No matching slot found")
-		}
-		// find all slots that have the best score (all equally good)
-		val bestSlots = scoredSlots.filter { it.score >= bestScore }
-
-		// prefer slots from hotbar
-		val bestHotbarSlot = bestSlots.firstOrNull { window.isInHotbar(it.slotNr) }
-		if (bestHotbarSlot != null) {
-			selectHotbar(bestHotbarSlot.slotNr - window.hotbarStart)
-			return
+		if (window!!.isInHotbar(bestSlot.index)) {
+			// already in hotbar, no need to click any slots, just select it
+			selectHotbar(bestSlot.index - window.hotbarStart)
+			return Result.Success(bestSlot)
 		}
 
-		// none found in hotbar, search full inventory
-		val sourceNr = bestSlots.maxBy { it.score }?.slotNr
-			?: error("Inventory changed while searching item to hold")
-
+		// swap bestSlot from inventory to hotbar, preferably to an empty slot
 		val targetHb = if (mainHandSlot?.empty == true) {
 			hotbarSelection!!
 		} else {
@@ -316,8 +272,9 @@ class MutableBot(
 		}
 
 		// TODO handle cases when source is a restricted slot (armor, craft result, etc.) and target is not empty
-		swapHotbar(sourceNr, targetHb)
+		swapHotbar(bestSlot.index, targetHb)
 		selectHotbar(targetHb)
+		return Result.Success(bestSlot)
 	}
 
 	override fun closeWindow() {

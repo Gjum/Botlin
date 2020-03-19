@@ -1,8 +1,8 @@
 package com.github.gjum.minecraft.botlin
 
+import com.github.gjum.minecraft.botlin.api.setupBot
 import com.github.gjum.minecraft.botlin.behaviors.EventLogger
 import com.github.gjum.minecraft.botlin.cli.*
-import com.github.gjum.minecraft.botlin.impl.setupBot
 import com.github.gjum.minecraft.botlin.util.runOnThread
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch

@@ -90,14 +90,14 @@ interface Bot : Avatar, ClientConnection, EventSource {
 	 * Slots with [itemScore] of 0 or less will be ignored.
 	 * @throws IllegalArgumentException if no matching items were found.
 	 */
-	suspend fun holdBestItem(hand: Hand = Hand.MAIN_HAND, itemScore: (Slot) -> Int)
+	suspend fun holdBestItem(hand: Hand = Hand.MAIN_HAND, itemScore: (Slot) -> Int): Result<Slot, String>
 
 	/**
 	 * Shorthand for [holdBestItem] with a boolean [predicate].
 	 * If [predicate] is true, the [holdBestItem] score is 1, otherwise 0.
 	 * @throws IllegalArgumentException if no matching items were found.
 	 */
-	suspend fun holdItem(hand: Hand = Hand.MAIN_HAND, predicate: (Slot) -> Boolean) {
+	suspend fun holdItem(hand: Hand = Hand.MAIN_HAND, predicate: (Slot) -> Boolean): Result<Slot, String> {
 		return holdBestItem(hand) { if (predicate(it)) 1 else 0 }
 	}
 
