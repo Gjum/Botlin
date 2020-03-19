@@ -99,7 +99,7 @@ class CommandRegistryImpl : CommandRegistry {
 
 	override fun registerCommand(command: Command): Boolean {
 		var registeredAny = false
-		for (name in command.aliases.plus(command.name)) {
+		for (name in command.aliases.plus(command.name).map(String::toLowerCase)) {
 			val alreadyRegisteredCmd = commands.putIfAbsent(name, command)
 			if (alreadyRegisteredCmd == null) {
 				val usage = name + ' ' + command.usage.substringAfter(' ')
