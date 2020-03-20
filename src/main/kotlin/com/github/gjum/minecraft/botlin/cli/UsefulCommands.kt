@@ -2,6 +2,7 @@ package com.github.gjum.minecraft.botlin.cli
 
 import com.github.gjum.minecraft.botlin.api.Bot
 import com.github.gjum.minecraft.botlin.api.Vec3d
+import com.github.gjum.minecraft.botlin.data.ItemInfo
 import com.github.gjum.minecraft.botlin.util.toAnsi
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancel
@@ -23,12 +24,31 @@ fun registerUsefulCommands(commands: CommandRegistry, bot: Bot, parentScope: Cor
 	) { _, _ ->
 		bot.disconnect("CLI disconnect command")
 	}
+	commands.registerCommand("respawn", "Respawn if dead."
+	) { _, context ->
+		if (!bot.alive) context.respond("Already alive")
+		else parentScope.launch { bot.respawn() }
+	}
 	commands.registerCommand("info", "Show bot info: connection, location, health, etc.", listOf("status", "state")
 	) { _, context ->
 		bot.playerEntity?.run {
 			context.respond("${bot.profile.name} at $position $look on ${bot.serverAddress}")
 			context.respond("health=$health food=$food sat=$saturation exp=${experience?.total} (${experience?.level} lvl)")
 		} ?: context.respond("${bot.profile.name} (not spawned)")
+	}
+	commands.registerCommand("inventory", "List all items in the current window.", listOf("inv", "showinv")
+	) { _, context ->
+		bot.window?.run {
+			val slotsLines = slots
+				.groupBy { it as ItemInfo }
+				.mapValues { (_, slots) -> slots.sumBy { it.amount } }
+				.asIterable()
+				.joinToString("\n") { (i, n) ->
+					val numPadded = n.toString().padStart(4)
+					"$numPadded ${i.displayName}"
+				}
+			context.respond("Inventory:\n$slotsLines")
+		} ?: context.respond("No window open")
 	}
 	commands.registerCommand("players", "Show connected players list.", listOf("online", "list")
 	) { _, context ->
@@ -111,5 +131,9 @@ fun registerUsefulCommands(commands: CommandRegistry, bot: Bot, parentScope: Cor
 				bot.moveStraightTo(pos)
 			}
 		}
+	}
+	commands.registerCommand("jump", "Jump once."
+	) { _, _ ->
+		parentScope.launch { bot.jumpUntilLanded() }
 	}
 }
