@@ -125,9 +125,10 @@ class BlockPhysics(private val bot: ApiBot) : ChildScope(bot) {
 		for (z in movementBox.min.z.floor..movementBox.max.z.floor) {
 			for (x in movementBox.min.x.floor..movementBox.max.x.floor) {
 				for (y in movementBox.min.y.floor..movementBox.max.y.floor) {
-					val blockState = avatar.world?.getBlockState(x, y, z)
+					val blockState = avatar.world?.getBlockState(Vec3i(x, y, z))
 						?: continue // outside world or outside loaded chunks
-					val blockStateInfo = bot.mcData.getBlockStateInfo(blockState)!!
+					val blockStateInfo = bot.mcData.getBlockStateInfo(blockState)
+						?: error("Unknown block state $blockState")
 					obstacles.addAll(blockStateInfo.collisionShape.boxes)
 				}
 			}

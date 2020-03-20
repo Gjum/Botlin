@@ -10,11 +10,12 @@ import com.github.steveice10.mc.protocol.data.game.entity.type.PaintingType
 import com.github.steveice10.mc.protocol.data.game.entity.type.`object`.HangingDirection
 import com.github.steveice10.mc.protocol.data.game.entity.type.`object`.ObjectData
 import com.github.steveice10.mc.protocol.data.game.entity.type.`object`.ObjectType
+import com.github.steveice10.mc.protocol.data.game.world.block.BlockState
 import com.github.steveice10.mc.protocol.data.message.Message
 import java.util.UUID
 
 /**
- * Properties that have not been received from the server yet are null.
+ * Properties that have not yet been received from the server are null.
  */
 interface Entity {
 	val eid: Int
@@ -78,4 +79,10 @@ interface World {
 
 	val rainy: Boolean?
 	val skyDarkness: Double?
+
+	/**
+	 * Get the [BlockState] at the [pos] (absolute world coordinates).
+	 * @return null if not loaded or outside world
+	 */
+	fun getBlockState(pos: Vec3i): BlockState?
 }

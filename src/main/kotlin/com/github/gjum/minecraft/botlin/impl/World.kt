@@ -99,8 +99,8 @@ class MutableWorld(override val dimension: Int) : World {
 
 	private fun indexBlockInSection(x: Int, y: Int, z: Int) = (y.mod16 shl 8) or (z.mod16 shl 4) or x.mod16
 
-	fun getBlockState(x: Int, y: Int, z: Int): BlockState? {
-		return getSectionForBlock(x, y, z)?.blocks?.get(x.mod16, y.mod16, z.mod16)
+	override fun getBlockState(pos: Vec3i): BlockState? = pos.run {
+		getSectionForBlock(x, y, z)?.blocks?.get(x.mod16, y.mod16, z.mod16)
 	}
 
 	private fun getColumnForBlock(x: Int, z: Int): Column? {
