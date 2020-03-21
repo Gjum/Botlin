@@ -1,7 +1,6 @@
 package com.github.gjum.minecraft.botlin.cli
 
 import com.github.gjum.minecraft.botlin.api.*
-import com.github.gjum.minecraft.botlin.data.ItemInfo
 import com.github.gjum.minecraft.botlin.util.toAnsi
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancel
@@ -39,12 +38,14 @@ fun registerUsefulCommands(commands: CommandRegistry, bot: Bot, parentScope: Cor
 	) { _, context ->
 		bot.window?.run {
 			val slotsLines = slots
-				.groupBy { it as ItemInfo }
+				.groupBy { it.itemId }
+				.filterKeys { it > 0 }
 				.mapValues { (_, slots) -> slots.sumBy { it.amount } }
 				.asIterable()
 				.joinToString("\n") { (i, n) ->
+					val displayName = bot.mcData.getItemInfo(i)?.displayName
 					val numPadded = n.toString().padStart(4)
-					"$numPadded ${i.displayName}"
+					"$numPadded $displayName"
 				}
 			context.respond("Inventory:\n$slotsLines")
 		} ?: context.respond("No window open")
