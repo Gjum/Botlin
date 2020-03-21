@@ -1,7 +1,6 @@
 package com.github.gjum.minecraft.botlin.cli
 
-import com.github.gjum.minecraft.botlin.api.Bot
-import com.github.gjum.minecraft.botlin.api.Vec3d
+import com.github.gjum.minecraft.botlin.api.*
 import com.github.gjum.minecraft.botlin.data.ItemInfo
 import com.github.gjum.minecraft.botlin.util.toAnsi
 import kotlinx.coroutines.CoroutineScope
@@ -58,6 +57,51 @@ fun registerUsefulCommands(commands: CommandRegistry, bot: Bot, parentScope: Cor
 				it.displayName?.toAnsi() ?: it.profile.name
 			}
 		context.respond("Connected players: $namesSpaceSep")
+	}
+	commands.registerCommand("map", "Show surrounding terrain.", listOf("nearby", "blocks", "terrain")
+	) { _, context ->
+		val blocksWithDY = bot.world!!.run {
+			val feetY = bot.feet.y.floor
+			fun getBlockRel(delta: Vec3i) = getBlockState(bot.feet.floored() + delta)
+			(-3..3).map { dz ->
+				(-3..3).map { dx ->
+					var dy = 0 // start at bot feet
+					var block = getBlockRel(Vec3i(dx, dy, dz))
+					// find first empty block above player feet
+					while (block != null && block.id != 0) {
+						block = getBlockRel(Vec3i(dx, ++dy, dz))
+					}
+					// find highest non-empty block from there
+					while ((block == null || block.id == 0)
+						&& feetY + dy >= 0) {
+						block = getBlockRel(Vec3i(dx, --dy, dz))
+					}
+					Pair(block, dy + 1) // +1 so floor is 0, as it is -1 from feet
+				}
+			}
+		}
+		val blockKey = blocksWithDY.asSequence().flatten().map { it.first }
+			.distinct()
+			.filterNotNull()
+			.sortedBy { it.id }
+			.joinToString("\n") {
+				val displayName = bot.mcData.getBlockStateInfo(it)?.block?.displayName
+					?: error("Unknown block id $it")
+				val idPadded = it.id.toString().padStart(4)
+				"$idPadded $displayName"
+			}
+		val dyKey = "${dy2ansi(-2)}--$ansiReset ${dy2ansi(-1)}-1$ansiReset ${dy2ansi(0)}0$ansiReset ${dy2ansi(1)}+1$ansiReset ${dy2ansi(2)}++$ansiReset"
+		var i = 7 * 7 / 2 + 1 // index to mark as player pos
+		val blocksText = blocksWithDY.joinToString("$ansiReset\n") { blocksInLine ->
+			val blocksStr = blocksInLine.joinToString(ansiReset) { (block, dy) ->
+				var padded = (block?.id?.toString() ?: "?").padStart(4)
+				if (i == 1) padded = "[" + padded.substring(1)
+				if (i == 0) padded = "]" + padded.substring(1)
+				i--
+				dy2ansi(dy) + padded
+			}
+		}
+		context.respond("$dyKey\n$blockKey\n$blocksText")
 	}
 	commands.registerCommand("say <message>", "Send a chat message to the server.", listOf("chat", "talk")
 	) { cmdLine, context ->
@@ -136,4 +180,19 @@ fun registerUsefulCommands(commands: CommandRegistry, bot: Bot, parentScope: Cor
 	) { _, _ ->
 		parentScope.launch { bot.jumpUntilLanded() }
 	}
+}
+
+/** Build an ANSI escape sequence fro mthe given numbers. */
+fun ansi(vararg n: Int) = n.joinToString(
+	prefix = "\u001B[", separator = ";", postfix = "m")
+
+val ansiReset = ansi(0)
+
+/** Get the ANSI color sequence for the given difference in y level. */
+fun dy2ansi(dy: Int) = when (dy.coerceAtMost(2)) {
+	2 -> ansi(30, 48, 5, 255) // black on white
+	1 -> ansi(30, 48, 5, 46) // black on light green
+	0 -> ansi(97, 48, 5, 34) // white on green
+	-1 -> ansi(97, 48, 5, 22) // white on dark green
+	else -> ansi(97, 48, 5, 0) // white on black
 }
