@@ -27,20 +27,31 @@ class BlockPhysics(private val bot: ApiBot) : ChildScope(bot) {
 	var movementSpeed = RUN_SPEED
 
 	var movementTarget: Vec3d? = null
+		private set
+
 	private var arrivalContinuation: CancellableContinuation<Result<Route, MoveError>>? = null
 
 	private var jumpQueued = false
 	private var jumpLandedContinuation: Continuation<Unit>? = null
 
-	private var onGround = false
-	private var velocity = Vec3d.origin // current m/t to move in each direction next tick
-
 	private val avatar get() = bot.avatar
+
+	private var onGround: Boolean
+		get() = avatar.playerEntity!!.onGround ?: false
+		set(b) {
+			avatar.playerEntity!!.onGround = b
+		}
 
 	private var position: Vec3d
 		get() = bot.playerEntity!!.position!!
 		set(p) {
 			avatar.playerEntity!!.position = p
+		}
+
+	private var velocity: Vec3d
+		get() = avatar.playerEntity!!.velocity ?: Vec3d.origin
+		set(v) {
+			avatar.playerEntity!!.velocity = v
 		}
 
 	init {
@@ -57,7 +68,6 @@ class BlockPhysics(private val bot: ApiBot) : ChildScope(bot) {
 		arrivalContinuation = null
 	}
 
-	// TODO make sure other calls finish before this runs; @Synchronized doesn't work like that, synchronized(){} is deprecated
 	suspend fun moveStraightTo(destination: Vec3d): Result<Route, MoveError> {
 		arrivalContinuation?.resume(Result.Success(Unit))
 		arrivalContinuation = null
@@ -67,14 +77,6 @@ class BlockPhysics(private val bot: ApiBot) : ChildScope(bot) {
 		}
 	}
 
-	/**
-	 * state -> new state:
-	 * - standing -> rising
-	 * - moving-only -> rising-and-moving
-	 * - stepping -> jump with force 0.5?
-	 * - TODO rising-/falling-only/-and-moving -> same state; throw error? | queue jump?
-	 */
-	// TODO make sure other calls finish before this runs; @Synchronized doesn't work like that, synchronized(){} is deprecated
 	suspend fun jump() {
 		if (!onGround) throw JumpError("Tried to jump while not standing on ground")
 		return suspendCoroutine { cont ->
@@ -87,7 +89,6 @@ class BlockPhysics(private val bot: ApiBot) : ChildScope(bot) {
 		if (!bot.alive) return
 		val movementTarget = this.movementTarget
 
-		// TODO wait for next tick before comparing position to target! this assumes the target is reachable. what if we hit a wall or otherwise get a movement reset? should we keep pursuing the target?
 		if (movementTarget != null && (position - movementTarget).lengthSquared() < VERY_CLOSE) {
 			this.movementTarget = null
 			arrivalContinuation?.resume(Result.Success(Unit))
@@ -192,7 +193,6 @@ class BlockPhysics(private val bot: ApiBot) : ChildScope(bot) {
 					look!!.pitchDegrees.toFloat()
 				)
 			)
-
 		}
 
 		reset()
