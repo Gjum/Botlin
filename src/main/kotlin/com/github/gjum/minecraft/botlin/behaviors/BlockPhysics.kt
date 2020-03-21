@@ -97,15 +97,14 @@ class BlockPhysics(private val bot: ApiBot) : ChildScope(bot), Physics {
 
 		if (jumpQueued && onGround) {
 			jumpQueued = false
-			velocity = velocity.withAxis(Axis.Y, JUMP_FORCE)
+			velocity = velocity.copy(y = JUMP_FORCE)
 		}
-		// XXX apply entity velocity (knockback)
 		// TODO floating up water/ladders
 
 		var moveHorizVec = Vec3d.origin
 		if (movementTarget != null) {
 			// movementTarget only influences x,z; rely on stepping/falling to change y
-			moveHorizVec = (movementTarget - position).withAxis(Axis.Y, 0.0)
+			moveHorizVec = (movementTarget - position).copy(y = 0.0)
 			val moveHorizVecLen = (moveHorizVec - Vec3d.origin).length()
 			if (moveHorizVecLen > movementSpeed) {
 				moveHorizVec *= movementSpeed / moveHorizVecLen
@@ -122,7 +121,7 @@ class BlockPhysics(private val bot: ApiBot) : ChildScope(bot), Physics {
 		val startBox = playerBox + position
 
 		val movementBoxOrig = Shape(listOf(startBox, startBox + velocity)).outerBox!!
-		val movementBox = Box(movementBoxOrig.min, movementBoxOrig.max.withAxis(Axis.Y, movementBoxOrig.max.y + STEPPING_HEIGHT)) // add stepping height so we can reuse the obstacles when stepping
+		val movementBox = Box(movementBoxOrig.min, movementBoxOrig.max.copy(y = movementBoxOrig.max.y + STEPPING_HEIGHT)) // add stepping height so we can reuse the obstacles when stepping
 		val obstacles = mutableListOf<Box>()
 		for (z in movementBox.min.z.floor..movementBox.max.z.floor) {
 			for (x in movementBox.min.x.floor..movementBox.max.x.floor) {
@@ -140,6 +139,7 @@ class BlockPhysics(private val bot: ApiBot) : ChildScope(bot), Physics {
 
 		var bumpedIntoWall = collisions.find { it.face.axis != Axis.Y }
 
+		// try stepping, update collisions
 		if (bumpedIntoWall != null) {
 			// TODO maybe not +STEPPING_HEIGHT but set feet to the top edge of the collided block if steppable
 			val startBoxStepping = startBox + Vec3d(0.0, STEPPING_HEIGHT, 0.0)
@@ -160,7 +160,7 @@ class BlockPhysics(private val bot: ApiBot) : ChildScope(bot), Physics {
 		val bumpedIntoFloor = collisions.find { it.face == Cardinal.UP }
 
 		if (bumpedIntoCeiling != null || bumpedIntoFloor != null) {
-			velocity = velocity.withAxis(Axis.Y, 0.0)
+			velocity = velocity.copy(y = 0.0)
 
 			if (bumpedIntoFloor != null) jumpLandedContinuation?.resume(Unit)
 		}
@@ -205,6 +205,7 @@ data class MoveAdjustResult(val endBox: Box, val collisions: Collection<Collisio
 
 fun calcMoveDest(moveVec: Vec3d, source: Box, obstacles: Collection<Box>): MoveAdjustResult {
 	val sourceSize = source.size
+	// grow obstacles by the source size to allow reducing source to a point
 	val obstaclesGrown = obstacles
 		.filter { !it.intersects(source) }
 		.map { Box(it.min - sourceSize, it.max) }
@@ -219,14 +220,21 @@ fun calcMoveDest(moveVec: Vec3d, source: Box, obstacles: Collection<Box>): MoveA
 		val ray = Ray(startPosCurr, moveVecCurr)
 		var closestCollision: Collision? = null
 		for (obstacle in obstaclesGrown) {
-			val (intercept, facing) = obstacle.calculateIntercept(ray) ?: continue
-			if ((endPosCurr - startPosCurr).lengthSquared() > (intercept - startPosCurr).lengthSquared()) {
+			val (intercept, facing) = obstacle.calculateIntercept(ray)
+				?: continue // no intercept
+			if ((endPosCurr - startPosCurr).lengthSquared()
+				> (intercept - startPosCurr).lengthSquared()) {
+				// this collision is closer
 				endPosCurr = intercept
 				closestCollision = Collision(obstacle, facing)
 			}
 		}
 
 		if (closestCollision == null) break
+		// shrink collision back to actual size (see above)
+		collisions.add(closestCollision.copy(box = closestCollision.box.copy(
+			min = closestCollision.box.min + sourceSize
+		)))
 
 		// prepare next iteration
 		moveVecCurr -= endPosCurr - startPosCurr

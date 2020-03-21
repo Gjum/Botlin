@@ -1,8 +1,8 @@
 package com.github.gjum.minecraft.botlin.impl
 
 import com.github.gjum.minecraft.botlin.api.*
+import com.github.gjum.minecraft.botlin.behaviors.BlockPhysics
 import com.github.gjum.minecraft.botlin.behaviors.ClientTicker
-import com.github.gjum.minecraft.botlin.behaviors.IdlePhysics
 import com.github.gjum.minecraft.botlin.data.MinecraftData
 import com.github.gjum.minecraft.botlin.util.race
 import com.github.steveice10.mc.protocol.data.game.ClientRequest
@@ -48,7 +48,7 @@ class MutableBot(
 
 	var actionId = 0
 	val ticker = ClientTicker(this)
-	val physics: Physics = IdlePhysics(this) // XXX BlockPhysics(this)
+	val physics: Physics = BlockPhysics(this)
 	private val behaviors = mutableListOf<Behavior>()
 
 	override val mcData = MinecraftData("mcdata")
@@ -306,7 +306,7 @@ class MutableBot(
 	}
 
 	private suspend fun lookAtEntity(entity: Entity) {
-		val eyeOffset = Vec3d.origin.withAxis(Axis.Y, 1.64)
+		val eyeOffset = Vec3d.origin.copy(y = 1.64)
 		lookAt(entity.position!! + eyeOffset) // TODO if that's too far away, look at closest corner or look orthogonally at closest bounding box face
 	}
 

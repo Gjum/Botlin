@@ -8,7 +8,7 @@ const val RUN_SPEED = 5.612 / 20
 const val STEPPING_HEIGHT = .5
 const val VERY_CLOSE = 0.00001 // consider arrived at target if squared distance is closer than this
 
-val playerBox = Box(Vec3d(-.3, -.3, .0), Vec3d(.3, .3, 1.8))
+val playerBox = Box(Vec3d(-.3, .0, -.3), Vec3d(.3, 1.8, .3))
 
 typealias Route = Unit // TODO return route from move*() to allow better movement planning
 

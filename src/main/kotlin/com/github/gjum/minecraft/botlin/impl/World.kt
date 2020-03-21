@@ -44,6 +44,7 @@ sealed class MutableEntity(override val eid: Int) : Entity {
 		metadata.clear()
 	}
 
+	// XXX apply entity velocity (knockback)
 	fun updateMetadata(metadataNew: Array<EntityMetadata>) {
 		for (meta in metadataNew) {
 			this.metadata[meta.id] = meta
