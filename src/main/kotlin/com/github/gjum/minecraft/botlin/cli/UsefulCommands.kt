@@ -100,6 +100,15 @@ fun registerUsefulCommands(commands: CommandRegistry, bot: Bot, parentScope: Cor
 				i--
 				dy2ansi(dy) + padded
 			}
+			i += 7
+			val yStr = blocksInLine.joinToString(ansiReset) { (block, dy) ->
+				var padded = dy.toString().padStart(4)
+				if (i == 1) padded = "[" + padded.substring(1)
+				if (i == 0) padded = "]" + padded.substring(1)
+				i--
+				dy2ansiGray(dy) + padded
+			}
+			"$blocksStr$ansiReset    $yStr"
 		}
 		context.respond("$dyKey\n$blockKey\n$blocksText")
 	}
@@ -195,4 +204,12 @@ fun dy2ansi(dy: Int) = when (dy.coerceAtMost(2)) {
 	0 -> ansi(97, 48, 5, 34) // white on green
 	-1 -> ansi(97, 48, 5, 22) // white on dark green
 	else -> ansi(97, 48, 5, 0) // white on black
+}
+
+/** Get the grayscale ANSI color sequence for the given difference in y level. */
+fun dy2ansiGray(dy: Int) = when {
+	dy == 0 -> ansi(97, 48, 5, 34) // white on green
+	dy > 0 -> ansi(30, 48, 5, (243 + dy).coerceAtMost(255)) // black on lighter grays
+	dy < 0 -> ansi(97, 48, 5, (244 + dy).coerceAtLeast(232)) // white on darker grays
+	else -> error("$dy is not less than, equal, or greater than 0")
 }
