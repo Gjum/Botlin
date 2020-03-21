@@ -182,7 +182,7 @@ class BlockPhysics(private val bot: ApiBot) : ChildScope(bot), Physics {
 			return
 		}
 
-		bot.post(ClientTeleportConfirmPacket(event.packet.teleportId))
+		bot.sendPacket(ClientTeleportConfirmPacket(event.packet.teleportId))
 		bot.playerEntity!!.apply {
 			bot.sendPacket(
 				ClientPlayerPositionRotationPacket(
