@@ -1,8 +1,8 @@
 package com.github.gjum.minecraft.botlin.impl
 
 import com.github.gjum.minecraft.botlin.api.*
-import com.github.gjum.minecraft.botlin.behaviors.BlockPhysics
 import com.github.gjum.minecraft.botlin.behaviors.ClientTicker
+import com.github.gjum.minecraft.botlin.behaviors.IdlePhysics
 import com.github.gjum.minecraft.botlin.data.MinecraftData
 import com.github.gjum.minecraft.botlin.util.race
 import com.github.steveice10.mc.protocol.data.game.ClientRequest
@@ -27,6 +27,14 @@ import kotlin.concurrent.fixedRateTimer
 // TODO swing every 200 or 250 ms?
 const val swingInterval: Long = 200 // ms
 
+interface Physics {
+	var movementSpeed: Double
+
+	suspend fun moveStraightTo(destination: Vec3d): Result<Route, MoveError>
+
+	suspend fun jump()
+}
+
 class MutableBot(
 	override val avatar: MutableAvatar,
 	private val eventBoard: EventBoard,
@@ -40,7 +48,7 @@ class MutableBot(
 
 	var actionId = 0
 	val ticker = ClientTicker(this)
-	val physics = BlockPhysics(this)
+	val physics: Physics = IdlePhysics(this) // XXX BlockPhysics(this)
 	private val behaviors = mutableListOf<Behavior>()
 
 	override val mcData = MinecraftData("mcdata")
