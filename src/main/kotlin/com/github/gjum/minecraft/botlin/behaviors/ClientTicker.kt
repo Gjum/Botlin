@@ -14,6 +14,9 @@ import kotlin.concurrent.fixedRateTimer
 class ClientTicker(private val bot: ApiBot) : ChildScope(bot) {
 	private var ticker: Job? = null
 
+	private var prevPos: Vec3d? = null
+	private var prevLook: Look? = null
+
 	init {
 		launch { bot.onEach(::onSpawned) }
 		launch { bot.onEach(::onDisconnected) }
@@ -46,9 +49,6 @@ class ClientTicker(private val bot: ApiBot) : ChildScope(bot) {
 		if (!bot.ingame) return
 
 		bot.playerEntity?.apply {
-			val prevPos = position
-			val prevLook = look
-
 			bot.post(AvatarEvent.PreClientTick())
 
 			if (position != null && look != null) {
@@ -80,6 +80,9 @@ class ClientTicker(private val bot: ApiBot) : ChildScope(bot) {
 					}
 				}
 			}
+
+			prevPos = position
+			prevLook = look
 		}
 
 		bot.post(AvatarEvent.ClientTick())
