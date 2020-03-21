@@ -24,7 +24,7 @@ fun registerUsefulCommands(commands: CommandRegistry, bot: Bot, parentScope: Cor
 	}
 	commands.registerCommand("respawn", "Respawn if dead."
 	) { _, context ->
-		if (!bot.alive) context.respond("Already alive")
+		if (bot.alive) context.respond("Already alive")
 		else parentScope.launch { bot.respawn() }
 	}
 	commands.registerCommand("info", "Show bot info: connection, location, health, etc.", listOf("status", "state")
