@@ -67,7 +67,8 @@ class ClientConnectionImpl(
 	}
 
 	override fun sendPacket(packet: Packet) {
-		connection!!.send(packet)
+		connection?.send(packet)
+			?: logger.warning("Tried sending packet while not connected: $packet")
 	}
 
 	override fun connected(event: ConnectedEvent) {
