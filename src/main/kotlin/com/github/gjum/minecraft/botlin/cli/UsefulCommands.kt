@@ -119,22 +119,69 @@ fun registerUsefulCommands(commands: CommandRegistry, bot: Bot, parentScope: Cor
 		else if (bot.connected) context.respond("Can't chat while dead")
 		else context.respond("Not connected to any server")
 	}
-	// TODO hold item by name
+	// TODO hold/drop item by name
 	commands.registerCommand("hold <itemId> [itemMeta]", "Hold any matching item."
-	) { cmdLine, context ->
-		val args = cmdLine.split(' ')
+	) cmd@{ cmdLine, context ->
+		val args = cmdLine.split("[ :]+".toRegex())
 		val (itemId, itemMeta) = try {
 			Pair(args.getOrNull(1)?.toInt() ?: error("itemId is required"),
 				args.getOrNull(2)?.toInt())
 		} catch (e: Exception) {
-			context.respond("Usage: $usage")
-			return@registerCommand
+			return@cmd context.respond("Usage: $usage")
 		}
 		parentScope.launch {
 			bot.holdItem {
 				it.itemId == itemId
 					&& (itemMeta == null || itemMeta == it.meta)
 			}
+		}
+	}
+	commands.registerCommand("drop [amount | \"all\"] <itemId> [itemMeta]", "Drop matching items from the inventory."
+	) cmd@{ cmdLine, context ->
+		val args = cmdLine.split("[ :]+".toRegex())
+		val (amount, itemId, itemMeta) = try {
+			Triple(
+				args.getOrNull(1)?.let {
+					if (it == "all") Int.MAX_VALUE else it.toInt()
+				} ?: error("amount is required"),
+				args.getOrNull(2)?.toInt() ?: error("itemId is required"),
+				args.getOrNull(3)?.toInt())
+		} catch (e: Exception) {
+			return@cmd context.respond("Usage: $usage")
+		}
+		parentScope.launch {
+			var dropped = 0
+			while (dropped < amount) {
+				val leftToDrop = amount - dropped
+				val slot = bot.findBestSlot {
+					when {
+						// ignore non-matching items
+						it.itemId != itemId -> 0
+						itemMeta != null && itemMeta != it.meta -> 0
+						// prefer largest stack that can be fully dropped
+						it.amount <= leftToDrop -> 64 + it.amount
+						// prefer small stacks if no stacks can be fully dropped
+						else -> 64 - it.amount
+					}
+				}
+				if (slot == null) {
+					if (amount != Int.MAX_VALUE) {
+						context.respond("Could not drop $amount items, was ${amount - dropped} short.")
+					}
+					break
+				}
+				val taken = slot.amount.coerceAtMost(amount - dropped)
+				if (taken == slot.amount) {
+					bot.dropSlot(slot.index, fullStack = true)
+					dropped += taken
+				} else {
+					while (!slot.empty && dropped < amount) {
+						bot.dropSlot(slot.index, fullStack = false)
+						dropped++
+					}
+				}
+			}
+			context.respond("Dropped $dropped items.")
 		}
 	}
 
