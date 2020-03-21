@@ -92,7 +92,7 @@ class BlockInfoStorage(blocksJson: JsonArray, collisionShapesJson: JsonObject, i
 			val o = blockJson.asJsonObject
 			val id = o.get("name").asString
 			try {
-				val properties = o.get("states").asJsonArray.map { it.asJsonObject }.let {
+				val properties = o.getOrNull("states")?.asJsonArray?.map { it.asJsonObject }?.let {
 					var factor = 1
 					it.map { p ->
 						BlockProperty(
@@ -103,7 +103,7 @@ class BlockInfoStorage(blocksJson: JsonArray, collisionShapesJson: JsonObject, i
 							factor = factor
 						).apply { factor *= numStates }
 					}
-				}
+				} ?: emptyList()
 
 				val block = BlockInfo(
 					id = id,
@@ -116,17 +116,17 @@ class BlockInfoStorage(blocksJson: JsonArray, collisionShapesJson: JsonObject, i
 					emitLight = o.getOrNull("emitLight")?.asInt ?: 0,
 					diggable = o.get("diggable").asBoolean,
 					hardness = o.getOrNull("hardness")?.asFloat ?: Float.POSITIVE_INFINITY,
-					droppedItems = o.get("drops").asJsonArray.map { itemInfos[it.asInt]!! },
+					droppedItems = emptyList(), // XXX o.get("drops").asJsonArray.map { itemInfos[it.asInt]!! },
 					properties = properties,
 					states = emptyList()
 				)
 
-				val minStateId = o.get("minStateId").asInt
+				val minStateId = o.get("id").asInt // XXX o.get("minStateId").asInt
 				val collisionShapesByStateIndex = collisionShapes[block.id]
 					?: let {
 						Logger.getLogger("BlockInfoStorage").warning(
-							"Failed to load collision shape for block '$id', assuming empty")
-						ShapePerBlockState.EMPTY
+							"Failed to load collision shape for block '$id', assuming solid")
+						ShapePerBlockState.SOLID
 					}
 				block.states = (0 until block.numStates).map { stateIndex ->
 					BlockStateInfo(
@@ -192,6 +192,7 @@ class BlockInfoStorage(blocksJson: JsonArray, collisionShapesJson: JsonObject, i
 internal sealed class ShapePerBlockState {
 	companion object {
 		val EMPTY = Same(Shape.EMPTY)
+		val SOLID = Same(Shape.SOLID)
 	}
 
 	abstract operator fun get(blockStateId: Int): Shape

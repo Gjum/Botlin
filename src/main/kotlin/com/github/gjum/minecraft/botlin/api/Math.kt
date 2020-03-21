@@ -210,5 +210,6 @@ data class Shape(val boxes: Collection<Box>) {
 
 	companion object {
 		val EMPTY = Shape(emptyList())
+		val SOLID = Shape(listOf(Box(Vec3d.origin, Vec3d.unit)))
 	}
 }

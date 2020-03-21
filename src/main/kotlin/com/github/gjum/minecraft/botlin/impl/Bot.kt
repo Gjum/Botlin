@@ -51,7 +51,7 @@ class MutableBot(
 	val physics: Physics = BlockPhysics(this)
 	private val behaviors = mutableListOf<Behavior>()
 
-	override val mcData = MinecraftData("mcdata")
+	override val mcData = MinecraftData("mcdata/1.12.2")
 
 	fun registerBehavior(behavior: Behavior) {
 		behaviors.add(behavior)
