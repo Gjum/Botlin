@@ -19,7 +19,7 @@ import java.util.logging.Logger
 private val brandBytesVanilla = byteArrayOf(7, 118, 97, 110, 105, 108, 108, 97)
 
 class ClientConnectionImpl(
-	private val eventBoard: EventBoard,
+	private val eventBoard: EventBoard<AvatarEvent>,
 	private val avatar: MutableAvatar,
 	private val auth: AuthenticationProvider
 ) : ClientConnection, SessionListener {

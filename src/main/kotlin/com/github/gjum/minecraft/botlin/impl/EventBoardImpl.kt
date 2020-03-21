@@ -8,15 +8,15 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.coroutines.channels.SendChannel
 
-class EventBoardImpl(
+class EventBoardImpl<T>(
 	parentScope: CoroutineScope = GlobalScope
-) : EventBoard,
+) : EventBoard<T>,
 	ChildScope(parentScope) {
 
 	// private val cancellers = mutableMapOf<Class<*>, MutableCollection<EventCanceller>>()
 	private val handlers = mutableMapOf<Class<*>, MutableCollection<SendChannel<*>>>()
 
-	override fun <T : Any> post(eventType: Class<T>, payload: T): Deferred<Boolean> {
+	override fun <E : T> post(eventType: Class<E>, payload: E): Deferred<Boolean> {
 		val handlersForEvent = synchronized(this) {
 			handlers[eventType]
 				?: return CompletableDeferred(true)
@@ -29,7 +29,7 @@ class EventBoardImpl(
 //				@Suppress("UNCHECKED_CAST")
 //				cancellers[eventType] as Collection<EventCanceller>?
 //			}
-			var cancelledBy: EventCanceller? = null
+			var cancelledBy: EventCanceller<T>? = null
 //			if (cancellersT != null) {
 //				for (canceller in cancellersT) {
 //					if (canceller.shouldCancel(payload)) {
@@ -48,13 +48,13 @@ class EventBoardImpl(
 		}
 	}
 
-	override fun <T : Any> post(eventType: Class<T>, buildPayload: () -> T): Deferred<Boolean> {
+	override fun <E : T> post(eventType: Class<E>, buildPayload: () -> E): Deferred<Boolean> {
 		if (eventType !in handlers) return CompletableDeferred(true)
 		return post(eventType, buildPayload())
 	}
 
-	override fun <T> receiveAll(eventType: Class<T>): ReceiveChannel<T> {
-		val channel = Channel<T>()
+	override fun <E : T> receiveAll(eventType: Class<E>): ReceiveChannel<E> {
+		val channel = Channel<E>()
 		channel.invokeOnClose {
 			synchronized(this) {
 				handlers[eventType]?.also { handlersForEvent ->
@@ -70,7 +70,7 @@ class EventBoardImpl(
 		return channel
 	}
 
-	override suspend fun <T> receiveSingle(eventType: Class<T>): T {
+	override suspend fun <E : T> receiveSingle(eventType: Class<E>): E {
 		val chan = receiveAll(eventType)
 		val payload = chan.receive()
 		chan.cancel()

@@ -7,7 +7,7 @@ import kotlinx.coroutines.CoroutineScope
  * [Bot] plus access to the [MutableAvatar], [CoroutineScope], and [EventSink].
  * [Behavior]s have access to this.
  */
-interface ApiBot : Bot, CoroutineScope, EventBoard {
+interface ApiBot : Bot, CoroutineScope, EventBoard<AvatarEvent> {
 	val avatar: MutableAvatar
 	fun unregisterBehavior(behavior: Behavior)
 }

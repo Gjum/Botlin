@@ -9,7 +9,7 @@ class ClickFailed(message: String) : RuntimeException(message)
 /**
  * Control facade for scripting.
  */
-interface Bot : Avatar, ClientConnection, EventSource {
+interface Bot : Avatar, ClientConnection, EventSource<AvatarEvent> {
 	val mcData: MinecraftData
 
 	suspend fun respawn()

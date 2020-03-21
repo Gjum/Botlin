@@ -4,26 +4,28 @@ import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.coroutines.channels.first
 
+// In this file, E denotes a concrete event, and T denotes its parent event class.
+
 /**
  * Emits events.
  * @see EventBoard for a source that is also an [EventSink].
  */
-interface EventSource {
-	fun <T> receiveAll(eventType: Class<T>): ReceiveChannel<T>
-	suspend fun <T> receiveSingle(eventType: Class<T>): T
+interface EventSource<T> {
+	fun <E : T> receiveAll(eventType: Class<E>): ReceiveChannel<E>
+	suspend fun <E : T> receiveSingle(eventType: Class<E>): E
 }
 
 /**
  * Takes events and forwards them to listeners.
  * @see EventBoard for a sink that is also an [EventSource].
  */
-interface EventSink {
+interface EventSink<T> {
 	/**
 	 * Returns immediately. Event is emitted later.
 	 * The value inside the returned Deferred indicates whether
 	 * the event was emitted (not cancelled).
 	 */
-	fun <T : Any> post(eventType: Class<T>, payload: T): Deferred<Boolean>
+	fun <E : T> post(eventType: Class<E>, payload: E): Deferred<Boolean>
 
 	/**
 	 * Only calls [buildPayload] if the event has at least one listener.
@@ -31,40 +33,41 @@ interface EventSink {
 	 * The value inside the returned Deferred indicates whether
 	 * the event was emitted (not cancelled).
 	 */
-	fun <T : Any> post(eventType: Class<T>, buildPayload: () -> T): Deferred<Boolean>
+	fun <E : T> post(eventType: Class<E>, buildPayload: () -> E): Deferred<Boolean>
 }
 
-interface EventBoard : EventSink, EventSource
+interface EventBoard<T> : EventSink<T>, EventSource<T>
 
 /**
  * TODO unused
  * Allows cancelling events before they are emitted.
  */
-interface EventCanceller {
-	fun shouldCancel(event: Any): Boolean
+interface EventCanceller<T> {
+	fun shouldCancel(event: T): Boolean
 }
 
 // shorthands that allow omitting the type token
+// TODO test that it receives the wanted events, and doesn't receive other events
 
-inline fun <reified T : Any> EventSink.post(payload: T) = post(T::class.java, payload)
+inline fun <reified E> EventSink<in E>.post(payload: E) = post(E::class.java, payload)
 
 /**
  * Only calls [buildPayload] if the event has at least one listener.
  */
-inline fun <reified T : Any> EventSink.post(noinline buildPayload: () -> T) = post(T::class.java, buildPayload)
+inline fun <reified E> EventSink<in E>.post(noinline buildPayload: () -> E) = post(E::class.java, buildPayload)
 
-inline fun <reified T : Any> EventSource.receiveAll() = receiveAll(T::class.java)
+inline fun <reified E> EventSource<in E>.receiveAll() = receiveAll(E::class.java)
 
-suspend inline fun <reified T : Any> EventSource.receiveNext(predicate: (T) -> Boolean) = receiveAll(T::class.java).first(predicate)
+suspend inline fun <reified E> EventSource<in E>.receiveNext(predicate: (E) -> Boolean) = receiveAll(E::class.java).first(predicate)
 
-suspend inline fun <reified E : Any> EventSource.onEachSuspend(crossinline handler: suspend (E) -> Unit) {
-	for (payload in receiveAll<E>()) {
+suspend inline fun <reified E> EventSource<in E>.onEachSuspend(crossinline handler: suspend (E) -> Unit) {
+	for (payload in receiveAll()) {
 		handler(payload)
 	}
 }
 
-suspend inline fun <reified E : Any> EventSource.onEach(crossinline handler: (E) -> Unit) {
-	for (payload in receiveAll<E>()) {
+suspend inline fun <reified E> EventSource<in E>.onEach(crossinline handler: (E) -> Unit) {
+	for (payload in receiveAll()) {
 		handler(payload)
 	}
 }

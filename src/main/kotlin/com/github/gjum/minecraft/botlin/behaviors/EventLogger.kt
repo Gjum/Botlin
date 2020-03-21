@@ -1,6 +1,9 @@
 package com.github.gjum.minecraft.botlin.behaviors
 
-import com.github.gjum.minecraft.botlin.api.*
+import com.github.gjum.minecraft.botlin.api.ApiBot
+import com.github.gjum.minecraft.botlin.api.AvatarEvent
+import com.github.gjum.minecraft.botlin.api.Behavior
+import com.github.gjum.minecraft.botlin.api.onEach
 import com.github.gjum.minecraft.botlin.util.toAnsi
 import kotlinx.coroutines.launch
 import java.util.logging.Level
@@ -12,7 +15,7 @@ import java.util.logging.Logger
 class EventLogger(bot: ApiBot) : Behavior(bot) {
 	private val logger = Logger.getLogger(this::class.java.name)
 
-	private inline fun <reified E : Any> setup(crossinline handler: E.() -> Unit) {
+	private inline fun <reified E : AvatarEvent> setup(crossinline handler: E.() -> Unit) {
 		launch { bot.onEach { e: E -> e.handler() } }
 	}
 

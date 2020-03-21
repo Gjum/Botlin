@@ -28,7 +28,7 @@ val BlockStateInfo.isSolid get() = collisionShape.boxes.isNotEmpty()
 
 suspend fun setupClient(
 	auth: AuthenticationProvider,
-	eventBoard: EventBoardImpl
+	eventBoard: EventBoardImpl<AvatarEvent>
 ): MutableAvatar {
 	val (proto, authError) = auth.authenticate()
 	if (proto == null) throw IllegalArgumentException("Failed to setup Avatar: $authError", authError)
@@ -42,7 +42,7 @@ suspend fun setupBot(
 	parentScopeArg: CoroutineScope? = null
 ): Bot {
 	val parentScope = parentScopeArg ?: CoroutineScope(coroutineContext)
-	val eventBoard = EventBoardImpl(parentScope)
+	val eventBoard = EventBoardImpl<AvatarEvent>(parentScope)
 	val auth = AuthenticationProvider(
 		username,
 		System.getProperty("mcAuthCredentials") ?: ".credentials",

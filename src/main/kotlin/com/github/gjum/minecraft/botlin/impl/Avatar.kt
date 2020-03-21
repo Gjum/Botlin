@@ -27,7 +27,7 @@ import java.util.logging.Logger
 
 class MutableAvatar(
 	override val profile: GameProfile,
-	private val eventBoard: EventBoardImpl
+	private val eventBoard: EventBoardImpl<AvatarEvent>
 ) : Avatar {
 	private val logger = Logger.getLogger(this::class.java.name)
 

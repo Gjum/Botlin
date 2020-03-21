@@ -37,13 +37,13 @@ interface Physics {
 
 class MutableBot(
 	override val avatar: MutableAvatar,
-	private val eventBoard: EventBoard,
+	private val eventBoard: EventBoard<AvatarEvent>,
 	private val connection: ClientConnectionImpl,
 	coroutineScope: CoroutineScope
 ) : ChildScope(coroutineScope),
 	ApiBot,
 	Avatar by avatar,
-	EventBoard by eventBoard,
+	EventBoard<AvatarEvent> by eventBoard,
 	ClientConnection by connection {
 
 	var actionId = 0
