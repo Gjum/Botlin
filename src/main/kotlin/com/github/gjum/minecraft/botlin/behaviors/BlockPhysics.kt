@@ -30,7 +30,7 @@ class BlockPhysics(private val bot: ApiBot) : ChildScope(bot), Physics {
 	var movementTarget: Vec3d? = null
 		private set
 
-	private var arrivalContinuation: CancellableContinuation<Result<Route, MoveError>>? = null
+	private var arrivalContinuation: CancellableContinuation<Route>? = null
 
 	private var jumpQueued = false
 	private var jumpLandedContinuation: Continuation<Unit>? = null
@@ -62,7 +62,6 @@ class BlockPhysics(private val bot: ApiBot) : ChildScope(bot), Physics {
 
 	private fun reset() {
 		onGround = false
-		// start in falling-only state
 		velocity = Vec3d.origin
 		movementTarget = null
 		arrivalContinuation?.cancel(MoveError("Physics Reset"))
@@ -70,11 +69,18 @@ class BlockPhysics(private val bot: ApiBot) : ChildScope(bot), Physics {
 	}
 
 	override suspend fun moveStraightTo(destination: Vec3d): Result<Route, MoveError> {
-		arrivalContinuation?.resume(Result.Success(Unit))
+		arrivalContinuation?.cancel(MoveError("Destination changed to $destination"))
 		arrivalContinuation = null
-		return suspendCancellableCoroutine { cont ->
-			arrivalContinuation = cont
-			movementTarget = destination
+		return try {
+			Result.Success(suspendCancellableCoroutine { cont ->
+				arrivalContinuation = cont
+				movementTarget = destination
+				cont.invokeOnCancellation {
+					if (movementTarget == destination) movementTarget = null
+				}
+			})
+		} catch (e: MoveError) {
+			Result.Failure(e)
 		}
 	}
 
@@ -92,7 +98,7 @@ class BlockPhysics(private val bot: ApiBot) : ChildScope(bot), Physics {
 
 		if (movementTarget != null && (position - movementTarget).lengthSquared() < VERY_CLOSE) {
 			this.movementTarget = null
-			arrivalContinuation?.resume(Result.Success(Unit))
+			arrivalContinuation?.resume(Route)
 		}
 
 		if (jumpQueued && onGround) {
