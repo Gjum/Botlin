@@ -8,7 +8,10 @@ import com.github.gjum.minecraft.botlin.api.*
 import com.github.gjum.minecraft.botlin.impl.Physics
 import com.github.gjum.minecraft.botlin.util.Ray
 import com.github.gjum.minecraft.botlin.util.calculateIntercept
+import com.github.steveice10.mc.protocol.packet.ingame.client.player.ClientPlayerMovementPacket
+import com.github.steveice10.mc.protocol.packet.ingame.client.player.ClientPlayerPositionPacket
 import com.github.steveice10.mc.protocol.packet.ingame.client.player.ClientPlayerPositionRotationPacket
+import com.github.steveice10.mc.protocol.packet.ingame.client.player.ClientPlayerRotationPacket
 import com.github.steveice10.mc.protocol.packet.ingame.client.world.ClientTeleportConfirmPacket
 import com.github.steveice10.mc.protocol.packet.ingame.server.entity.ServerVehicleMovePacket
 import com.github.steveice10.mc.protocol.packet.ingame.server.entity.player.ServerPlayerPositionRotationPacket
@@ -55,6 +58,15 @@ class BlockPhysics(private val bot: ApiBot) : ChildScope(bot), Physics {
 			avatar.playerEntity!!.velocity = v
 		}
 
+	private var look: Look
+		get() = avatar.playerEntity!!.look ?: Look.origin
+		set(l) {
+			avatar.playerEntity!!.look = l
+		}
+
+	private var prevPos: Vec3d? = null
+	private var prevLook: Look? = null
+
 	init {
 		launch { bot.onEach(::doPhysicsTick) }
 		launch { bot.onEach(::onTeleportedByServer) }
@@ -92,7 +104,7 @@ class BlockPhysics(private val bot: ApiBot) : ChildScope(bot), Physics {
 		}
 	}
 
-	private fun doPhysicsTick(event: AvatarEvent.PreClientTick) {
+	private fun doPhysicsTick(event: AvatarEvent.ClientTick) {
 		if (!bot.alive) return
 		val movementTarget = this.movementTarget
 
@@ -173,10 +185,42 @@ class BlockPhysics(private val bot: ApiBot) : ChildScope(bot), Physics {
 
 			if (bumpedIntoFloor != null) jumpLandedContinuation?.resume(Unit)
 		}
-		// TODO if (bumpedIntoWall) stopSprinting()
-
 		position = newBox.min - playerBox.min
 		onGround = bumpedIntoFloor != null
+
+		if (position != prevPos) {
+			if (look != prevLook) {
+				bot.sendPacket(ClientPlayerPositionRotationPacket(
+					onGround,
+					position.x,
+					position.y,
+					position.z,
+					look.yawDegrees.toFloat(),
+					look.pitchDegrees.toFloat()))
+			} else {
+				bot.sendPacket(ClientPlayerPositionPacket(
+					onGround,
+					position.x,
+					position.y,
+					position.z))
+			}
+		} else {
+			if (look != prevLook) {
+				bot.sendPacket(ClientPlayerRotationPacket(
+					onGround,
+					look.yawDegrees.toFloat(),
+					look.pitchDegrees.toFloat()))
+			} else {
+				bot.sendPacket(ClientPlayerMovementPacket((onGround)))
+			}
+		}
+
+		prevPos = position
+		prevLook = look
+
+		// TODO if (bumpedIntoWall) stopSprinting()
+
+		bot.post(AvatarEvent.PosLookSent(position, look))
 	}
 
 	private fun onTeleportedByServer(event: AvatarEvent.TeleportedByServer) {
@@ -204,6 +248,8 @@ class BlockPhysics(private val bot: ApiBot) : ChildScope(bot), Physics {
 					look!!.pitchDegrees.toFloat()
 				)
 			)
+			prevPos = position
+			prevLook = look
 		}
 
 		// TODO if inside block by less than one pixel (1/16m), move up to surface

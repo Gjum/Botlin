@@ -87,7 +87,7 @@ class MutableBot(
 	override suspend fun lookVec(vec: Vec3d) {
 		avatar.playerEntity!!.look = avatar.playerEntity!!.look!!.turnToVec3(vec)
 		// wait for look to be sent to server
-		receiveSingle(AvatarEvent.ClientTick::class.java)
+		receiveSingle(AvatarEvent.PosLookSent::class.java)
 	}
 
 	override suspend fun sneak(sneaking: Boolean) {
@@ -110,8 +110,8 @@ class MutableBot(
 		val targetY = playerEntity!!.position!!.y + height
 		race(
 			async {
-				receiveNext<AvatarEvent.ClientTick>() {
-					playerEntity.position!!.y >= targetY
+				receiveNext<AvatarEvent.PosLookSent> {
+					it.pos.y >= targetY
 				}
 				true // reached height
 			},

@@ -25,16 +25,17 @@ sealed class AvatarEvent {
 	data class ChatReceived(val msg: Message) : AvatarEvent()
 
 	/**
-	 * Called every 50ms before the [Avatar] processes its tick actions
-	 * (physics, chat sending, etc.). See also [ClientTick].
-	 */
-	class PreClientTick : AvatarEvent()
-
-	/**
-	 * Called every 50ms after the [Avatar] is done processing its tick actions
-	 * (physics, chat sending, etc.). See also [PreClientTick].
+	 * Called every 50ms to trigger the [Avatar]'s tick actions (physics, chat sending, etc.).
 	 */
 	class ClientTick : AvatarEvent()
+
+	/**
+	 * The [Physics module][com.github.gjum.minecraft.botlin.impl.Physics]
+	 * updated the [Avatar]'s [Entity.position]
+	 * and sent it and the [Entity.look] to the server.
+	 * Called every 50ms while the bot is [ingame][Avatar.ingame].
+	 */
+	data class PosLookSent(val pos: Vec3d, val look: Look) : AvatarEvent()
 
 	/**
 	 * An entry was created on the [Avatar.playerList].
