@@ -49,42 +49,45 @@ class ClientTicker(private val bot: ApiBot) : ChildScope(bot) {
 		if (!bot.ingame) return
 
 		bot.playerEntity?.apply {
-			bot.post(AvatarEvent.PreClientTick())
+			launch {
+				bot.post(AvatarEvent.PreClientTick())
+					.await()
 
-			if (position != null && look != null) {
-				if (position != prevPos) {
-					if (look != prevLook) {
-						bot.sendPacket(ClientPlayerPositionRotationPacket(
-							onGround ?: true,
-							position!!.x,
-							position!!.y,
-							position!!.z,
-							look!!.yawDegrees.toFloat(),
-							look!!.pitchDegrees.toFloat()))
+				if (position != null && look != null) {
+					if (position != prevPos) {
+						if (look != prevLook) {
+							bot.sendPacket(ClientPlayerPositionRotationPacket(
+								onGround ?: true,
+								position!!.x,
+								position!!.y,
+								position!!.z,
+								look!!.yawDegrees.toFloat(),
+								look!!.pitchDegrees.toFloat()))
+						} else {
+							bot.sendPacket(ClientPlayerPositionPacket(
+								onGround ?: true,
+								position!!.x,
+								position!!.y,
+								position!!.z))
+						}
 					} else {
-						bot.sendPacket(ClientPlayerPositionPacket(
-							onGround ?: true,
-							position!!.x,
-							position!!.y,
-							position!!.z))
-					}
-				} else {
-					if (look != prevLook) {
-						bot.sendPacket(ClientPlayerRotationPacket(
-							onGround ?: true,
-							look!!.yawDegrees.toFloat(),
-							look!!.pitchDegrees.toFloat()))
-					} else {
-						bot.sendPacket(ClientPlayerMovementPacket((onGround
-							?: true)))
+						if (look != prevLook) {
+							bot.sendPacket(ClientPlayerRotationPacket(
+								onGround ?: true,
+								look!!.yawDegrees.toFloat(),
+								look!!.pitchDegrees.toFloat()))
+						} else {
+							bot.sendPacket(ClientPlayerMovementPacket((onGround
+								?: true)))
+						}
 					}
 				}
+
+				prevPos = position
+				prevLook = look
 			}
 
-			prevPos = position
-			prevLook = look
+			bot.post(AvatarEvent.ClientTick())
 		}
-
-		bot.post(AvatarEvent.ClientTick())
 	}
 }
