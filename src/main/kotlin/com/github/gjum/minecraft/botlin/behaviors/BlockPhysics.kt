@@ -130,7 +130,10 @@ class BlockPhysics(private val bot: ApiBot) : ChildScope(bot), Physics {
 						?: continue // outside world or outside loaded chunks
 					val blockStateInfo = bot.mcData.getBlockStateInfo(blockState)
 						?: error("Unknown block state $blockState")
-					obstacles.addAll(blockStateInfo.collisionShape.boxes)
+					val boxes = blockStateInfo.collisionShape.boxes
+					// move boxes to their position in the world
+					val movedBoxes = boxes.map { it + Vec3i(x, y, z).asVec3d }
+					obstacles.addAll(movedBoxes)
 				}
 			}
 		}
@@ -178,10 +181,11 @@ class BlockPhysics(private val bot: ApiBot) : ChildScope(bot), Physics {
 			return
 		}
 		if (event.packet !is ServerPlayerPositionRotationPacket) {
-			Logger.getLogger("Physics").warning("Received unexpected TeleportedByServer packet: ${event.packet}")
+			Logger.getLogger("Physics").warning("TeleportedByServer via unexpected packet: ${event.packet}")
 			return
 		}
 
+		// protocol requires these responses
 		bot.sendPacket(ClientTeleportConfirmPacket(event.packet.teleportId))
 		bot.playerEntity!!.apply {
 			bot.sendPacket(
@@ -195,6 +199,9 @@ class BlockPhysics(private val bot: ApiBot) : ChildScope(bot), Physics {
 				)
 			)
 		}
+
+		// TODO if inside block by less than one pixel (1/16m), move up to surface
+		// otherwise would glitch up and down in server-client disagreement
 
 		reset()
 	}

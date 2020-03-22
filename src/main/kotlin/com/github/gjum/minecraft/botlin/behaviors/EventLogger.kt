@@ -45,7 +45,7 @@ class EventLogger(bot: ApiBot) : Behavior(bot) {
 			logger.info("Window closed: ${oldWindow.windowTitle} with ${oldWindow.slotCount} slots")
 		}
 		setup<AvatarEvent.TeleportedByServer> {
-			logger.info("Position changed to $newPos")
+			logger.warning("Position changed by server to $newPos")
 		}
 		setup<AvatarEvent.SlotsChanged> {
 			logger.info("Slots changed")
