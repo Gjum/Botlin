@@ -13,10 +13,11 @@ fun registerUsefulCommands(commands: CommandRegistry, bot: Bot, parentScope: Cor
 		bot.disconnect("Closing the program")
 		parentScope.coroutineContext.cancel()
 	}
-	commands.registerCommand("connect <address>", "Connect to server.", listOf("login")
+	commands.registerCommand("connect <address>", "Connect to server.", listOf("login", "logon")
 	) { cmdLine, _ ->
+		val serverAddress = cmdLine.split(' ').getOrNull(1) ?: "localhost"
 		// TODO bail if already connected, before authenticating - Mojang doesn't allow multiple sessions with same token
-		parentScope.launch { bot.connect(cmdLine.split(' ')[1]) }
+		parentScope.launch { bot.connect(serverAddress) }
 	}
 	commands.registerCommand("disconnect", "Disconnect from server.", listOf("logout", "logoff")
 	) { _, _ ->
@@ -115,7 +116,7 @@ fun registerUsefulCommands(commands: CommandRegistry, bot: Bot, parentScope: Cor
 	}
 	commands.registerCommand("say <message>", "Send a chat message to the server.", listOf("chat", "talk")
 	) { cmdLine, context ->
-		val msg = cmdLine.substring("say ".length)
+		val msg = cmdLine.substringAfter(' ')
 		if (bot.alive) parentScope.launch { bot.chat(msg) }
 		else if (bot.connected) context.respond("Can't chat while dead")
 		else context.respond("Not connected to any server")
