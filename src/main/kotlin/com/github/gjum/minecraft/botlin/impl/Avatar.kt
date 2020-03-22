@@ -5,6 +5,7 @@ import com.github.steveice10.mc.auth.data.GameProfile
 import com.github.steveice10.mc.protocol.data.game.PlayerListEntryAction
 import com.github.steveice10.mc.protocol.data.game.entity.player.GameMode
 import com.github.steveice10.mc.protocol.data.game.entity.player.Hand
+import com.github.steveice10.mc.protocol.data.game.entity.player.PositionElement
 import com.github.steveice10.mc.protocol.data.game.setting.ChatVisibility
 import com.github.steveice10.mc.protocol.data.game.world.notify.ClientNotification
 import com.github.steveice10.mc.protocol.data.game.world.notify.ThunderStrengthValue
@@ -139,14 +140,23 @@ class MutableAvatar(
 				val wasIngame = ingame
 				val oldPosition = playerEntity!!.position
 
-				if (packet.relativeElements.isEmpty()) {
-					playerEntity?.position = Vec3d(packet.x, packet.y, packet.z)
-					playerEntity?.look = Look(packet.yaw.radFromDeg(), packet.pitch.radFromDeg())
-				} else {
-					// TODO parse flags field: absolute vs relative coords
-					// for now, crash cleanly, instead of continuing with wrong pos
-					error("TODO: Unknown position flags: ${packet.relativeElements}")
+				var (x, y, z) = packet.run { Triple(x, y, z) }
+				var (yaw, pitch) = packet.run { Pair(yaw.toDouble(), pitch.toDouble()) }
+
+				// update relative fields to absolute
+				for (rel in packet.relativeElements) {
+					when (rel) {
+						PositionElement.X -> x += oldPosition!!.x
+						PositionElement.Y -> y += oldPosition!!.y
+						PositionElement.Z -> z += oldPosition!!.z
+						PositionElement.YAW -> yaw += playerEntity!!.look!!.yawDegrees
+						PositionElement.PITCH -> pitch += playerEntity!!.look!!.pitchDegrees
+						null -> error("Unexpected: relative coordinate key was null. In $packet")
+					}
 				}
+
+				playerEntity?.position = Vec3d(x, y, z)
+				playerEntity?.look = Look(yaw.radFromDeg(), pitch.radFromDeg())
 
 				emit(AvatarEvent.TeleportedByServer(playerEntity!!.position!!, oldPosition, packet))
 
