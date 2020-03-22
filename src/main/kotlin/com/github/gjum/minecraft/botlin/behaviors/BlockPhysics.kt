@@ -218,7 +218,10 @@ class BlockPhysics(private val bot: ApiBot) : ChildScope(bot), Physics {
 		prevPos = position
 		prevLook = look
 
-		// TODO if (bumpedIntoWall) stopSprinting()
+		if (bumpedIntoWall != null) {
+			// TODO stopSprinting()
+			arrivalContinuation?.cancel(MoveError("Bumped into wall"))
+		}
 
 		bot.post(AvatarEvent.PosLookSent(position, look))
 	}

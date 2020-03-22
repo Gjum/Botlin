@@ -187,7 +187,7 @@ fun registerUsefulCommands(commands: CommandRegistry, bot: Bot, parentScope: Cor
 		}
 	}
 
-	val vec3dPattern = Pattern.compile(".*\\[?([-0-9.]+),? ([0-9.]+),? ([-0-9.]+)\\]?.*")
+	val vec3dPattern = Pattern.compile(".+ \\[? *([-0-9.]+),? ([0-9.]+),? ([-0-9.]+) *\\]?.*")
 	fun Command.parseVec3dAndRun(cmdLine: String, context: CommandContext, block: (Vec3d) -> Unit) {
 		val matcher = vec3dPattern.matcher(cmdLine)
 		if (matcher.matches()) {
@@ -223,6 +223,9 @@ fun registerUsefulCommands(commands: CommandRegistry, bot: Bot, parentScope: Cor
 		parseVec3dAndRun(cmdLine, context) { vec ->
 			parentScope.launch {
 				bot.moveStraightBy(vec)
+					.error?.also { e ->
+					context.respond("Failed moving by $vec: $e at ${bot.feet}")
+				}
 			}
 		}
 	}
@@ -231,6 +234,9 @@ fun registerUsefulCommands(commands: CommandRegistry, bot: Bot, parentScope: Cor
 		parseVec3dAndRun(cmdLine, context) { pos ->
 			parentScope.launch {
 				bot.moveStraightTo(pos)
+					.error?.also { e ->
+					context.respond("Failed moving to $pos: $e at ${bot.feet}")
+				}
 			}
 		}
 	}
