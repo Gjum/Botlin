@@ -5,9 +5,44 @@ import com.github.gjum.minecraft.botlin.util.toAnsi
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeout
 import java.util.regex.Pattern
 
 fun registerUsefulCommands(commands: CommandRegistry, bot: Bot, parentScope: CoroutineScope) {
+	fun moveToWithJumpAndLook(dest: Vec3d, context: CommandContext) {
+		parentScope.launch {
+			bot.lookVec((dest - bot.feet).copy(y = 0.0))
+			try {
+				while (true) {
+					val result = bot.moveStraightTo(dest)
+					if (result is Result.Success) {
+						break
+					}
+					// bumped into something. check if we can jump over it
+					bot.playerEntity!!.apply {
+						if (!onGround!!) {
+							withTimeout(500) {
+								bot.receiveNext<AvatarEvent.PosLookSent> {
+									onGround!!
+								}
+							}
+							if (!onGround!!) { // timed out
+								throw MoveError("Fell far down")
+							}
+						}
+					}
+					// jump over obstacle
+					val smallDistance = (dest.copy(y = 0.0) - bot.feet.copy(y = 0.0)).normed() * WALK_SPEED
+					bot.jumpByHeight(1.0)
+					bot.moveStraightBy(smallDistance).getOrThrow()
+				}
+				context.respond("Arrived at ${bot.feet}")
+			} catch (e: PhysicsError) {
+				context.respond("Failed moving to $dest: $e at ${bot.feet}")
+			}
+		}
+	}
+
 	commands.registerCommand("quit", "Close the program.", listOf("exit", "close")
 	) { _, _ ->
 		bot.disconnect("Closing the program")
@@ -221,25 +256,13 @@ fun registerUsefulCommands(commands: CommandRegistry, bot: Bot, parentScope: Cor
 	commands.registerCommand("move <dx> <dy> <dz>", "Move by the specified axis distances.", listOf("moveby")
 	) { cmdLine, context ->
 		parseVec3dAndRun(cmdLine, context) { vec ->
-			parentScope.launch {
-				bot.lookVec(vec.copy(y = 0.0))
-				bot.moveStraightBy(vec)
-					.error?.also { e ->
-					context.respond("Failed moving by $vec: $e at ${bot.feet}")
-				}
-			}
+			moveToWithJumpAndLook(vec + bot.feet, context)
 		}
 	}
 	commands.registerCommand("go <x> <y> <z>", "Go to the given coordinates.", listOf("goto", "moveto")
 	) { cmdLine, context ->
 		parseVec3dAndRun(cmdLine, context) { pos ->
-			parentScope.launch {
-				bot.lookVec((pos - bot.feet).copy(y = 0.0))
-				bot.moveStraightTo(pos)
-					.error?.also { e ->
-					context.respond("Failed moving to $pos: $e at ${bot.feet}")
-				}
-			}
+			moveToWithJumpAndLook(pos, context)
 		}
 	}
 	commands.registerCommand("jump", "Jump once."
