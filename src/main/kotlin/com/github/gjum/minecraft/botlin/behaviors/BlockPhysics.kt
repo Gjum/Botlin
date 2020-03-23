@@ -19,9 +19,7 @@ import kotlinx.coroutines.CancellableContinuation
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import java.util.logging.Logger
-import kotlin.coroutines.Continuation
 import kotlin.coroutines.resume
-import kotlin.coroutines.suspendCoroutine
 import kotlin.math.abs
 
 /**
@@ -36,7 +34,7 @@ class BlockPhysics(private val bot: ApiBot) : ChildScope(bot), Physics {
 	private var arrivalContinuation: CancellableContinuation<Route>? = null
 
 	private var jumpQueued = false
-	private var jumpLandedContinuation: Continuation<Unit>? = null
+	private var jumpLandedContinuation: CancellableContinuation<Unit>? = null
 
 	private val avatar get() = bot.avatar
 
@@ -78,6 +76,8 @@ class BlockPhysics(private val bot: ApiBot) : ChildScope(bot), Physics {
 		movementTarget = null
 		arrivalContinuation?.cancel(MoveError("Physics Reset"))
 		arrivalContinuation = null
+		jumpLandedContinuation?.cancel(MoveError("Physics Reset"))
+		jumpLandedContinuation = null
 	}
 
 	override suspend fun moveStraightTo(destination: Vec3d): Result<Route, MoveError> {
@@ -98,9 +98,10 @@ class BlockPhysics(private val bot: ApiBot) : ChildScope(bot), Physics {
 
 	override suspend fun jump() {
 		if (!onGround) throw JumpError("Tried to jump while not standing on ground")
-		return suspendCoroutine { cont ->
+		if (jumpLandedContinuation != null) throw JumpError("Tried to jump twice at the same time")
+		jumpQueued = true
+		return suspendCancellableCoroutine { cont ->
 			jumpLandedContinuation = cont
-			jumpQueued = true
 		}
 	}
 
@@ -183,7 +184,10 @@ class BlockPhysics(private val bot: ApiBot) : ChildScope(bot), Physics {
 		if (bumpedIntoCeiling != null || bumpedIntoFloor != null) {
 			velocity = velocity.copy(y = 0.0)
 
-			if (bumpedIntoFloor != null) jumpLandedContinuation?.resume(Unit)
+			if (bumpedIntoFloor != null) {
+				jumpLandedContinuation?.resume(Unit)
+				jumpLandedContinuation = null
+			}
 		}
 		position = newBox.min - playerBox.min
 		onGround = bumpedIntoFloor != null
