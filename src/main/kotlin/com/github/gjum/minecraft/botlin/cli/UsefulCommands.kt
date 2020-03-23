@@ -18,10 +18,10 @@ fun registerUsefulCommands(commands: CommandRegistry, bot: Bot, parentScope: Cor
 					if (result is Result.Success) {
 						break
 					}
-					// bumped into something. check if we can jump over it
+					// bumped into something. fall down then check if we can jump over it
 					bot.playerEntity!!.apply {
 						if (!onGround!!) {
-							withTimeout(500) {
+							withTimeout(1000) {
 								bot.receiveNext<AvatarEvent.PosLookSent> {
 									onGround!!
 								}
@@ -269,6 +269,7 @@ fun registerUsefulCommands(commands: CommandRegistry, bot: Bot, parentScope: Cor
 		parseVec3dAndRun(cmdLine, context) { pos ->
 			parentScope.launch {
 				bot.lookAt(pos)
+				context.respond("Done! ${bot.playerEntity?.look}")
 			}
 		}
 	}

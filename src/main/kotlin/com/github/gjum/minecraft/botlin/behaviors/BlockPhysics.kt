@@ -164,7 +164,7 @@ class BlockPhysics(private val bot: ApiBot) : ChildScope(bot), Physics {
 		var bumpedIntoWall = collisions.find { it.face.axis != Axis.Y }
 
 		// try stepping, update collisions
-		if (bumpedIntoWall != null) {
+		if (bumpedIntoWall != null && onGround) {
 			// TODO maybe not +STEPPING_HEIGHT but set feet to the top edge of the collided block if steppable
 			val startBoxStepping = startBox + Vec3d(0.0, STEPPING_HEIGHT, 0.0)
 			val moveVecStepping = velocity.copy(y = 0.0) // gravity would pull us into the step, preventing stepping
