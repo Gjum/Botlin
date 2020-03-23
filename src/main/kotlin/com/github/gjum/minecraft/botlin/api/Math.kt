@@ -5,6 +5,7 @@ import kotlin.math.*
 val Double.floor: Int get() = floor(this).toInt()
 
 fun Double.round(places: Int): Double {
+	if (this.isNaN()) return Double.NaN
 	val zeroes = 10.0.pow(places)
 	return (this * zeroes).roundToInt() / zeroes
 }
@@ -68,6 +69,8 @@ data class Vec3d(val x: Double, val y: Double, val z: Double) {
 		Axis.Y -> Vec3d(x, value, z)
 		Axis.Z -> Vec3d(x, y, value)
 	}
+
+	fun anyNaN() = x.isNaN() || y.isNaN() || z.isNaN()
 
 	companion object {
 		val origin = Vec3d(0.0, 0.0, 0.0)

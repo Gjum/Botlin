@@ -12,5 +12,6 @@ val playerBox = Box(Vec3d(-.3, .0, -.3), Vec3d(.3, 1.8, .3))
 
 typealias Route = Unit // TODO return route from move*() to allow better movement planning
 
-class MoveError(message: String) : Throwable(message)
-class JumpError(msg: String, cause: Throwable? = null) : IllegalStateException(msg, cause)
+open class PhysicsError(message: String) : Throwable(message)
+class MoveError(message: String) : PhysicsError(message)
+class JumpError(message: String) : PhysicsError(message)

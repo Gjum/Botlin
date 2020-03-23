@@ -109,20 +109,22 @@ class BlockPhysics(private val bot: ApiBot) : ChildScope(bot), Physics {
 		if (!bot.alive) return
 		val movementTarget = this.movementTarget
 
-		if (movementTarget != null && (position - movementTarget).lengthSquared() < VERY_CLOSE) {
-			this.movementTarget = null
-			arrivalContinuation?.resume(Route)
-		}
-
 		var moveHorizVec = Vec3d.origin
 		if (movementTarget != null) {
 			// movementTarget only influences x,z; rely on stepping/falling to change y
 			moveHorizVec = (movementTarget - position).copy(y = 0.0)
-			val moveHorizVecLen = (moveHorizVec - Vec3d.origin).length()
-			if (moveHorizVecLen > movementSpeed) {
-				moveHorizVec *= movementSpeed / moveHorizVecLen
+			if (moveHorizVec.lengthSquared() < VERY_CLOSE) {
+				this.movementTarget = null
+				arrivalContinuation?.resume(Route)
+				moveHorizVec = Vec3d.origin
+			} else {
+				println("raw moveHorizVec = $moveHorizVec")
+				val moveHorizVecLen = (moveHorizVec - Vec3d.origin).length()
+				if (moveHorizVecLen > movementSpeed) {
+					// take one step of the length of movementSpeed
+					moveHorizVec *= movementSpeed / moveHorizVecLen
+				} // else: get there in one step
 			}
-			// else: get there in one step
 		}
 
 		var velY = (velocity.y - GRAVITY) * DRAG
@@ -192,6 +194,13 @@ class BlockPhysics(private val bot: ApiBot) : ChildScope(bot), Physics {
 		}
 		position = newBox.min - playerBox.min
 		onGround = bumpedIntoFloor != null
+
+		if (position.anyNaN()) {
+			Logger.getLogger("Physics").warning(
+				"NaN in position $position, velocity $velocity")
+			bot.avatar.playerEntity!!.position = prevPos
+			arrivalContinuation?.cancel(MoveError("NaN position"))
+		}
 
 		if (position != prevPos) {
 			if (look != prevLook) {
