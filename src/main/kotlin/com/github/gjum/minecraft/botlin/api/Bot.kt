@@ -44,7 +44,7 @@ interface Bot : Avatar, ClientConnection, EventSource<AvatarEvent> {
 	 *
 	 * @return true if [height] was reached, false if landed before reaching height
 	 */
-	suspend fun jumpToHeight(height: Double): Boolean
+	suspend fun jumpByHeight(height: Double): Boolean
 
 	// TODO steer vehicle
 	// TODO unmount vehicle

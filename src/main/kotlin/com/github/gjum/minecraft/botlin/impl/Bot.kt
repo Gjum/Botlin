@@ -106,7 +106,7 @@ class MutableBot(
 
 	override suspend fun jumpUntilLanded() = physics.jump()
 
-	override suspend fun jumpToHeight(height: Double): Boolean = coroutineScope {
+	override suspend fun jumpByHeight(height: Double): Boolean = coroutineScope {
 		val targetY = playerEntity!!.position!!.y + height
 		race(
 			async {
