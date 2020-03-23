@@ -82,7 +82,7 @@ class MutableBot(
 		return chunks.size
 	}
 
-	override suspend fun lookAt(pos: Vec3d) = lookVec(pos - playerEntity!!.position!!)
+	override suspend fun lookAt(pos: Vec3d) = lookVec(pos - playerEntity!!.eyePos!!)
 
 	override suspend fun lookVec(vec: Vec3d) {
 		avatar.playerEntity!!.look = avatar.playerEntity!!.look!!.turnToVec3(vec)

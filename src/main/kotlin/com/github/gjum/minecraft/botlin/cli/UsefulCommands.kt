@@ -222,6 +222,7 @@ fun registerUsefulCommands(commands: CommandRegistry, bot: Bot, parentScope: Cor
 	) { cmdLine, context ->
 		parseVec3dAndRun(cmdLine, context) { vec ->
 			parentScope.launch {
+				bot.lookVec(vec.copy(y = 0.0))
 				bot.moveStraightBy(vec)
 					.error?.also { e ->
 					context.respond("Failed moving by $vec: $e at ${bot.feet}")
@@ -233,6 +234,7 @@ fun registerUsefulCommands(commands: CommandRegistry, bot: Bot, parentScope: Cor
 	) { cmdLine, context ->
 		parseVec3dAndRun(cmdLine, context) { pos ->
 			parentScope.launch {
+				bot.lookVec((pos - bot.feet).copy(y = 0.0))
 				bot.moveStraightTo(pos)
 					.error?.also { e ->
 					context.respond("Failed moving to $pos: $e at ${bot.feet}")
