@@ -222,13 +222,24 @@ fun registerUsefulCommands(commands: CommandRegistry, bot: Bot, parentScope: Cor
 		}
 	}
 
+	val vec3iPattern = Pattern.compile(".+ \\[? *([-0-9]+),? ([0-9]+),? ([-0-9]+) *\\]?.*")
 	val vec3dPattern = Pattern.compile(".+ \\[? *([-0-9.]+),? ([0-9.]+),? ([-0-9.]+) *\\]?.*")
 	fun Command.parseVec3dAndRun(cmdLine: String, context: CommandContext, block: (Vec3d) -> Unit) {
-		val matcher = vec3dPattern.matcher(cmdLine)
-		if (matcher.matches()) {
-			val x = matcher.group(1)?.toDouble()
-			val y = matcher.group(2)?.toDouble()
-			val z = matcher.group(3)?.toDouble()
+		// if all coords are integers, select center of block
+		val matcherInt = vec3iPattern.matcher(cmdLine)
+		if (matcherInt.matches()) {
+			val x = matcherInt.group(1)?.toInt()
+			val y = matcherInt.group(2)?.toInt()
+			val z = matcherInt.group(3)?.toInt()
+			if (x != null && y != null && z != null) {
+				return block(Vec3d(x + .5, y + .5, z + .5))
+			}
+		}
+		val matcherDouble = vec3dPattern.matcher(cmdLine)
+		if (matcherDouble.matches()) {
+			val x = matcherDouble.group(1)?.toDouble()
+			val y = matcherDouble.group(2)?.toDouble()
+			val z = matcherDouble.group(3)?.toDouble()
 			if (x != null && y != null && z != null) {
 				return block(Vec3d(x, y, z))
 			}
