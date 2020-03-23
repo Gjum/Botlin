@@ -247,6 +247,14 @@ fun registerUsefulCommands(commands: CommandRegistry, bot: Bot, parentScope: Cor
 		context.respond("Usage: $usage")
 	}
 
+	commands.registerCommand("place <x> <y> <z>", "Place the currently held block onto that block.", listOf("build")
+	) { cmdLine, context ->
+		parseVec3dAndRun(cmdLine, context) { pos ->
+			parentScope.launch {
+				bot.placeBlock(pos)
+			}
+		}
+	}
 	commands.registerCommand("look <dx> <dy> <dz>", "Look in the direction of the given vector.", listOf("turn")
 	) { cmdLine, context ->
 		parseVec3dAndRun(cmdLine, context) { vec ->
