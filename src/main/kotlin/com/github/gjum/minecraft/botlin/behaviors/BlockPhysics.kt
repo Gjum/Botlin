@@ -114,12 +114,6 @@ class BlockPhysics(private val bot: ApiBot) : ChildScope(bot), Physics {
 			arrivalContinuation?.resume(Route)
 		}
 
-		if (jumpQueued && onGround) {
-			jumpQueued = false
-			velocity = velocity.copy(y = JUMP_FORCE)
-		}
-		// TODO floating up water/ladders
-
 		var moveHorizVec = Vec3d.origin
 		if (movementTarget != null) {
 			// movementTarget only influences x,z; rely on stepping/falling to change y
@@ -131,7 +125,14 @@ class BlockPhysics(private val bot: ApiBot) : ChildScope(bot), Physics {
 			// else: get there in one step
 		}
 
-		val velY = (velocity.y - GRAVITY) * DRAG
+		var velY = (velocity.y - GRAVITY) * DRAG
+
+		if (jumpQueued && onGround) {
+			jumpQueued = false
+			velY = JUMP_FORCE
+		}
+		// TODO floating up water/ladders
+
 		// movementTarget only influences x,z; rely on stepping/falling to change y
 		velocity = Vec3d(moveHorizVec.x, velY, moveHorizVec.z)
 
