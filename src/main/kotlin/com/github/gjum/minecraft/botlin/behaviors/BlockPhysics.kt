@@ -118,7 +118,6 @@ class BlockPhysics(private val bot: ApiBot) : ChildScope(bot), Physics {
 				arrivalContinuation?.resume(Route)
 				moveHorizVec = Vec3d.origin
 			} else {
-				println("raw moveHorizVec = $moveHorizVec")
 				val moveHorizVecLen = (moveHorizVec - Vec3d.origin).length()
 				if (moveHorizVecLen > movementSpeed) {
 					// take one step of the length of movementSpeed
@@ -186,12 +185,8 @@ class BlockPhysics(private val bot: ApiBot) : ChildScope(bot), Physics {
 
 		if (bumpedIntoCeiling != null || bumpedIntoFloor != null) {
 			velocity = velocity.copy(y = 0.0)
-
-			if (bumpedIntoFloor != null) {
-				jumpLandedContinuation?.resume(Unit)
-				jumpLandedContinuation = null
-			}
 		}
+
 		position = newBox.min - playerBox.min
 		onGround = bumpedIntoFloor != null
 
@@ -232,12 +227,17 @@ class BlockPhysics(private val bot: ApiBot) : ChildScope(bot), Physics {
 		prevPos = position
 		prevLook = look
 
+		bot.post(AvatarEvent.PosLookSent(position, look))
+
+		if (bumpedIntoFloor != null) {
+			jumpLandedContinuation?.resume(Unit)
+			jumpLandedContinuation = null
+		}
+
 		if (bumpedIntoWall != null) {
 			// TODO stopSprinting()
 			arrivalContinuation?.cancel(MoveError("Bumped into wall"))
 		}
-
-		bot.post(AvatarEvent.PosLookSent(position, look))
 	}
 
 	private fun onTeleportedByServer(event: AvatarEvent.TeleportedByServer) {
