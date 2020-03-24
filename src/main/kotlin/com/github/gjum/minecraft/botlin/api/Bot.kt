@@ -5,6 +5,7 @@ import com.github.steveice10.mc.protocol.data.game.entity.player.Hand
 import com.github.steveice10.mc.protocol.data.game.world.block.BlockFace
 
 class ClickFailed(message: String) : RuntimeException(message)
+class ItemNotFound(message: String) : RuntimeException(message)
 
 /**
  * Control facade for scripting.
@@ -90,14 +91,14 @@ interface Bot : Avatar, ClientConnection, EventSource<AvatarEvent> {
 	 * Slots with [itemScore] of 0 or less will be ignored.
 	 * @throws IllegalArgumentException if no matching items were found.
 	 */
-	suspend fun holdBestItem(hand: Hand = Hand.MAIN_HAND, itemScore: (Slot) -> Int): Result<Slot, String>
+	suspend fun holdBestItem(hand: Hand = Hand.MAIN_HAND, itemScore: (Slot) -> Int): Result<Slot, ItemNotFound>
 
 	/**
 	 * Shorthand for [holdBestItem] with a boolean [predicate].
 	 * If [predicate] is true, the [holdBestItem] score is 1, otherwise 0.
 	 * @throws IllegalArgumentException if no matching items were found.
 	 */
-	suspend fun holdItem(hand: Hand = Hand.MAIN_HAND, predicate: (Slot) -> Boolean): Result<Slot, String> {
+	suspend fun holdItem(hand: Hand = Hand.MAIN_HAND, predicate: (Slot) -> Boolean): Result<Slot, ItemNotFound> {
 		return holdBestItem(hand) { if (predicate(it)) 1 else 0 }
 	}
 

@@ -261,9 +261,9 @@ class MutableBot(
 		TODO("dragSlots")
 	}
 
-	override suspend fun holdBestItem(hand: Hand, itemScore: (Slot) -> Int): Result<Slot, String> {
+	override suspend fun holdBestItem(hand: Hand, itemScore: (Slot) -> Int): Result<Slot, ItemNotFound> {
 		val bestSlot = findBestSlot(itemScore)
-			?: return Result.Failure("No matching slot found")
+			?: return Result.Failure(ItemNotFound("No matching slot found"))
 
 		if (window!!.isInHotbar(bestSlot.index)) {
 			// already in hotbar, no need to click any slots, just select it

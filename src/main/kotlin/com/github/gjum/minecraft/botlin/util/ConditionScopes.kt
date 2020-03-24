@@ -32,7 +32,7 @@ suspend fun <T> race(vararg deferreds: Deferred<T>): T = coroutineScope {
  * On any [abortEvents], cancels [block] and returns null.
  * To check for conditions on the events, use [ReceiveChannel.filter].
  */
-suspend fun <R, E> EventBoard<in E>.duringInvariant(
+suspend fun <R, E : Throwable> EventBoard<in E>.duringInvariant(
 	abortEvents: Collection<ReceiveChannel<out E>>,
 	block: suspend () -> R
 ): Result<R, E> = coroutineScope {
@@ -51,7 +51,7 @@ suspend fun <R, E> EventBoard<in E>.duringInvariant(
  * Listens for [events] while running [block].
  * On any [events], checks [invariant]; if it returns false, cancels [block] and returns null.
  */
-suspend fun <R, E> EventBoard<in E>.duringInvariant(
+suspend fun <R, E : Throwable> EventBoard<in E>.duringInvariant(
 	events: Collection<Class<out E>>, // TODO use stream of events instead of list?
 	invariant: (E) -> Boolean,
 	block: suspend () -> R
