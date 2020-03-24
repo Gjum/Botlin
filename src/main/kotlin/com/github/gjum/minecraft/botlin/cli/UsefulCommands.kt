@@ -32,8 +32,8 @@ fun registerUsefulCommands(commands: CommandRegistry, bot: Bot, parentScope: Cor
 						}
 					}
 					// jump over obstacle
-					val smallDistance = (dest.copy(y = 0.0) - bot.feet.copy(y = 0.0)).normed() * WALK_SPEED
-					bot.jumpByHeight(1.0)
+					val smallDistance = (dest - bot.feet).copy(y = 0.0).normed() / 16.0
+					bot.jumpByHeight(1.2)
 					bot.moveStraightBy(smallDistance).getOrThrow()
 				}
 				context.respond("Arrived at ${bot.feet}")
