@@ -287,8 +287,11 @@ fun registerUsefulCommands(commands: CommandRegistry, bot: Bot, parentScope: Cor
 		}
 	}
 	commands.registerCommand("jump", "Jump once."
-	) { _, _ ->
-		parentScope.launch { bot.jumpUntilLanded() }
+	) { _, context ->
+		parentScope.launch {
+			bot.jumpUntilLanded()
+			context.respond("Landed")
+		}
 	}
 }
 
