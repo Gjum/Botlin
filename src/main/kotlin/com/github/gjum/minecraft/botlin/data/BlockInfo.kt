@@ -32,8 +32,6 @@ data class BlockInfo(
 	val droppedItems: Collection<ItemInfo>,
 	var states: List<BlockStateInfo>
 ) {
-	val defaultState get() = states[0]
-
 	override fun toString() = "BlockInfo{$id nr=$nr}"
 }
 

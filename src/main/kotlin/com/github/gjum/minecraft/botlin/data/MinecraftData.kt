@@ -13,7 +13,7 @@ class MinecraftData(mcDataDir: String) {
 
 	val blocks = BlockInfoStorage(
 		loadJson("$mcDataDir/blocks.json", JsonArray::class.java),
-		loadJson("$mcDataDir/collisionShapes.json", JsonObject::class.java),
+		loadJson("$mcDataDir/blockCollisionShapes.json", JsonObject::class.java),
 		items)
 
 	fun getBlockStateInfo(blockState: BlockState) = blocks[blockState]
