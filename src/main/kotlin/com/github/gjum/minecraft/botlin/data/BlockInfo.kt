@@ -1,7 +1,6 @@
 package com.github.gjum.minecraft.botlin.data
 
 import com.github.gjum.minecraft.botlin.api.Box
-import com.github.gjum.minecraft.botlin.api.Cardinal
 import com.github.gjum.minecraft.botlin.api.Shape
 import com.github.gjum.minecraft.botlin.api.Vec3d
 import com.github.steveice10.mc.protocol.data.game.world.block.BlockState
@@ -11,15 +10,12 @@ import com.google.gson.JsonObject
 import java.util.logging.Logger
 
 data class BlockStateInfo(
-	val id: Int,
+	val nr: Int,
+	val meta: Int,
 	val block: BlockInfo,
 	val collisionShape: Shape
 ) {
-	val stateIndex get() = id - block.defaultState.id
-
-	operator fun get(propertyName: String): BlockProperty? {
-		return block.properties.find { it.name == propertyName }
-	}
+	override fun toString() = "BlockStateInfo{${block.id} $nr:$meta}"
 }
 
 data class BlockInfo(
@@ -34,51 +30,21 @@ data class BlockInfo(
 	val diggable: Boolean,
 	val hardness: Float,
 	val droppedItems: Collection<ItemInfo>,
-	val properties: List<BlockProperty>,
 	var states: List<BlockStateInfo>
 ) {
 	val defaultState get() = states[0]
 
-	val numStates = when {
-		properties.isEmpty() -> 1
-		else -> properties.map { it.numStates }.reduce { a, b -> a * b }
-	}
-
-	override fun toString() = "BlockInfo{$id}"
+	override fun toString() = "BlockInfo{$id nr=$nr}"
 }
 
-enum class BlockPropertyType { BOOL, INT, DIRECTION, ENUM }
-
-data class BlockProperty(val name: String, val type: BlockPropertyType, val numStates: Int, val values: List<String>?, internal val factor: Int) {
-	fun getInt(state: BlockStateInfo) = (state.stateIndex / factor) % numStates
-
-	fun getString(state: BlockStateInfo): String {
-		val value = getInt(state)
-		return when (type) {
-			BlockPropertyType.BOOL -> if (value == 0) "FALSE" else "TRUE"
-			BlockPropertyType.INT -> value.toString()
-			BlockPropertyType.DIRECTION -> values!![value]
-			BlockPropertyType.ENUM -> values!![value]
-		}
-	}
-
-	fun getBool(state: BlockStateInfo): Boolean {
-		if (type != BlockPropertyType.BOOL) error("Tried getting block property of type $type as BOOL")
-		return getInt(state) != 0
-	}
-
-	fun getDirection(state: BlockStateInfo): Cardinal {
-		if (type != BlockPropertyType.DIRECTION) error("Tried getting block property of type $type as DIRECTION")
-		return Cardinal.valueOf(getString(state))
-	}
-}
+private fun indexForIdMeta(id: Int, meta: Int) = id * 16 + meta
 
 class BlockInfoStorage(blocksJson: JsonArray, collisionShapesJson: JsonObject, itemInfos: ItemInfoStorage) {
 	private val blockStateInfos = mutableMapOf<Int, BlockStateInfo>()
 	private val blockInfosById = mutableMapOf<String, BlockInfo>()
 
 	operator fun get(blockState: BlockState): BlockStateInfo? {
-		return blockStateInfos[blockState.id]
+		return blockStateInfos[indexForIdMeta(blockState.id, blockState.data)]
 	}
 
 	operator fun get(blockId: String): BlockInfo? {
@@ -92,19 +58,6 @@ class BlockInfoStorage(blocksJson: JsonArray, collisionShapesJson: JsonObject, i
 			val o = blockJson.asJsonObject
 			val id = o.get("name").asString
 			try {
-				val properties = o.getOrNull("states")?.asJsonArray?.map { it.asJsonObject }?.let {
-					var factor = 1
-					it.map { p ->
-						BlockProperty(
-							name = p.get("name").asString,
-							type = BlockPropertyType.valueOf(p.get("type").asString.toUpperCase()),
-							numStates = p.get("num_values").asInt,
-							values = p.get("values")?.asJsonArray?.map(JsonElement::getAsString),
-							factor = factor
-						).apply { factor *= numStates }
-					}
-				} ?: emptyList()
-
 				val block = BlockInfo(
 					id = id,
 					nr = o.get("id").asInt,
@@ -117,24 +70,24 @@ class BlockInfoStorage(blocksJson: JsonArray, collisionShapesJson: JsonObject, i
 					diggable = o.get("diggable").asBoolean,
 					hardness = o.getOrNull("hardness")?.asFloat ?: Float.POSITIVE_INFINITY,
 					droppedItems = emptyList(), // XXX o.get("drops").asJsonArray.map { itemInfos[it.asInt]!! },
-					properties = properties,
 					states = emptyList()
 				)
 
-				val minStateId = o.get("id").asInt // XXX o.get("minStateId").asInt
+				val idNum = o.get("id").asInt
 				val collisionShapesByStateIndex = collisionShapes[block.id]
 					?: let {
 						Logger.getLogger("BlockInfoStorage").warning(
 							"Failed to load collision shape for block '$id', assuming solid")
 						ShapePerBlockState.SOLID
 					}
-				block.states = (0 until block.numStates).map { stateIndex ->
+				block.states = (0 until 16).map { meta ->
 					BlockStateInfo(
-						id = minStateId + stateIndex,
+						nr = idNum,
+						meta = meta,
 						block = block,
-						collisionShape = collisionShapesByStateIndex[stateIndex]
+						collisionShape = collisionShapesByStateIndex[meta]
 					).also {
-						blockStateInfos[it.id] = it
+						blockStateInfos[indexForIdMeta(it.nr, it.meta)] = it
 					}
 				}
 
