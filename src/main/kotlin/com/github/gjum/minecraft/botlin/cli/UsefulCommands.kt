@@ -65,8 +65,9 @@ fun registerUsefulCommands(commands: CommandRegistry, bot: Bot, parentScope: Cor
 	}
 	commands.registerCommand("info", "Show bot info: connection, location, health, etc.", listOf("status", "state")
 	) { _, context ->
+		val groundStr = bot.playerEntity?.onGround?.let { if (it == true) "standing" else "floating" } ?: "?standing?"
 		bot.playerEntity?.run {
-			context.respond("${bot.profile.name} at $position $look on ${bot.serverAddress}")
+			context.respond("${bot.profile.name} $groundStr at $position $look on ${bot.serverAddress}")
 			context.respond("health=$health food=$food sat=$saturation exp=${experience?.total} (${experience?.level} lvl)")
 		} ?: context.respond("${bot.profile.name} (not spawned)")
 	}
