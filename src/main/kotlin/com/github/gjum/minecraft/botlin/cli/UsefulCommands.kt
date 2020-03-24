@@ -11,6 +11,21 @@ import java.util.regex.Pattern
 fun registerUsefulCommands(commands: CommandRegistry, bot: Bot, parentScope: CoroutineScope) {
 	fun moveToWithJumpAndLook(dest: Vec3d, context: CommandContext) {
 		parentScope.launch {
+			fun smallDistance() = (dest - bot.feet).copy(y = 0.0).normed() / 16.0
+
+			suspend fun fallDown() = bot.playerEntity!!.apply {
+				if (!onGround!!) {
+					withTimeout(5000) {
+						bot.receiveNext<AvatarEvent.PosLookSent> {
+							onGround!!
+						}
+					}
+					if (!onGround!!) { // timed out
+						throw MoveError("Fell far down")
+					}
+				}
+			}
+
 			bot.lookVec((dest - bot.feet).copy(y = 0.0))
 			try {
 				while (true) {
@@ -19,22 +34,14 @@ fun registerUsefulCommands(commands: CommandRegistry, bot: Bot, parentScope: Cor
 						break
 					}
 					// bumped into something. fall down then check if we can jump over it
-					bot.playerEntity!!.apply {
-						if (!onGround!!) {
-							withTimeout(1000) {
-								bot.receiveNext<AvatarEvent.PosLookSent> {
-									onGround!!
-								}
-							}
-							if (!onGround!!) { // timed out
-								throw MoveError("Fell far down")
-							}
-						}
-					}
+					fallDown()
 					// jump over obstacle
-					val smallDistance = (dest - bot.feet).copy(y = 0.0).normed() / 16.0
-					bot.jumpByHeight(1.2)
-					bot.moveStraightBy(smallDistance).getOrThrow()
+					val resultOnGround = bot.moveStraightBy(smallDistance())
+					if (resultOnGround is Result.Failure) {
+						context.respond("Trying to jump obstacle at ${bot.feet}")
+						bot.jumpByHeight(17.0 / 16)
+						bot.moveStraightBy(smallDistance()).getOrThrow()
+					}
 				}
 				context.respond("Arrived at ${bot.feet}")
 			} catch (e: PhysicsError) {
