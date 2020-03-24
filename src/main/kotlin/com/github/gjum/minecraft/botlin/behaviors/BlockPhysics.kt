@@ -142,7 +142,9 @@ class BlockPhysics(private val bot: ApiBot) : ChildScope(bot), Physics {
 		val startBox = playerBox + position
 
 		val movementBoxOrig = Shape(listOf(startBox, startBox + velocity)).outerBox!!
-		val movementBox = Box(movementBoxOrig.min, movementBoxOrig.max.copy(y = movementBoxOrig.max.y + STEPPING_HEIGHT)) // add stepping height so we can reuse the obstacles when stepping
+		val movementBox = Box(
+			movementBoxOrig.min + Vec3d(0.0, -0.5, 0.0), // need to check below for fence/...
+			movementBoxOrig.max + Vec3d(0.0, STEPPING_HEIGHT, 0.0)) // add stepping height so we can reuse the obstacles when stepping
 		val obstacles = mutableListOf<Box>()
 		for (z in movementBox.min.z.floor..movementBox.max.z.floor) {
 			for (x in movementBox.min.x.floor..movementBox.max.x.floor) {
