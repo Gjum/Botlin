@@ -222,9 +222,10 @@ fun registerUsefulCommands(commands: CommandRegistry, bot: Bot, parentScope: Cor
 		}
 	}
 
-	val vec3iPattern = Pattern.compile(".+ \\[? *([-0-9]+),? ([0-9]+),? ([-0-9]+) *\\]?.*")
-	val vec3dPattern = Pattern.compile(".+ \\[? *([-0-9.]+),? ([0-9.]+),? ([-0-9.]+) *\\]?.*")
-	fun Command.parseVec3dAndRun(cmdLine: String, context: CommandContext, block: (Vec3d) -> Unit) {
+	val vec3iPattern = Pattern.compile(".+ \\[? *([-0-9]+),? ([0-9]+),? ([-0-9]+)(?:$| .*)")
+	val vec3dPattern = Pattern.compile(".+ \\[? *([-0-9.]+),? ([0-9.]+),? ([-0-9.]+)(?:$| .*)")
+	val center = Vec3d(.5, .5, .5)
+	fun Command.parseVec3dAndRun(cmdLine: String, context: CommandContext, intOffset: Vec3d = Vec3d.origin, block: (Vec3d) -> Unit) {
 		// if all coords are integers, select center of block
 		val matcherInt = vec3iPattern.matcher(cmdLine)
 		if (matcherInt.matches()) {
@@ -232,7 +233,7 @@ fun registerUsefulCommands(commands: CommandRegistry, bot: Bot, parentScope: Cor
 			val y = matcherInt.group(2)?.toInt()
 			val z = matcherInt.group(3)?.toInt()
 			if (x != null && y != null && z != null) {
-				return block(Vec3d(x + .5, y + .5, z + .5))
+				return block(Vec3i(x, y, z).asVec3d + intOffset)
 			}
 		}
 		val matcherDouble = vec3dPattern.matcher(cmdLine)
@@ -249,7 +250,7 @@ fun registerUsefulCommands(commands: CommandRegistry, bot: Bot, parentScope: Cor
 
 	commands.registerCommand("place <x> <y> <z>", "Place the currently held block onto that block.", listOf("build")
 	) { cmdLine, context ->
-		parseVec3dAndRun(cmdLine, context) { pos ->
+		parseVec3dAndRun(cmdLine, context, center) { pos ->
 			parentScope.launch {
 				bot.placeBlock(pos)
 			}
@@ -266,7 +267,7 @@ fun registerUsefulCommands(commands: CommandRegistry, bot: Bot, parentScope: Cor
 	}
 	commands.registerCommand("lookat <x> <y> <z>", "Look at the given coordinates.", listOf("face")
 	) { cmdLine, context ->
-		parseVec3dAndRun(cmdLine, context) { pos ->
+		parseVec3dAndRun(cmdLine, context, center) { pos ->
 			parentScope.launch {
 				bot.lookAt(pos)
 				context.respond("Done! ${bot.playerEntity?.look}")
@@ -281,7 +282,7 @@ fun registerUsefulCommands(commands: CommandRegistry, bot: Bot, parentScope: Cor
 	}
 	commands.registerCommand("go <x> <y> <z>", "Go to the given coordinates.", listOf("goto", "moveto")
 	) { cmdLine, context ->
-		parseVec3dAndRun(cmdLine, context) { pos ->
+		parseVec3dAndRun(cmdLine, context, center) { pos ->
 			moveToWithJumpAndLook(pos, context)
 		}
 	}
