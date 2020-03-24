@@ -5789,7 +5789,7 @@
   {
     "id": 227,
     "displayName": "Light Gray Shulker Box",
-    "name": "light_gray_shulker_box",
+    "name": "silver_shulker_box",
     "hardness": 6,
     "stackSize": 1,
     "diggable": true,
@@ -6125,7 +6125,7 @@
   {
     "id": 243,
     "displayName": "Light Gray Glazed Terracotta",
-    "name": "light_gray_glazed_terracotta",
+    "name": "silver_glazed_terracotta",
     "hardness": 1.4,
     "stackSize": 64,
     "diggable": true,
