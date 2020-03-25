@@ -28,10 +28,31 @@ open class MutableStack(
 	override val maxStackSize: Int get() = TODO("look up stack size in mc-data")
 	override val name: String get() = "TODO" // TODO look up slot name in mc-data
 	override val customName: String? get() = null // TODO look up custom name in NBT
+
+	override fun toString() = "Stack{${amount}x $itemId:$meta $nbtData}"
+
+	override fun equals(other: Any?): Boolean {
+		if (this === other) return true
+		if (javaClass != other?.javaClass) return false
+		other as MutableStack
+		if (itemId != other.itemId) return false
+		if (amount != other.amount) return false
+		if (meta != other.meta) return false
+		if (nbtData != other.nbtData) return false
+		return true
+	}
+
+	override fun hashCode(): Int {
+		var result = nbtData?.hashCode() ?: 0
+		result = 256 * result + itemId
+		result = 16 * result + meta
+		result = 64 * result + amount
+		return result
+	}
 }
 
 fun MutableStack.updateFrom(stack: Stack) {
-	itemId = if (amount > 0) stack.itemId else 0
+	itemId = stack.itemId
 	meta = stack.meta
 	amount = stack.amount
 	nbtData = stack.nbtData
@@ -44,7 +65,7 @@ fun MutableStack.updateFromStack(itemStack: ItemStack?) {
 		amount = 0
 		nbtData = null
 	} else {
-		itemId = if (amount > 0) itemStack.id else 0
+		itemId = itemStack.id
 		meta = itemStack.data
 		amount = itemStack.amount
 		nbtData = itemStack.nbt
@@ -59,7 +80,21 @@ class MutableSlot(
 	meta: Int,
 	amount: Int,
 	nbtData: CompoundTag?
-) : Slot, MutableStack(itemId, meta, amount, nbtData)
+) : Slot, MutableStack(itemId, meta, amount, nbtData) {
+	override fun toString() = "Slot{$index: ${amount}x $itemId:$meta $nbtData}"
+
+	override fun equals(other: Any?): Boolean {
+		if (this === other) return true
+		if (javaClass != other?.javaClass) return false
+		other as MutableSlot
+		if (index != other.index) return false
+		return super.equals(other)
+	}
+
+	override fun hashCode(): Int {
+		return index + 128 * super.hashCode()
+	}
+}
 
 fun Slot.copy() = MutableSlot(index, itemId, meta, amount, nbtData)
 
