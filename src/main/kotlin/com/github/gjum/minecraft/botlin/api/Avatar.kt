@@ -9,10 +9,10 @@ interface Avatar {
 	val playerEntity: PlayerEntity?
 	val world: World?
 	val playerList: Map<UUID, PlayerListItem>
-	val window: Window?
+	val window: Window
 	val hotbarSelection: Int?
 
-	val mainHandSlot: Slot? get() = window?.hotbar?.get(hotbarSelection ?: 0)
+	val mainHandSlot: Slot get() = window.hotbar[hotbarSelection ?: 0]
 
 	/**
 	 * Indicates if the account has received all its state yet,

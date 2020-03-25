@@ -158,7 +158,7 @@ class MutableBot(
 		param: WindowActionParam,
 		updateSlots: () -> Unit
 	) {
-		val myWindowId = window!!.windowId
+		val myWindowId = window.windowId
 		val myActionId = ++actionId
 		sendPacket(ClientWindowActionPacket(
 			myWindowId, myActionId, slot.index, slot.toStack(), action, param))
@@ -175,9 +175,9 @@ class MutableBot(
 
 	private suspend fun sendClickAndAwaitResult(
 		slotNr: Int, action: WindowAction, param: WindowActionParam, updateSlots: () -> Unit
-	) = sendClickAndAwaitResult(avatar.window!!.slots[slotNr], action, param, updateSlots)
+	) = sendClickAndAwaitResult(avatar.window.slots[slotNr], action, param, updateSlots)
 
-	private fun swapSlots(a: MutableSlot, b: MutableSlot) = avatar.window!!.apply {
+	private fun swapSlots(a: MutableSlot, b: MutableSlot) = avatar.window.apply {
 		val slot = a.copy()
 		a.updateFrom(b)
 		b.updateFrom(slot)
@@ -197,7 +197,7 @@ class MutableBot(
 	 * If all these are exhausted, selects the next empty slot there.
 	 */
 	private fun findShiftClickDest(slot: Slot): MutableSlot? {
-		val oppositeSlots = avatar.window!!.slots // TODO opposite slots
+		val oppositeSlots = avatar.window.slots // TODO opposite slots
 		return oppositeSlots.firstOrNull { !it.full && it.stacksWith(slot) }
 			?: oppositeSlots.firstOrNull { it.empty }
 	}
@@ -205,7 +205,7 @@ class MutableBot(
 	override suspend fun swapHotbar(slotNr: Int, hbIndex: Int) {
 		val param = MoveToHotbarParam.values()[hbIndex]
 		sendClickAndAwaitResult(slotNr, WindowAction.MOVE_TO_HOTBAR_SLOT, param) {
-			avatar.window!!.run { swapSlots(slots[slotNr], hotbar[hbIndex]) }
+			avatar.window.run { swapSlots(slots[slotNr], hotbar[hbIndex]) }
 		}
 	}
 
@@ -217,7 +217,7 @@ class MutableBot(
 			if (right) ClickItemParam.RIGHT_CLICK else ClickItemParam.LEFT_CLICK
 		}
 		sendClickAndAwaitResult(slotNr, action, param) {
-			avatar.window!!.run {
+			avatar.window.run {
 				val clicked = slots[slotNr]
 				if (shift) {
 					while (!clicked.empty) {
@@ -241,7 +241,7 @@ class MutableBot(
 	}
 
 	override suspend fun dropSlot(slotNr: Int, fullStack: Boolean) {
-		val slot = avatar.window!!.run { if (slotNr < 0) cursorSlot else slots[slotNr] }
+		val slot = avatar.window.run { if (slotNr < 0) cursorSlot else slots[slotNr] }
 		val param = if (fullStack) DropItemParam.DROP_SELECTED_STACK else DropItemParam.DROP_FROM_SELECTED
 		sendClickAndAwaitResult(slot, WindowAction.DROP_ITEM, param) {
 			slot.amount -= if (fullStack) 64 else 1
@@ -265,14 +265,14 @@ class MutableBot(
 		val bestSlot = findBestSlot(itemScore)
 			?: return Result.Failure(ItemNotFound("No matching slot found"))
 
-		if (window!!.isInHotbar(bestSlot.index)) {
+		if (window.isInHotbar(bestSlot.index)) {
 			// already in hotbar, no need to click any slots, just select it
 			selectHotbar(bestSlot.index - window.hotbarStart)
 			return Result.Success(bestSlot)
 		}
 
 		// swap bestSlot from inventory to hotbar, preferably to an empty slot
-		val targetHb = if (mainHandSlot?.empty == true) {
+		val targetHb = if (mainHandSlot.empty) {
 			hotbarSelection!!
 		} else {
 			window.hotbar.firstOrNull { it.empty }?.index
@@ -286,11 +286,9 @@ class MutableBot(
 	}
 
 	override fun closeWindow() {
-		window?.let { window ->
-			sendPacket(ClientCloseWindowPacket(window.windowId))
-			eventBoard.post(AvatarEvent.WindowClosed(window))
-			avatar.window = null // XXX load player inventory? or is that stored separately?
-		}
+		sendPacket(ClientCloseWindowPacket(window.windowId))
+		eventBoard.post(AvatarEvent.WindowClosed(window))
+		avatar.window = makePlayerWindow()
 	}
 
 	override suspend fun attackEntity(entity: Entity, hand: Hand, look: Boolean) {

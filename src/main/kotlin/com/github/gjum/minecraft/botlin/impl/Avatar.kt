@@ -35,7 +35,7 @@ class MutableAvatar(
 	override var world: MutableWorld? = null
 	override var playerEntity: MutablePlayerEntity? = null
 	override val playerList = mutableMapOf<UUID, MutablePlayerListItem>()
-	override var window: MutableWindow? = null
+	override var window: MutableWindow = makePlayerWindow()
 	override var hotbarSelection: Int? = null
 	var settings = ClientSettingsPacket("en_us", 10, ChatVisibility.FULL, true, emptyArray(), Hand.MAIN_HAND) // TODO expose client settings in interface
 
@@ -46,7 +46,7 @@ class MutableAvatar(
 		playerEntity = null
 		world = null
 		playerList.clear()
-		window = null
+		window = makePlayerWindow()
 		hotbarSelection = null
 	}
 
@@ -102,7 +102,7 @@ class MutableAvatar(
 						health = null
 						food = null
 						saturation = null
-						window = null
+						window = makePlayerWindow()
 					}
 				// TODO respawn initiation event
 			}
@@ -328,22 +328,21 @@ class MutableAvatar(
 			is ServerOpenWindowPacket -> {
 				val oldWindow = window
 				window = MutableWindow(packet.windowId, packet.type, packet.name)
-				if (oldWindow != null) emit(AvatarEvent.WindowClosed(oldWindow))
+				emit(AvatarEvent.WindowClosed(oldWindow))
 			}
 			is ServerCloseWindowPacket -> {
 				val oldWindow = window
 				window = makePlayerWindow()
-				if (oldWindow != null) emit(AvatarEvent.WindowClosed(oldWindow))
+				emit(AvatarEvent.WindowClosed(oldWindow))
 			}
 			is ServerWindowItemsPacket -> {
-				if (packet.windowId != window?.windowId
+				if (packet.windowId != window.windowId
 					&& packet.windowId == PLAYER_WINDOW_ID) {
 					// server is addressing the player window without opening it
-					window?.also { emit(AvatarEvent.WindowClosed(it)) }
+					emit(AvatarEvent.WindowClosed(window))
 					window = makePlayerWindow()
 				}
-				val window = window // cache because of concurrent modification
-				if (packet.windowId == window?.windowId) {
+				if (packet.windowId == window.windowId) {
 					val indices = packet.items.indices
 					val oldSlots = window.slots.map { it.copy() }
 					for ((i, itemStack) in packet.items.withIndex()) {
@@ -354,16 +353,14 @@ class MutableAvatar(
 				}
 			}
 			is ServerSetSlotPacket -> {
-				if (packet.windowId != window?.windowId
+				if (packet.windowId != window.windowId
 					&& packet.windowId == PLAYER_WINDOW_ID) {
 					// server is addressing the player window without opening it
-					window?.also { emit(AvatarEvent.WindowClosed(it)) }
+					emit(AvatarEvent.WindowClosed(window))
 					window = makePlayerWindow()
 				}
-				val window = window
 				val indices = IntRange(packet.slot, packet.slot)
 				if (packet.windowId == CURSOR_WINDOW_ID && packet.slot == CURSOR_SLOT_NR) {
-					window ?: throw IllegalStateException("Updating cursor slot while no window is open")
 					val oldSlots = listOf(window.cursorSlot.copy())
 					window.cursorSlot.updateFromStack(packet.item)
 					val newSlots = listOf(window.cursorSlot)
@@ -375,7 +372,7 @@ class MutableAvatar(
 						window.ready = true
 						emit(AvatarEvent.WindowReady(window))
 					}
-				} else if (packet.windowId == window?.windowId) {
+				} else if (packet.windowId == window.windowId) {
 					val oldSlots = window.slots.slice(indices).map { it.copy() }
 					window.slots[packet.slot].updateFromStack(packet.item)
 					val newSlots = window.slots.slice(indices)
@@ -383,14 +380,13 @@ class MutableAvatar(
 				}
 			}
 			is ServerWindowPropertyPacket -> {
-				val window = window // cache because of concurrent modification
-				if (packet.windowId == window?.windowId) {
+				if (packet.windowId == window.windowId) {
 					val oldValue = window.properties.put(packet.rawProperty, packet.value)
 					emit(AvatarEvent.WindowPropertyChanged(window, packet.rawProperty, oldValue, packet.value))
 				}
 			}
 			is ServerConfirmTransactionPacket -> {
-				if (!packet.accepted) window?.ready = false
+				if (!packet.accepted) window.ready = false // expecting server to update all slots now
 				emit(AvatarEvent.TransactionResponse(packet.windowId, packet.actionId, packet.accepted))
 			}
 		}

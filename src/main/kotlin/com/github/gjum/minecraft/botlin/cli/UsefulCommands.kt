@@ -80,19 +80,17 @@ fun registerUsefulCommands(commands: CommandRegistry, bot: Bot, parentScope: Cor
 	}
 	commands.registerCommand("inventory", "List all items in the current window.", listOf("inv", "showinv")
 	) { _, context ->
-		bot.window?.run {
-			val slotsLines = slots
-				.groupBy { it.itemId }
-				.filterKeys { it > 0 }
-				.mapValues { (_, slots) -> slots.sumBy { it.amount } }
-				.asIterable()
-				.joinToString("\n") { (i, n) ->
-					val displayName = bot.mcData.getItemInfo(i)?.displayName
-					val numPadded = n.toString().padStart(4)
-					"$numPadded $displayName"
-				}
-			context.respond("Inventory:\n$slotsLines")
-		} ?: context.respond("No window open")
+		val slotsLines = bot.window.slots
+			.groupBy { it.itemId } // TODO group items by id and meta
+			.filterKeys { it > 0 }
+			.mapValues { (_, slots) -> slots.sumBy { it.amount } }
+			.asIterable()
+			.joinToString("\n") { (i, n) ->
+				val displayName = bot.mcData.getItemInfo(i)?.displayName
+				val numPadded = n.toString().padStart(4)
+				"$numPadded $displayName"
+			}
+		context.respond("Inventory:\n$slotsLines")
 	}
 	commands.registerCommand("players", "Show connected players list.", listOf("online", "list")
 	) { _, context ->

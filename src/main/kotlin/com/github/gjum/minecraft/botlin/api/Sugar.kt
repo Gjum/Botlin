@@ -60,7 +60,7 @@ suspend fun setupBot(
 private data class ScoredSlot(val slot: Slot, val score: Int)
 
 fun Bot.findBestSlot(itemScore: (Slot) -> Int): Slot? {
-	val scoredSlots = window!!.slots.map { ScoredSlot(it, itemScore(it)) }
+	val scoredSlots = window.slots.map { ScoredSlot(it, itemScore(it)) }
 	val bestScore = scoredSlots.map { it.score }.max() ?: 0
 	if (bestScore <= 0) {
 		return null // no matching slot found
@@ -69,7 +69,7 @@ fun Bot.findBestSlot(itemScore: (Slot) -> Int): Slot? {
 	val bestSlots = scoredSlots.filter { it.score >= bestScore }
 
 	// prefer slots from hotbar
-	return bestSlots.firstOrNull { window!!.isInHotbar(it.slot.index) }?.slot
+	return bestSlots.firstOrNull { window.isInHotbar(it.slot.index) }?.slot
 		?: bestSlots.maxBy { it.score }?.slot
 }
 
