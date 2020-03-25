@@ -105,8 +105,7 @@ class BlockPhysics(private val bot: ApiBot) : ChildScope(bot), Physics {
 		}
 	}
 
-	private fun doPhysicsTick(event: AvatarEvent.ClientTick) {
-		if (!bot.alive) return
+	private fun updateVelocityFromMovementTarget() {
 		val movementTarget = this.movementTarget
 
 		var moveHorizVec = Vec3d.origin
@@ -136,6 +135,12 @@ class BlockPhysics(private val bot: ApiBot) : ChildScope(bot), Physics {
 
 		// movementTarget only influences x,z; rely on stepping/falling to change y
 		velocity = Vec3d(moveHorizVec.x, velY, moveHorizVec.z)
+	}
+
+	private fun doPhysicsTick(event: AvatarEvent.ClientTick) {
+		if (!bot.alive) return
+
+		updateVelocityFromMovementTarget()
 
 		// calculate collisions and adjusted position
 
@@ -144,7 +149,7 @@ class BlockPhysics(private val bot: ApiBot) : ChildScope(bot), Physics {
 		val movementBoxOrig = Shape(listOf(startBox, startBox + velocity)).outerBox!!
 		val movementBox = Box(
 			movementBoxOrig.min + Vec3d(0.0, -0.5, 0.0), // need to check below for fence/...
-			movementBoxOrig.max + Vec3d(0.0, STEPPING_HEIGHT, 0.0)) // add stepping height so we can reuse the obstacles when stepping
+			movementBoxOrig.max + Vec3d(0.0, 0.5, 0.0)) // add maximum stepping height so we can reuse the obstacles when stepping
 		val obstacles = mutableListOf<Box>()
 		for (z in movementBox.min.z.floor..movementBox.max.z.floor) {
 			for (x in movementBox.min.x.floor..movementBox.max.x.floor) {
@@ -167,31 +172,52 @@ class BlockPhysics(private val bot: ApiBot) : ChildScope(bot), Physics {
 
 		// try stepping, update collisions
 		if (bumpedIntoWall != null && onGround) {
-			// TODO maybe not +STEPPING_HEIGHT but set feet to the top edge of the collided block if steppable
-			val startBoxStepping = startBox + Vec3d(0.0, STEPPING_HEIGHT, 0.0)
 			val moveVecStepping = velocity.copy(y = 0.0) // gravity would pull us into the step, preventing stepping
-			val (newBoxStepping, collisionsStepping) = calcMoveDest(moveVecStepping, startBoxStepping, obstacles)
-			// consider stepping preferable if at least one movement component is larger then without stepping
-			val (sx, sy, sz) = newBoxStepping.min - startBoxStepping.min
-			val (nx, ny, nz) = newBox.min - startBox.min
-			val stepIsValid = abs(sx) > abs(nx) || abs(sy) > abs(ny) || abs(sz) > abs(nz)
-			if (stepIsValid) {
-				newBox = newBoxStepping
-				collisions = collisionsStepping
-				bumpedIntoWall = collisions.find { it.face.axis != Axis.Y }
+			// TODO find step even if it is shorter than velocity
+			val feetBox = playerBox.copy(max = playerBox.max.copy(y = 0.5)) + position + moveVecStepping
+			val feetObstacles = obstacles.filter { it.intersects(feetBox) }
+			val steppingHeight = feetObstacles.map { it.max.y }.max()
+				?.let { it - position.y } // convert to relative height
+				?: 0.0 // feet didn't collide, only the head did
+			if (steppingHeight <= 0.5) {
+				val startBoxStepping = startBox + Vec3d(0.0, steppingHeight, 0.0)
+				val (newBoxStepping, collisionsStepping) = calcMoveDest(moveVecStepping, startBoxStepping, obstacles)
+				// consider stepping preferable if at least one movement component is larger than without stepping
+				val (sx, sy, sz) = newBoxStepping.min - startBoxStepping.min
+				val (nx, ny, nz) = newBox.min - startBox.min
+				val stepIsValid = abs(sx) > abs(nx) || abs(sy) > abs(ny) || abs(sz) > abs(nz)
+				if (stepIsValid) {
+					newBox = newBoxStepping
+					collisions = collisionsStepping
+					bumpedIntoWall = collisions.find { it.face.axis != Axis.Y }
+				}
 			}
 		}
 
 		val bumpedIntoCeiling = collisions.find { it.face == Cardinal.DOWN }
 		val bumpedIntoFloor = collisions.find { it.face == Cardinal.UP }
 
+		position = newBox.min - playerBox.min
+		onGround = bumpedIntoFloor != null
+
+		sendPosLook()
+
 		if (bumpedIntoCeiling != null || bumpedIntoFloor != null) {
 			velocity = velocity.copy(y = 0.0)
 		}
 
-		position = newBox.min - playerBox.min
-		onGround = bumpedIntoFloor != null
+		if (bumpedIntoFloor != null) {
+			jumpLandedContinuation?.resume(Unit)
+			jumpLandedContinuation = null
+		}
 
+		if (bumpedIntoWall != null) {
+			// TODO stopSprinting()
+			arrivalContinuation?.cancel(MoveError("Bumped into wall"))
+		}
+	}
+
+	private fun sendPosLook() {
 		if (position.anyNaN()) {
 			Logger.getLogger("Physics").warning(
 				"NaN in position $position, velocity $velocity")
@@ -230,16 +256,6 @@ class BlockPhysics(private val bot: ApiBot) : ChildScope(bot), Physics {
 		prevLook = look
 
 		bot.post(AvatarEvent.PosLookSent(position, look))
-
-		if (bumpedIntoFloor != null) {
-			jumpLandedContinuation?.resume(Unit)
-			jumpLandedContinuation = null
-		}
-
-		if (bumpedIntoWall != null) {
-			// TODO stopSprinting()
-			arrivalContinuation?.cancel(MoveError("Bumped into wall"))
-		}
 	}
 
 	private fun onTeleportedByServer(event: AvatarEvent.TeleportedByServer) {
