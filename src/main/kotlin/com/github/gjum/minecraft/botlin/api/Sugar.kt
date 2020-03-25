@@ -16,11 +16,11 @@ val EAST = Cardinal.EAST.asVec3i // Vec3d(1.0, 0.0, 0.0)
 val DOWN = Cardinal.DOWN.asVec3i // Vec3d(0.0, -1.0, 0.0)
 val UP = Cardinal.UP.asVec3i // Vec3d(0.0, 1.0, 0.0)
 
-val Bot.forward get() = playerEntity!!.look!!
-val Bot.backward get() = forward.run { Look(yaw + Math.PI, pitch) }
+val Bot.forward get() = playerEntity!!.look!!.asVec3d
+val Bot.backward get() = playerEntity!!.look!!.run { Look(yaw + Math.PI, pitch) }.asVec3d
 val Bot.feet get() = playerEntity!!.position!!
-val Bot.inFront get() = feet + forward.asVec3d
-val Bot.behind get() = feet + backward.asVec3d
+val Bot.inFront get() = feet + forward
+val Bot.behind get() = feet + backward
 
 fun Bot.isBlock(stack: Stack) = mcData.items[stack.itemId]?.block != null
 
