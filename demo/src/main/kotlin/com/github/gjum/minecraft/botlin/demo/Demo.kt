@@ -32,13 +32,12 @@ fun main() = runBlocking {
 
 			val slot = holdItem { slot ->
 				if (slot.empty) return@holdItem false
-				val block = mcData.getItemInfo(slot.itemId)?.block
-					?: return@holdItem false // item is not a block
+				val block = slot.item.block ?: return@holdItem false // item is not a block
 				return@holdItem block.states[0].isSolid
 			}.getOrThrow()
 
 			delay(1000)
-			println("pillaring up with ${slot.name}")
+			println("pillaring up with ${slot.displayName}")
 
 			val floorPos = playerEntity!!.position!!
 			jumpByHeight(1.0)

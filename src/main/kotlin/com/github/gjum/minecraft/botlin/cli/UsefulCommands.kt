@@ -81,12 +81,11 @@ fun registerUsefulCommands(commands: CommandRegistry, bot: Bot, parentScope: Cor
 	commands.registerCommand("inventory", "List all items in the current window.", listOf("inv", "showinv")
 	) { _, context ->
 		val slotsLines = bot.window.slots
-			.groupBy { it.itemId } // TODO group items by id and meta
-			.filterKeys { it > 0 }
+			.filter { !it.empty }
+			.groupBy { it.item.displayName }
 			.mapValues { (_, slots) -> slots.sumBy { it.amount } }
 			.asIterable()
-			.joinToString("\n") { (i, n) ->
-				val displayName = bot.mcData.getItemInfo(i)?.displayName
+			.joinToString("\n") { (displayName, n) ->
 				val numPadded = n.toString().padStart(4)
 				"$numPadded $displayName"
 			}
@@ -127,10 +126,11 @@ fun registerUsefulCommands(commands: CommandRegistry, bot: Bot, parentScope: Cor
 			.distinct()
 			.filterNotNull()
 			.sortedBy { it.id }
-			.joinToString("\n") {
-				val displayName = bot.mcData.getBlockStateInfo(it)?.block?.displayName
-					?: error("Unknown block id $it")
-				val idPadded = it.id.toString().padStart(4)
+			.joinToString("\n") { blockState ->
+				val displayName = bot.mcData.getBlockStateInfo(blockState)
+					?.block?.displayName
+					?: error("Unknown block id $blockState")
+				val idPadded = blockState.id.toString().padStart(4)
 				"$idPadded $displayName"
 			}
 		val dyKey = "${dy2ansi(-2)}--$ansiReset ${dy2ansi(-1)}-1$ansiReset ${dy2ansi(0)}0$ansiReset ${dy2ansi(1)}+1$ansiReset ${dy2ansi(2)}++$ansiReset"
@@ -167,14 +167,14 @@ fun registerUsefulCommands(commands: CommandRegistry, bot: Bot, parentScope: Cor
 	) cmd@{ cmdLine, context ->
 		val args = cmdLine.split("[ :]+".toRegex())
 		val (itemId, itemMeta) = try {
-			Pair(args.getOrNull(1)?.toInt() ?: error("itemId is required"),
+			Pair(args.getOrNull(1) ?: error("itemId is required"),
 				args.getOrNull(2)?.toInt())
 		} catch (e: Exception) {
 			return@cmd context.respond("Usage: $usage")
 		}
 		parentScope.launch {
 			bot.holdItem {
-				it.itemId == itemId
+				it.item.idName == itemId
 					&& (itemMeta == null || itemMeta == it.meta)
 			}
 		}
@@ -187,7 +187,7 @@ fun registerUsefulCommands(commands: CommandRegistry, bot: Bot, parentScope: Cor
 				args.getOrNull(1)?.let {
 					if (it == "all") Int.MAX_VALUE else it.toInt()
 				} ?: error("amount is required"),
-				args.getOrNull(2)?.toInt() ?: error("itemId is required"),
+				args.getOrNull(2) ?: error("itemId is required"),
 				args.getOrNull(3)?.toInt())
 		} catch (e: Exception) {
 			return@cmd context.respond("Usage: $usage")
@@ -199,7 +199,7 @@ fun registerUsefulCommands(commands: CommandRegistry, bot: Bot, parentScope: Cor
 				val slot = bot.findBestSlot {
 					when {
 						// ignore non-matching items
-						it.itemId != itemId -> 0
+						it.item.idName != itemId -> 0
 						itemMeta != null && itemMeta != it.meta -> 0
 						// prefer largest stack that can be fully dropped
 						it.amount <= leftToDrop -> 64 + it.amount

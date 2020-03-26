@@ -10,20 +10,17 @@ import com.google.gson.JsonObject
 import java.util.logging.Logger
 
 data class BlockStateInfo(
-	val nr: Int,
-	val meta: Int,
+	val stateNr: Int,
 	val block: BlockInfo,
 	val collisionShape: Shape
 ) {
-	override fun toString() = "BlockStateInfo{${block.id} $nr:$meta}"
+	override fun toString() = "BlockStateInfo{${block.idName} ${block.idNr}:$stateNr}"
 }
 
 data class BlockInfo(
-	val nr: Int,
-	val id: String,
-	val displayName: String,
-	val item: ItemInfo?,
-	val stackSize: Int,
+	val idNr: Int,
+	val idName: String,
+	val item: ItemInfo,
 	val transparent: Boolean,
 	val filterLight: Int,
 	val emitLight: Int,
@@ -32,21 +29,23 @@ data class BlockInfo(
 	val droppedItems: Collection<ItemInfo>,
 	var states: List<BlockStateInfo>
 ) {
-	override fun toString() = "BlockInfo{$id nr=$nr}"
+	val displayName get() = item.displayName
+
+	override fun toString() = "BlockInfo{$idName nr=$idNr}"
 }
 
 private fun indexForIdMeta(id: Int, meta: Int) = id * 16 + meta
 
 class BlockInfoStorage(blocksJson: JsonArray, collisionShapesJson: JsonObject, itemInfos: ItemInfoStorage) {
 	private val blockStateInfos = mutableMapOf<Int, BlockStateInfo>()
-	private val blockInfosById = mutableMapOf<String, BlockInfo>()
+	private val blockInfosByIdName = mutableMapOf<String, BlockInfo>()
 
 	operator fun get(blockState: BlockState): BlockStateInfo? {
 		return blockStateInfos[indexForIdMeta(blockState.id, blockState.data)]
 	}
 
-	operator fun get(blockId: String): BlockInfo? {
-		return blockInfosById[blockId]
+	operator fun get(idName: String): BlockInfo? {
+		return blockInfosByIdName[idName]
 	}
 
 	init {
@@ -54,45 +53,41 @@ class BlockInfoStorage(blocksJson: JsonArray, collisionShapesJson: JsonObject, i
 
 		for (blockJson in blocksJson) {
 			val o = blockJson.asJsonObject
-			val id = o.get("name").asString
+			val idName = o.get("name").asString
 			try {
 				val block = BlockInfo(
-					id = id,
-					nr = o.get("id").asInt,
-					displayName = o.get("displayName").asString,
-					item = itemInfos[id],
-					stackSize = o.getOrNull("stackSize")?.asInt ?: 64,
+					idNr = o.get("id").asInt,
+					idName = idName,
+					item = itemInfos[idName]!!,
 					transparent = o.get("transparent").asBoolean,
 					filterLight = o.getOrNull("filterLight")?.asInt ?: 0,
 					emitLight = o.getOrNull("emitLight")?.asInt ?: 0,
 					diggable = o.get("diggable").asBoolean,
 					hardness = o.getOrNull("hardness")?.asFloat ?: Float.POSITIVE_INFINITY,
-					droppedItems = emptyList(), // XXX o.get("drops").asJsonArray.map { itemInfos[it.asInt]!! },
+					droppedItems = emptyList(), // TODO o.get("drops").asJsonArray.map { itemInfos[it.asJsonObject.get("drop").asInt]!! },
 					states = emptyList()
 				)
 
-				val idNum = o.get("id").asInt
-				val collisionShapesByStateIndex = collisionShapes[block.id]
+				val collisionShapesByStateIndex = collisionShapes[block.idName]
 					?: let {
 						Logger.getLogger("BlockInfoStorage").warning(
-							"Failed to load collision shape for block '$id', assuming solid")
+							"Failed to load collision shape for block '$idName', assuming solid")
 						ShapePerBlockState.SOLID
 					}
 				block.states = (0 until 16).map { meta ->
 					BlockStateInfo(
-						nr = idNum,
-						meta = meta,
+						stateNr = meta,
 						block = block,
 						collisionShape = collisionShapesByStateIndex[meta]
 					).also {
-						blockStateInfos[indexForIdMeta(it.nr, it.meta)] = it
+						blockStateInfos[indexForIdMeta(it.block.idNr, it.stateNr)] = it
 					}
 				}
 
-				blockInfosById[block.id] = block
-				block.item?.block = block
+				blockInfosByIdName[block.idName] = block
+				block.item.block = block
 			} catch (e: Throwable) {
-				System.err.println("while reading block '$id' $o")
+				System.err.println("while reading block '$idName' $o")
 				throw e
 			}
 		}

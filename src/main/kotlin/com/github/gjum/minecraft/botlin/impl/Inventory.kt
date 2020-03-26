@@ -3,85 +3,83 @@ package com.github.gjum.minecraft.botlin.impl
 import com.github.gjum.minecraft.botlin.api.Slot
 import com.github.gjum.minecraft.botlin.api.Stack
 import com.github.gjum.minecraft.botlin.api.Window
+import com.github.gjum.minecraft.botlin.data.ItemInfo
+import com.github.gjum.minecraft.botlin.data.MinecraftData
 import com.github.steveice10.mc.protocol.data.game.entity.metadata.ItemStack
 import com.github.steveice10.mc.protocol.data.game.window.WindowType
 import com.github.steveice10.opennbt.tag.builtin.CompoundTag
 
 open class MutableStack(
-	itemIdInitially: Int,
+	itemInitially: ItemInfo,
 	override var meta: Int,
 	amountInitially: Int,
 	override var nbtData: CompoundTag?
 ) : Stack {
-	override var itemId = itemIdInitially
+	override var item = itemInitially
 		set(value) {
 			field = value
-			if (value <= 0 && amount != 0) amount = 0 // empty slot
+			if (value.idNr == 0 && amount != 0) amount = 0 // empty slot
 		}
 
 	override var amount = amountInitially
 		set(value) {
 			field = value
-			if (value <= 0 && itemId != 0) itemId = 0 // empty slot
+			if (value <= 0 && item.idNr != 0) item = ItemInfo.AIR // empty slot
 		}
 
-	override val maxStackSize: Int get() = TODO("look up stack size in mc-data")
-	override val name: String get() = "TODO" // TODO look up slot name in mc-data
-	override val customName: String? get() = null // TODO look up custom name in NBT
-
-	override fun toString() = "Stack{${amount}x $itemId:$meta $nbtData}"
+	override fun toString() = "Stack{${amount}x $item $nbtData}"
 
 	override fun equals(other: Any?): Boolean {
 		if (this === other) return true
 		if (javaClass != other?.javaClass) return false
 		other as MutableStack
-		if (itemId != other.itemId) return false
+		if (item.idNr != other.item.idNr) return false
 		if (amount != other.amount) return false
-		if (meta != other.meta) return false
 		if (nbtData != other.nbtData) return false
 		return true
 	}
 
 	override fun hashCode(): Int {
 		var result = nbtData?.hashCode() ?: 0
-		result = 256 * result + itemId
+		result = 256 * result + item.idNr
 		result = 16 * result + meta
 		result = 64 * result + amount
 		return result
 	}
-}
 
-fun MutableStack.updateFrom(stack: Stack) {
-	itemId = stack.itemId
-	meta = stack.meta
-	amount = stack.amount
-	nbtData = stack.nbtData
-}
+	fun updateFrom(stack: Stack) {
+		item = stack.item
+		meta = stack.meta
+		amount = stack.amount
+		nbtData = stack.nbtData
+	}
 
-fun MutableStack.updateFromStack(itemStack: ItemStack?) {
-	if (itemStack == null) {
-		itemId = 0
-		meta = 0
-		amount = 0
-		nbtData = null
-	} else {
-		itemId = itemStack.id
-		meta = itemStack.data
-		amount = itemStack.amount
-		nbtData = itemStack.nbt
+	fun updateFromStack(itemStack: ItemStack?, mcData: MinecraftData) {
+		if (itemStack == null) {
+			item = ItemInfo.AIR
+			meta = 0
+			amount = 0
+			nbtData = null
+		} else {
+			item = mcData.items[itemStack.id]
+				?: error("Unknown item idNr: ${itemStack.id}")
+			meta = itemStack.data
+			amount = itemStack.amount
+			nbtData = itemStack.nbt
+		}
 	}
 }
 
-fun Stack.copy() = MutableStack(itemId, meta, amount, nbtData)
+fun Stack.copy() = MutableStack(item, meta, amount, nbtData)
 
 class MutableSlot(
 	override val index: Int,
-	itemId: Int,
+	item: ItemInfo,
 	meta: Int,
 	amount: Int,
 	nbtData: CompoundTag?
-) : Slot, MutableStack(itemId, meta, amount, nbtData) {
-	override fun toString() = "Slot{$index: ${amount}x $itemId:$meta $nbtData}"
+) : Slot, MutableStack(item, meta, amount, nbtData) {
+	override fun toString() = "Slot{$index: ${amount}x $item nbt=$nbtData}"
 
 	override fun equals(other: Any?): Boolean {
 		if (this === other) return true
@@ -96,9 +94,9 @@ class MutableSlot(
 	}
 }
 
-fun Slot.copy() = MutableSlot(index, itemId, meta, amount, nbtData)
+fun Slot.copy() = MutableSlot(index, item, meta, amount, nbtData)
 
-fun makeEmptySlot(index: Int) = MutableSlot(index, 0, 0, 0, null)
+fun makeEmptySlot(index: Int) = MutableSlot(index, ItemInfo.AIR, 0, 0, null)
 
 const val PLAYER_WINDOW_ID = 0
 const val CURSOR_WINDOW_ID = -1

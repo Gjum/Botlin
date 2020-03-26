@@ -1,6 +1,7 @@
 package com.github.gjum.minecraft.botlin.api
 
 import com.github.gjum.minecraft.botlin.data.BlockStateInfo
+import com.github.gjum.minecraft.botlin.data.MinecraftData
 import com.github.gjum.minecraft.botlin.impl.ClientConnectionImpl
 import com.github.gjum.minecraft.botlin.impl.EventBoardImpl
 import com.github.gjum.minecraft.botlin.impl.MutableAvatar
@@ -22,18 +23,17 @@ val Bot.feet get() = playerEntity!!.position!!
 val Bot.inFront get() = feet + forward
 val Bot.behind get() = feet + backward
 
-fun Bot.isBlock(stack: Stack) = mcData.items[stack.itemId]?.block != null
-
 val BlockStateInfo.isSolid get() = collisionShape.boxes.isNotEmpty()
 
 suspend fun setupClient(
 	auth: AuthenticationProvider,
-	eventBoard: EventBoardImpl<AvatarEvent>
+	eventBoard: EventBoardImpl<AvatarEvent>,
+	mcData: MinecraftData
 ): MutableAvatar {
 	val (proto, authError) = auth.authenticate()
 	if (proto == null) throw IllegalArgumentException("Failed to setup Avatar: $authError", authError)
 	val profile = proto.profile
-	return MutableAvatar(profile, eventBoard)
+	return MutableAvatar(profile, mcData, eventBoard)
 }
 
 suspend fun setupBot(
@@ -48,9 +48,10 @@ suspend fun setupBot(
 		System.getProperty("mcAuthCredentials") ?: ".credentials",
 		System.getProperty("mcAuthCache") ?: ".auth_tokens.json"
 	)
-	val avatar = setupClient(auth, eventBoard)
+	val mcData = MinecraftData("mcdata/1.12.2")
+	val avatar = setupClient(auth, eventBoard, mcData)
 	val connection = ClientConnectionImpl(eventBoard, avatar, auth)
-	val bot = MutableBot(avatar, eventBoard, connection, parentScope)
+	val bot = MutableBot(avatar, eventBoard, connection, mcData, parentScope)
 	for (behavior in extraBehaviors) {
 		bot.registerBehavior(behavior(bot))
 	}

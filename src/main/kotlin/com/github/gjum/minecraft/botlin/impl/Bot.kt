@@ -39,6 +39,7 @@ class MutableBot(
 	override val avatar: MutableAvatar,
 	private val eventBoard: EventBoard<AvatarEvent>,
 	private val connection: ClientConnectionImpl,
+	override val mcData: MinecraftData,
 	coroutineScope: CoroutineScope
 ) : ChildScope(coroutineScope),
 	ApiBot,
@@ -50,8 +51,6 @@ class MutableBot(
 	val ticker = ClientTicker(this)
 	val physics: Physics = BlockPhysics(this)
 	private val behaviors = mutableListOf<Behavior>()
-
-	override val mcData = MinecraftData("mcdata/1.12.2")
 
 	fun registerBehavior(behavior: Behavior) {
 		behaviors.add(behavior)
@@ -245,7 +244,6 @@ class MutableBot(
 		val param = if (fullStack) DropItemParam.DROP_SELECTED_STACK else DropItemParam.DROP_FROM_SELECTED
 		sendClickAndAwaitResult(slot, WindowAction.DROP_ITEM, param) {
 			slot.amount -= if (fullStack) 64 else 1
-			if (slot.empty) slot.itemId = 0
 		}
 	}
 

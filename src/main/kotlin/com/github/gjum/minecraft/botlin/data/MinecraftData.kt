@@ -9,6 +9,8 @@ import java.io.FileReader
 
 class MinecraftData(mcDataDir: String) {
 	val items = ItemInfoStorage(
+		// in 1.12, blocks are items too
+		loadJson("$mcDataDir/blocks.json", JsonArray::class.java),
 		loadJson("$mcDataDir/items.json", JsonArray::class.java))
 
 	val blocks = BlockInfoStorage(

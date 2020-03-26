@@ -1,6 +1,7 @@
 package com.github.gjum.minecraft.botlin.impl
 
 import com.github.gjum.minecraft.botlin.api.*
+import com.github.gjum.minecraft.botlin.data.MinecraftData
 import com.github.steveice10.mc.auth.data.GameProfile
 import com.github.steveice10.mc.protocol.data.game.PlayerListEntryAction
 import com.github.steveice10.mc.protocol.data.game.entity.player.GameMode
@@ -28,6 +29,7 @@ import java.util.logging.Logger
 
 class MutableAvatar(
 	override val profile: GameProfile,
+	val mcData: MinecraftData,
 	private val eventBoard: EventBoardImpl<AvatarEvent>
 ) : Avatar {
 	private val logger = Logger.getLogger(this::class.java.name)
@@ -346,7 +348,7 @@ class MutableAvatar(
 					val indices = packet.items.indices
 					val oldSlots = window.slots.map { it.copy() }
 					for ((i, itemStack) in packet.items.withIndex()) {
-						window.slots[i].updateFromStack(itemStack)
+						window.slots[i].updateFromStack(itemStack, mcData)
 					}
 					val newSlots = window.slots
 					emit(AvatarEvent.SlotsChanged(window, indices, oldSlots, newSlots))
@@ -362,7 +364,7 @@ class MutableAvatar(
 				val indices = IntRange(packet.slot, packet.slot)
 				if (packet.windowId == CURSOR_WINDOW_ID && packet.slot == CURSOR_SLOT_NR) {
 					val oldSlots = listOf(window.cursorSlot.copy())
-					window.cursorSlot.updateFromStack(packet.item)
+					window.cursorSlot.updateFromStack(packet.item, mcData)
 					val newSlots = listOf(window.cursorSlot)
 					emit(AvatarEvent.SlotsChanged(window, indices, oldSlots, newSlots))
 
@@ -374,7 +376,7 @@ class MutableAvatar(
 					}
 				} else if (packet.windowId == window.windowId) {
 					val oldSlots = window.slots.slice(indices).map { it.copy() }
-					window.slots[packet.slot].updateFromStack(packet.item)
+					window.slots[packet.slot].updateFromStack(packet.item, mcData)
 					val newSlots = window.slots.slice(indices)
 					emit(AvatarEvent.SlotsChanged(window, indices, oldSlots, newSlots))
 				}

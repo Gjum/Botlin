@@ -1,29 +1,32 @@
 package com.github.gjum.minecraft.botlin.api
 
+import com.github.gjum.minecraft.botlin.data.ItemInfo
 import com.github.steveice10.mc.protocol.data.game.entity.metadata.ItemStack
 import com.github.steveice10.mc.protocol.data.game.window.WindowType
 import com.github.steveice10.opennbt.tag.builtin.CompoundTag
 
 interface Stack {
-	val itemId: Int
+	val item: ItemInfo
 	val meta: Int
 	val amount: Int
 	val nbtData: CompoundTag?
-	val maxStackSize: Int
-	val name: String
-	val customName: String?
 
-	val empty: Boolean get() = amount <= 0 || itemId <= 0
+	val empty: Boolean get() = amount <= 0 || item.idNr <= 0
 	val full: Boolean get() = amount >= maxStackSize
 
+	val maxStackSize: Int get() = item.maxStackSize
+	val displayName: String get() = item.variantNames[meta] ?: item.displayName
+	val customName: String? get() = null // TODO look up custom name in NBT
+
 	fun stacksWith(other: Stack): Boolean {
-		if (itemId != other.itemId) return false
+		if (item.idNr != other.item.idNr) return false
+		if (meta != other.meta) return false
 		if (maxStackSize <= 1) return false
 		if (nbtData != other.nbtData) return false // TODO implement stacking correctly (NBT data comparison)
 		return true
 	}
 
-	fun toStack() = ItemStack(itemId, meta, amount, nbtData)
+	fun toStack() = ItemStack(item.idNr, meta, amount, nbtData)
 }
 
 interface Slot : Stack {
