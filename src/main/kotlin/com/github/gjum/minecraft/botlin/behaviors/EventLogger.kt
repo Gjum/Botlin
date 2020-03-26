@@ -39,10 +39,10 @@ class EventLogger(bot: ApiBot) : Behavior(bot) {
 			logger.info("Player left: ${entry.displayName?.toAnsi() ?: entry.profile.name}")
 		}
 		setup<AvatarEvent.WindowReady> {
-			logger.info("Window ready: ${newWindow.windowTitle} with ${newWindow.slotCount} slots")
+			logger.info("Window ready: ${newWindow.windowTitle} with ${newWindow.slots.size} slots")
 		}
 		setup<AvatarEvent.WindowClosed> {
-			logger.info("Window closed: ${oldWindow.windowTitle} with ${oldWindow.slotCount} slots")
+			logger.info("Window closed: ${oldWindow.windowTitle} with ${oldWindow.slots.size} slots")
 		}
 		setup<AvatarEvent.TeleportedByServer> {
 			logger.warning("Position changed by server to $newPos")

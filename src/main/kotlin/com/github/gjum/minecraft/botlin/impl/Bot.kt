@@ -286,7 +286,7 @@ class MutableBot(
 	override fun closeWindow() {
 		sendPacket(ClientCloseWindowPacket(window.windowId))
 		eventBoard.post(AvatarEvent.WindowClosed(window))
-		avatar.window = makePlayerWindow()
+		avatar.window = avatar.playerWindow
 	}
 
 	override suspend fun attackEntity(entity: Entity, hand: Hand, look: Boolean) {

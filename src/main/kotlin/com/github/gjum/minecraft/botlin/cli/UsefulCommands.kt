@@ -127,7 +127,7 @@ fun registerUsefulCommands(commands: CommandRegistry, bot: Bot, parentScope: Cor
 			.filterNotNull()
 			.sortedBy { it.id }
 			.joinToString("\n") { blockState ->
-				val displayName = bot.mcData.getBlockStateInfo(blockState)
+				val displayName = bot.mcData.blocks[blockState]
 					?.block?.displayName
 					?: error("Unknown block id $blockState")
 				val idPadded = blockState.id.toString().padStart(4)

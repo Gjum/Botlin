@@ -18,10 +18,7 @@ class MinecraftData(mcDataDir: String) {
 		loadJson("$mcDataDir/blockCollisionShapes.json", JsonObject::class.java),
 		items)
 
-	fun getBlockStateInfo(blockState: BlockState) = blocks[blockState]
-	fun getBlockInfo(blockId: String) = blocks[blockId]
-	fun getItemInfo(itemId: String) = items[itemId]
-	fun getItemInfo(itemNr: Int) = items[itemNr]
+	val windows = WindowInfoStorage(loadJson("$mcDataDir/windows.json", JsonArray::class.java))
 }
 
 private fun <T> loadJson(path: String, type: Class<T>): T {

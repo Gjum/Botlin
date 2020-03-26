@@ -37,7 +37,8 @@ class MutableAvatar(
 	override var world: MutableWorld? = null
 	override var playerEntity: MutablePlayerEntity? = null
 	override val playerList = mutableMapOf<UUID, MutablePlayerListItem>()
-	override var window: MutableWindow = makePlayerWindow()
+	var playerWindow = makePlayerWindow()
+	override var window: MutableWindow = playerWindow
 	override var hotbarSelection: Int? = null
 	var settings = ClientSettingsPacket("en_us", 10, ChatVisibility.FULL, true, emptyArray(), Hand.MAIN_HAND) // TODO expose client settings in interface
 
@@ -48,7 +49,8 @@ class MutableAvatar(
 		playerEntity = null
 		world = null
 		playerList.clear()
-		window = makePlayerWindow()
+		playerWindow = makePlayerWindow()
+		window = playerWindow
 		hotbarSelection = null
 	}
 
@@ -72,6 +74,8 @@ class MutableAvatar(
 		}
 		return player
 	}
+
+	private fun makePlayerWindow() = MutableWindow(PLAYER_WINDOW_ID, null, "Player", 0, mcData.windows[null]!!)
 
 	fun handleClientPacket(packet: Packet) = synchronized(this) {
 		// XXX
@@ -104,7 +108,8 @@ class MutableAvatar(
 						health = null
 						food = null
 						saturation = null
-						window = makePlayerWindow()
+						playerWindow = makePlayerWindow()
+						window = playerWindow
 					}
 				// TODO respawn initiation event
 			}
@@ -329,12 +334,15 @@ class MutableAvatar(
 			}
 			is ServerOpenWindowPacket -> {
 				val oldWindow = window
-				window = MutableWindow(packet.windowId, packet.type, packet.name)
+				val windowInfo = mcData.windows[packet.type]
+					?: error("Unknown window type ${packet.type}")
+				window = MutableWindow(packet.windowId, packet.type, packet.name, packet.slots, windowInfo)
 				emit(AvatarEvent.WindowClosed(oldWindow))
 			}
 			is ServerCloseWindowPacket -> {
 				val oldWindow = window
-				window = makePlayerWindow()
+				window = playerWindow
+				window.ready = false
 				emit(AvatarEvent.WindowClosed(oldWindow))
 			}
 			is ServerWindowItemsPacket -> {
@@ -342,7 +350,8 @@ class MutableAvatar(
 					&& packet.windowId == PLAYER_WINDOW_ID) {
 					// server is addressing the player window without opening it
 					emit(AvatarEvent.WindowClosed(window))
-					window = makePlayerWindow()
+					window = playerWindow
+					window.ready = false
 				}
 				if (packet.windowId == window.windowId) {
 					val indices = packet.items.indices
@@ -359,7 +368,8 @@ class MutableAvatar(
 					&& packet.windowId == PLAYER_WINDOW_ID) {
 					// server is addressing the player window without opening it
 					emit(AvatarEvent.WindowClosed(window))
-					window = makePlayerWindow()
+					window = playerWindow
+					window.ready = false
 				}
 				val indices = IntRange(packet.slot, packet.slot)
 				if (packet.windowId == CURSOR_WINDOW_ID && packet.slot == CURSOR_SLOT_NR) {

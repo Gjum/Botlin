@@ -5,6 +5,7 @@ import com.github.gjum.minecraft.botlin.api.Stack
 import com.github.gjum.minecraft.botlin.api.Window
 import com.github.gjum.minecraft.botlin.data.ItemInfo
 import com.github.gjum.minecraft.botlin.data.MinecraftData
+import com.github.gjum.minecraft.botlin.data.WindowInfo
 import com.github.steveice10.mc.protocol.data.game.entity.metadata.ItemStack
 import com.github.steveice10.mc.protocol.data.game.window.WindowType
 import com.github.steveice10.opennbt.tag.builtin.CompoundTag
@@ -104,15 +105,25 @@ const val CURSOR_SLOT_NR = -1
 
 class MutableWindow(
 	override val windowId: Int,
-	override val windowType: WindowType?, // null means player window
-	override val windowTitle: String?
+	override val windowType: WindowType?,
+	override val windowTitle: String,
+	slotCount: Int,
+	private val windowInfo: WindowInfo
 ) : Window {
+	private val actualSlotCount = run {
+		if (slotCount > 0) slotCount
+		else if (windowType == null) 10 // player window, special case because of the offhand slot
+		else windowInfo.slots.values.map(IntRange::last).max() ?: 0
+	}
 	override var ready = false
-	override val slotCount = 10 // XXX window slotCount from mc-data
-	override val slots = MutableList(slotCount + 36, ::makeEmptySlot)
+	override val slots = MutableList(actualSlotCount + 36, ::makeEmptySlot)
 	override var cursorSlot = makeEmptySlot(CURSOR_SLOT_NR)
 	override val properties = mutableMapOf<Int, Int>()
-	// TODO access props by name, via mc-data
+
+	override fun getProperty(name: String) = properties[windowInfo.properties.indexOf(name)]
+		?: error("No such window property: '$name' in $windowType")
+
+	override val isStorage = slotCount > 0
 
 	// special case for player window: last slot is offhand
 	override val hotbarStart = if (windowId == PLAYER_WINDOW_ID) slots.size - 10 else slots.size - 9
@@ -121,7 +132,6 @@ class MutableWindow(
 	override val hotbar get() = slots.slice(hotbarStart until hotbarStart + 9)
 	override val inventory get() = slots.slice(inventoryStart until hotbarStart)
 
-	// TODO access special slots by name, via mc-data
+	override fun getSlotRange(name: String) = slots.slice(windowInfo.slots[name]
+		?: error("No such slot range: '$name' in $windowType"))
 }
-
-fun makePlayerWindow() = MutableWindow(PLAYER_WINDOW_ID, null, null)

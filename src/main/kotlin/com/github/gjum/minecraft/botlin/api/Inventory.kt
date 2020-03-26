@@ -37,13 +37,16 @@ interface Window {
 	val windowId: Int
 	/** null means player window */
 	val windowType: WindowType?
-	val windowTitle: String?
+	val windowTitle: String
 	val ready: Boolean
-	val slotCount: Int
 	val slots: List<Slot>
 	val cursorSlot: Slot
 	val properties: Map<Int, Int>
-	// TODO access window props by name, via mc-data
+
+	fun getProperty(name: String): Int
+
+	/** Whether or not the window slots will be persisted in the world. */
+	val isStorage: Boolean
 
 	val hotbarStart: Int
 	val hotbar: List<Slot>
@@ -52,4 +55,7 @@ interface Window {
 
 	fun isInHotbar(slotNr: Int) = slotNr - hotbarStart in 0..9
 	fun isInInventory(slotNr: Int) = slotNr - inventoryStart in 0..(9 * 3)
+	fun isInWindow(slotNr: Int) = slotNr in 0 until inventoryStart
+	fun getSlotRange(name: String): List<Slot>
+	fun getSlot(name: String) = getSlotRange(name)[0]
 }
