@@ -44,7 +44,7 @@ class InventoryTest {
 
 		Assertions.assertTrue(avatar.window.ready)
 
-		eventBoard.disable()
+		eventBoard.shutdown()
 	}
 
 	@Test
@@ -73,6 +73,6 @@ class InventoryTest {
 		Assertions.assertTrue(avatar.window.ready)
 		Assertions.assertEquals(MutableSlot(10, mcData.items[2]!!, 0, 3, null), avatar.window.slots[10])
 
-		eventBoard.disable()
+		eventBoard.shutdown()
 	}
 }

@@ -24,21 +24,21 @@ class ChildScopeTest {
 		Assertions.assertTrue(sibling.isActive)
 
 		// child closing should not kill parent/childB/sibling
-		parent.childA.disable()
+		parent.childA.shutdown()
 		Assertions.assertTrue(parent.isActive)
 		Assertions.assertFalse(parent.childA.isActive)
 		Assertions.assertTrue(parent.childB.isActive)
 		Assertions.assertTrue(sibling.isActive)
 
 		// parent closing should kill childB, but not sibling
-		parent.disable()
+		parent.shutdown()
 		Assertions.assertFalse(parent.isActive)
 		Assertions.assertFalse(parent.childA.isActive)
 		Assertions.assertFalse(parent.childB.isActive)
 		Assertions.assertTrue(sibling.isActive)
 
 		// kill sibling to clean up
-		sibling.disable()
+		sibling.shutdown()
 		Assertions.assertFalse(sibling.isActive)
 	}
 
@@ -58,7 +58,7 @@ class ChildScopeTest {
 		Assertions.assertFalse(child.launchJob.isActive)
 
 		// kill child to clean up
-		child.disable()
+		child.shutdown()
 		Assertions.assertFalse(child.isActive)
 	}
 
@@ -80,7 +80,7 @@ class ChildScopeTest {
 		Assertions.assertFalse(child.asyncDeferred.isActive)
 
 		// kill child to clean up
-		child.disable()
+		child.shutdown()
 		Assertions.assertFalse(child.isActive)
 	}
 

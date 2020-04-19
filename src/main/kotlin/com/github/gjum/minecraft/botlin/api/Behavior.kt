@@ -13,8 +13,8 @@ interface ApiBot : Bot, CoroutineScope, EventBoard<AvatarEvent> {
 }
 
 open class Behavior(protected val bot: ApiBot) : ChildScope(bot) {
-	override fun disable() {
+	override fun shutdown() {
 		bot.unregisterBehavior(this)
-		super.disable()
+		super.shutdown()
 	}
 }

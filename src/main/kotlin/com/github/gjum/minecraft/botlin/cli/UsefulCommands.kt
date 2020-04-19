@@ -53,7 +53,7 @@ fun registerUsefulCommands(commands: CommandRegistry, bot: Bot, parentScope: Cor
 	commands.registerCommand("quit", "Close the program.", listOf("exit", "close")
 	) { _, _ ->
 		bot.disconnect("Closing the program")
-		parentScope.coroutineContext.cancel()
+		bot.shutdown()
 		Cli.stop()
 	}
 	commands.registerCommand("connect <address>", "Connect to server.", listOf("login", "logon")

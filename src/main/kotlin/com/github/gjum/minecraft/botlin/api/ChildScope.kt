@@ -6,8 +6,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.newCoroutineContext
 
 open class ChildScope(parentScope: CoroutineScope) : CoroutineScope by parentScope.makeChildScope() {
-
-	open fun disable() {
+	open fun shutdown() {
 		coroutineContext.cancel()
 	}
 }

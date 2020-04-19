@@ -13,6 +13,12 @@ class ItemNotFound(message: String) : RuntimeException(message)
 interface Bot : Avatar, ClientConnection, EventSource<AvatarEvent> {
 	val mcData: MinecraftData
 
+	/**
+	 * Shut down any background processes, such as tickers and events.
+	 * The current implementation cancels the backing Job hierarchy.
+	 */
+	fun shutdown()
+
 	suspend fun respawn()
 
 	/**

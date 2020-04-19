@@ -25,6 +25,6 @@ object Main {
 
 		Cli.join()
 
-		Unit // JVM requires main method to return void
+		bot.shutdown()
 	}
 }

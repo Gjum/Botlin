@@ -65,6 +65,11 @@ class MutableBot(
 		return "Bot(${profile.name} $connStr at ${playerEntity?.position})"
 	}
 
+	override fun shutdown() {
+		disconnect("Shutting down the bot")
+		super.shutdown()
+	}
+
 	override suspend fun respawn() {
 		sendPacket(ClientRequestPacket(ClientRequest.RESPAWN))
 		avatar.playerEntity!!.reset()
