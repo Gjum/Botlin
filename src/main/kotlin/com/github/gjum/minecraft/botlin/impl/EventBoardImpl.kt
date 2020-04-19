@@ -16,7 +16,7 @@ class EventBoardImpl<T>(
 	// private val cancellers = mutableMapOf<Class<*>, MutableCollection<EventCanceller>>()
 	private val handlers = mutableMapOf<Class<*>, MutableCollection<SendChannel<*>>>()
 
-	override fun <E : T> post(eventType: Class<E>, payload: E): Deferred<Boolean> {
+	override fun <E : T> postAsync(eventType: Class<E>, payload: E): Deferred<Boolean> {
 		val handlersForEvent = synchronized(this) {
 			handlers[eventType]
 				?: return CompletableDeferred(true)
@@ -48,9 +48,9 @@ class EventBoardImpl<T>(
 		}
 	}
 
-	override fun <E : T> post(eventType: Class<E>, buildPayload: () -> E): Deferred<Boolean> {
+	override fun <E : T> postAsync(eventType: Class<E>, buildPayload: () -> E): Deferred<Boolean> {
 		if (eventType !in handlers) return CompletableDeferred(true)
-		return post(eventType, buildPayload())
+		return postAsync(eventType, buildPayload())
 	}
 
 	override fun <E : T> receiveAll(eventType: Class<E>): ReceiveChannel<E> {

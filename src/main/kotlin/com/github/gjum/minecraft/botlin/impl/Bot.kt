@@ -285,7 +285,7 @@ class MutableBot(
 
 	override fun closeWindow() {
 		sendPacket(ClientCloseWindowPacket(window.windowId))
-		eventBoard.post(AvatarEvent.WindowClosed(window))
+		eventBoard.postAsync(AvatarEvent.WindowClosed(window))
 		avatar.window = avatar.playerWindow
 	}
 

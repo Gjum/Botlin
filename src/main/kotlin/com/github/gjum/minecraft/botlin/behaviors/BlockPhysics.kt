@@ -255,7 +255,7 @@ class BlockPhysics(private val bot: ApiBot) : ChildScope(bot), Physics {
 		prevPos = position
 		prevLook = look
 
-		bot.post(AvatarEvent.PosLookSent(position, look))
+		bot.postAsync(AvatarEvent.PosLookSent(position, look))
 	}
 
 	private fun onTeleportedByServer(event: AvatarEvent.TeleportedByServer) {

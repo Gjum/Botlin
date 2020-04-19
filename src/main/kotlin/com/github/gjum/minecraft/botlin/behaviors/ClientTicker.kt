@@ -39,6 +39,6 @@ class ClientTicker(private val bot: ApiBot) : ChildScope(bot) {
 	}
 
 	private fun doTick() {
-		if (bot.ingame) bot.post(AvatarEvent.ClientTick())
+		if (bot.ingame) bot.postAsync(AvatarEvent.ClientTick())
 	}
 }

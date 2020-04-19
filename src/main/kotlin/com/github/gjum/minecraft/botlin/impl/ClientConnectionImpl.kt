@@ -3,7 +3,7 @@ package com.github.gjum.minecraft.botlin.impl
 import com.github.gjum.minecraft.botlin.api.AvatarEvent
 import com.github.gjum.minecraft.botlin.api.ClientConnection
 import com.github.gjum.minecraft.botlin.api.EventBoard
-import com.github.gjum.minecraft.botlin.api.post
+import com.github.gjum.minecraft.botlin.api.postAsync
 import com.github.gjum.minecraft.botlin.util.AuthenticationProvider
 import com.github.gjum.minecraft.botlin.util.normalizeServerAddress
 import com.github.gjum.minecraft.botlin.util.splitHostPort
@@ -55,7 +55,7 @@ class ClientConnectionImpl(
 		val c = connection ?: return
 		synchronized(avatar) {
 			if (endReason == null) {
-				eventBoard.post(AvatarEvent.Disconnected(c, reason, cause))
+				eventBoard.postAsync(AvatarEvent.Disconnected(c, reason, cause))
 			}
 			// avatar.reset() // remember the fail state
 			endReason = reason ?: "Intentionally disconnected"
@@ -72,7 +72,7 @@ class ClientConnectionImpl(
 	}
 
 	override fun connected(event: ConnectedEvent) {
-		eventBoard.post(AvatarEvent.Connected(event.session))
+		eventBoard.postAsync(AvatarEvent.Connected(event.session))
 	}
 
 	override fun disconnecting(event: DisconnectingEvent) {
@@ -99,6 +99,6 @@ class ClientConnectionImpl(
 			Logger.getLogger(this.javaClass.name).log(Level.SEVERE, "Failed to process received packet $packet", e)
 			throw e
 		}
-		eventBoard.post(AvatarEvent.ServerPacketReceived(packet))
+		eventBoard.postAsync(AvatarEvent.ServerPacketReceived(packet))
 	}
 }

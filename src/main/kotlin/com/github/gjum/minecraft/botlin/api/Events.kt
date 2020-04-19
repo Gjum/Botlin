@@ -25,7 +25,7 @@ interface EventSink<T> {
 	 * The value inside the returned Deferred indicates whether
 	 * the event was emitted (not cancelled).
 	 */
-	fun <E : T> post(eventType: Class<E>, payload: E): Deferred<Boolean>
+	fun <E : T> postAsync(eventType: Class<E>, payload: E): Deferred<Boolean>
 
 	/**
 	 * Only calls [buildPayload] if the event has at least one listener.
@@ -33,7 +33,7 @@ interface EventSink<T> {
 	 * The value inside the returned Deferred indicates whether
 	 * the event was emitted (not cancelled).
 	 */
-	fun <E : T> post(eventType: Class<E>, buildPayload: () -> E): Deferred<Boolean>
+	fun <E : T> postAsync(eventType: Class<E>, buildPayload: () -> E): Deferred<Boolean>
 }
 
 interface EventBoard<T> : EventSink<T>, EventSource<T>
@@ -47,14 +47,13 @@ interface EventCanceller<T> {
 }
 
 // shorthands that allow omitting the type token
-// TODO test that it receives the wanted events, and doesn't receive other events
 
-inline fun <reified E> EventSink<in E>.post(payload: E) = post(E::class.java, payload)
+inline fun <reified E> EventSink<in E>.postAsync(payload: E) = postAsync(E::class.java, payload)
 
 /**
  * Only calls [buildPayload] if the event has at least one listener.
  */
-inline fun <reified E> EventSink<in E>.post(noinline buildPayload: () -> E) = post(E::class.java, buildPayload)
+inline fun <reified E> EventSink<in E>.postAsync(noinline buildPayload: () -> E) = postAsync(E::class.java, buildPayload)
 
 inline fun <reified E> EventSource<in E>.receiveAll() = receiveAll(E::class.java)
 

@@ -55,7 +55,7 @@ class MutableAvatar(
 	}
 
 	private inline fun <reified E : AvatarEvent> emit(e: E) {
-		eventBoard.post(e)
+		eventBoard.postAsync(e)
 	}
 
 	private fun getEntity(eid: Int): MutableEntity? {
