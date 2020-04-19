@@ -8,7 +8,7 @@ import kotlinx.coroutines.channels.filter
 import kotlin.coroutines.resume
 
 /**
- * Await the [deferreds], returning the first result,
+ * Awaits the [deferreds], returning the first result,
  * and finally cancelling them all.
  */
 suspend fun <T> race(vararg deferreds: Deferred<T>): T = coroutineScope {
@@ -16,7 +16,7 @@ suspend fun <T> race(vararg deferreds: Deferred<T>): T = coroutineScope {
 	try {
 		suspendCancellableCoroutine<T> { cont ->
 			deferreds.forEach { deferred ->
-				jobs.add(launch(start = CoroutineStart.ATOMIC) {
+				jobs.add(launch {
 					cont.resume(deferred.await())
 				})
 			}
@@ -39,7 +39,7 @@ suspend fun <R, E : Throwable> EventBoard<in E>.duringInvariant(
 	race(
 		async { Result.Success<R, E>(block()) },
 		*abortEvents.map { eventChannel ->
-			async(start = CoroutineStart.ATOMIC) {
+			async {
 				val event = eventChannel.receive()
 				Result.Failure<R, E>(event)
 			}

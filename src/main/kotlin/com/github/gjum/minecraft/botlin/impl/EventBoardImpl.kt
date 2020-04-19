@@ -22,7 +22,7 @@ class EventBoardImpl<T>(
 				?: return CompletableDeferred(true)
 		}
 		// emit later, allowing handlers registered after invoking this function to receive this payload
-		return this.async {
+		return async {
 			@Suppress("UNCHECKED_CAST")
 			val handlersT = handlersForEvent as Collection<SendChannel<T>>
 //			val cancellersT = synchronized(this) {
@@ -38,13 +38,16 @@ class EventBoardImpl<T>(
 //				}
 //			}
 			if (cancelledBy == null) {
-				for (channel in handlersT) {
-					launch {
-						channel.send(payload)
+				// a crashing handler should not crash the whole event board
+				supervisorScope {
+					for (channel in handlersT) {
+						launch {
+							channel.send(payload)
+						}
 					}
 				}
 			}
-			cancelledBy != null
+			return@async cancelledBy != null
 		}
 	}
 
