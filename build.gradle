@@ -32,7 +32,6 @@ runShadow.main = mainClassName
 repositories {
     mavenLocal()
     mavenCentral()
-    maven { url 'https://jitpack.io' }
     jcenter()
     maven { url "https://oss.sonatype.org/content/repositories/snapshots" }
 }
