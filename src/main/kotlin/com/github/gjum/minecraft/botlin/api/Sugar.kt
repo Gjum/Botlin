@@ -8,6 +8,7 @@ import com.github.gjum.minecraft.botlin.impl.MutableAvatar
 import com.github.gjum.minecraft.botlin.impl.MutableBot
 import com.github.gjum.minecraft.botlin.util.AuthenticationProvider
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.runBlocking
 import kotlin.coroutines.coroutineContext
 
 val NORTH = Cardinal.NORTH.asVec3i // Vec3d(0.0, 0.0, -1.0)
@@ -36,9 +37,15 @@ suspend fun setupClient(
 	return MutableAvatar(profile, mcData, eventBoard)
 }
 
+/**
+ * Creates a [Bot] for the given [username].
+ * @param username E-mail address for Mojang accounts, or username for offline accounts.
+ * @param behaviors [Behavior]s to register with the [ApiBot].
+ */
 suspend fun setupBot(
 	username: String = "Botlin",
-	extraBehaviors: List<(ApiBot) -> Behavior> = emptyList(),
+	behaviors: List<(ApiBot) -> Behavior> = emptyList(),
+	mcDataDir: String = "mcdata/1.12.2",
 	parentScopeArg: CoroutineScope? = null
 ): Bot {
 	val parentScope = parentScopeArg ?: CoroutineScope(coroutineContext)
@@ -48,14 +55,33 @@ suspend fun setupBot(
 		System.getProperty("mcAuthCredentials") ?: ".credentials",
 		System.getProperty("mcAuthCache") ?: ".auth_tokens.json"
 	)
-	val mcData = MinecraftData("mcdata/1.12.2")
+	val mcData = MinecraftData(mcDataDir)
 	val avatar = setupClient(auth, eventBoard, mcData)
 	val connection = ClientConnectionImpl(eventBoard, avatar, auth)
 	val bot = MutableBot(avatar, eventBoard, connection, mcData, parentScope)
-	for (behavior in extraBehaviors) {
+	for (behavior in behaviors) {
 		bot.registerBehavior(behavior(bot))
 	}
 	return bot
+}
+
+/**
+ * Calls [script] within [runBlocking] with a bot
+ * created with [setupBot] using the given arguments.
+ * After [script] finishes, runs [Bot.shutdown];
+ * use [setupBot] for an un-managed [Bot] instance.
+ * @see setupBot
+ */
+fun <T> runBotScript(
+	username: String = "Botlin",
+	behaviors: List<(ApiBot) -> Behavior> = emptyList(),
+	mcDataDir: String = "mcdata/1.12.2",
+	script: suspend Bot.() -> T
+): T = runBlocking {
+	val bot = setupBot(username, behaviors, mcDataDir, this@runBlocking)
+	val result = script(bot)
+	bot.shutdown()
+	result
 }
 
 private data class ScoredSlot(val slot: Slot, val score: Int)
