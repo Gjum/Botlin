@@ -19,6 +19,12 @@ import java.util.logging.LogRecord
 import java.util.logging.Logger
 import kotlin.concurrent.thread
 
+/**
+ * Command-line interface.
+ * Shows a command prompt and handles commands.
+ * Overrides the logger to output above the prompt
+ * and to format log messages with time and color according to log level.
+ */
 object Cli {
     private val logger = Logger.getLogger(this::class.java.name)
 
@@ -39,29 +45,45 @@ object Cli {
     // TODO return end reason: Ctrl+C, stop(), stdin/out closed, internal error
     fun run(commandHandler: (String) -> Unit) {
         try {
-            val readThread_ = synchronized(this) {
-                // can't recover from this as commandHandler would be silently ignored
-                if (writeThread != null) throw Error("CLI already started")
-
-                val cliReader = LineReaderBuilder.builder().build()
-                val pump = PumpReader()
-                val logReader = BufferedReader(pump)
-                val ps = PrintStream(WriterOutputStream(pump.writer, Charset.defaultCharset()))
-                sysOut = System.out
-                sysErr = System.err
-                System.setOut(ps)
-                System.setErr(ps)
-                Log.reload()
-
-                writeThread = startWriteThread(cliReader, logReader)
-                readThread = startReadThread(cliReader, commandHandler)
-                readThread!!
-            }
-            readThread_.join()
+            start(commandHandler)
+            join()
         } finally {
             stop()
         }
     }
+
+    /**
+     * Takes control of stdin/stderr,
+     * printing any output above a persistent prompt
+     * until [stop] is called.
+     * Blocks until the CLI is started up.
+     * @return [readThread]
+     */
+    fun start(commandHandler: (String) -> Unit): Thread {
+        synchronized(this) {
+            // can't recover from this as commandHandler would be silently ignored
+            if (writeThread != null) throw Error("CLI already started")
+
+            val cliReader = LineReaderBuilder.builder().build()
+            val pump = PumpReader()
+            val logReader = BufferedReader(pump)
+            val ps = PrintStream(WriterOutputStream(pump.writer, Charset.defaultCharset()))
+            sysOut = System.out
+            sysErr = System.err
+            System.setOut(ps)
+            System.setErr(ps)
+            Log.reload()
+
+            writeThread = startWriteThread(cliReader, logReader)
+            readThread = startReadThread(cliReader, commandHandler)
+            return readThread!!
+        }
+    }
+
+    /**
+     * Waits for the CLI to finish, by joining [readThread].
+     */
+    fun join() = readThread?.join()
 
     private fun startWriteThread(cliReader: LineReader, logReader: BufferedReader) = thread(start = true) {
         try {
@@ -126,11 +148,8 @@ object Cli {
 }
 
 class CliFormatter : Formatter() {
-    private val dat = Date() // reuse instance for performance
-
     override fun format(record: LogRecord) = record.run {
-        dat.time = millis
-        val timeStr = String.format("%tT", dat)
+        val timeStr = String.format("%tT", Date(millis))
         val levelStr = if (level == Level.INFO) "" else " $level"
         val thrownStr = thrown?.toString() ?: ""
         val error = if (message.endsWith(thrownStr)) "" else " - $thrownStr"

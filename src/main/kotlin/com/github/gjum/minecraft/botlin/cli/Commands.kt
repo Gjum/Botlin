@@ -1,5 +1,6 @@
 package com.github.gjum.minecraft.botlin.cli
 
+import java.util.logging.Level
 import java.util.logging.Logger
 
 /**
@@ -120,5 +121,34 @@ class CommandRegistryImpl : CommandRegistry {
 		val command = commands[cmdName]
 		command?.handle(cmdLineAdjusted, context)
 		return command != null
+	}
+}
+
+/**
+ * Handles the command line with the corresponding command from [CommandRegistry].
+ * Converts "slash" commands in the form of `/abc args` to `say /abc args`.
+ */
+fun handleCommand(cmdLineRaw: String, commands: CommandRegistry) {
+	val cmdLineClean = cmdLineRaw.trim()
+	if (cmdLineClean.isEmpty()) return
+	val isSlashCommand = cmdLineClean.getOrNull(0)?.equals('/') == true
+	val cmdLine = if (isSlashCommand) "say $cmdLineClean" else cmdLineClean
+	val cmdName = cmdLine.substringBefore(' ')
+	val context = LoggingCommandContext(cmdName)
+	try {
+		if (!commands.executeCommand(cmdLine, context)) {
+			commandLogger.warning("Unknown command: $cmdLine")
+		}
+	} catch (e: Throwable) {
+		context.respond("Error: $e")
+		commandLogger.log(Level.WARNING, "Error while running command '$cmdName'", e)
+	}
+}
+
+private val commandLogger = Logger.getLogger("com.github.gjum.minecraft.botlin.Commands")
+
+private class LoggingCommandContext(val cmdName: String) : CommandContext {
+	override fun respond(message: String) {
+		commandLogger.info("[$cmdName] $message")
 	}
 }
