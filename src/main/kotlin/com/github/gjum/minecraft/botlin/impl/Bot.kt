@@ -67,6 +67,7 @@ class MutableBot(
 
 	override fun shutdown() {
 		disconnect("Shutting down the bot")
+		eventBoard.shutdown()
 		super.shutdown()
 	}
 

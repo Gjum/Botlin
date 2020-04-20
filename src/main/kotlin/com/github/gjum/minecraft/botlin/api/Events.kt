@@ -34,6 +34,8 @@ interface EventSink<T> {
 	 * the event was emitted (not cancelled).
 	 */
 	fun <E : T> postAsync(eventType: Class<E>, buildPayload: () -> E): Deferred<Boolean>
+
+	fun shutdown()
 }
 
 interface EventBoard<T> : EventSink<T>, EventSource<T>
