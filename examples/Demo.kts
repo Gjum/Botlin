@@ -1,18 +1,13 @@
-package com.github.gjum.minecraft.botlin.demo
+#!/usr/bin/env kscript
+@file:DependsOn("com.github.Gjum:Botlin:0.2.1")
 
-import com.github.gjum.minecraft.botlin.api.forward
-import com.github.gjum.minecraft.botlin.api.getOrThrow
-import com.github.gjum.minecraft.botlin.api.isSolid
-import com.github.gjum.minecraft.botlin.api.runBotScript
+import com.github.gjum.minecraft.botlin.api.*
 import com.github.steveice10.mc.protocol.data.game.entity.player.Hand
 import com.github.steveice10.mc.protocol.packet.ingame.client.player.ClientPlayerSwingArmPacket
-import kotlinx.coroutines.async
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.*
 
-fun main() = runBotScript("Botlin") {
-	connect("localhost:25565") // waits until spawned
+runBotScript(args.getOrNull(1) ?: "Botlin") {
+	connect(args.getOrNull(2) ?: "localhost:25565") // waits until spawned
 
 	if (!alive) respawn() // check bot state
 
