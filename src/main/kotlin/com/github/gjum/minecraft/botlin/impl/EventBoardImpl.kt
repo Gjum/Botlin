@@ -37,7 +37,8 @@ class EventBoardImpl<T>(
 //					}
 //				}
 //			}
-			if (cancelledBy == null) {
+			val notCancelled = cancelledBy == null
+			if (notCancelled) {
 				// a crashing handler should not crash the whole event board
 				supervisorScope {
 					for (channel in handlersT) {
@@ -47,7 +48,7 @@ class EventBoardImpl<T>(
 					}
 				}
 			}
-			return@async cancelledBy != null
+			return@async notCancelled
 		}
 	}
 
