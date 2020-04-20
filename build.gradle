@@ -21,11 +21,27 @@ apply plugin: 'com.github.johnrengelman.shadow'
 apply plugin: "maven-publish"
 apply plugin: 'com.jfrog.bintray'
 
-version = '0.2.1-beta1'
 group = "com.github.Gjum"
 archivesBaseName = "Botlin"
-mainClassName = "com.github.gjum.minecraft.botlin.Main"
+version = '0.2.1-beta1'
 
+ext { // set version according to travis/git
+	def tag = System.getenv("TRAVIS_TAG")
+	def buildNr = System.getenv("TRAVIS_BUILD_NUMBER")
+	def commitHash = System.getenv("TRAVIS_COMMIT")
+	def isRelease = tag == project.version
+	if (!isRelease) {
+		if (buildNr != null) {
+			project.version = String.format("%s-build%s", project.version, buildNr)
+		} else if (commitHash != null) {
+			project.version = String.format("%s-SNAPSHOT+git-%s", project.version, buildNr)
+		} else {
+			project.version = "${project.version}-SNAPSHOT"
+		}
+	}
+}
+
+mainClassName = "com.github.gjum.minecraft.botlin.Main"
 jar.manifest.attributes('Main-Class': mainClassName)
 runShadow.main = mainClassName
 
