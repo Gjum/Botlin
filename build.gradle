@@ -1,29 +1,28 @@
 buildscript {
-    ext.kotlin_version = "1.3.61"
-    repositories {
-        mavenLocal()
-        mavenCentral()
-        jcenter()
-        maven { url "https://plugins.gradle.org/m2/" }
-    }
-
-    dependencies {
-        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
-        classpath 'com.github.jengelman.gradle.plugins:shadow:2.0.1'
-        classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.+'
-    }
+	ext.kotlin_version = "1.3.61"
+	repositories {
+		mavenLocal()
+		mavenCentral()
+		jcenter()
+		maven { url "https://plugins.gradle.org/m2/" }
+	}
+	dependencies {
+		classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+		classpath 'com.github.jengelman.gradle.plugins:shadow:2.0.1'
+		classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.+'
+	}
 }
 
-apply plugin: 'java'
+apply plugin: "java"
 apply plugin: "kotlin"
 apply plugin: "application"
-apply plugin: 'com.github.johnrengelman.shadow'
+apply plugin: "com.github.johnrengelman.shadow"
 apply plugin: "maven-publish"
-apply plugin: 'com.jfrog.bintray'
+apply plugin: "com.jfrog.bintray"
 
 group = "com.github.Gjum"
 archivesBaseName = "Botlin"
-version = '0.2.1-beta1'
+version = "0.2.1"
 
 ext { // set version according to travis/git
 	def tag = System.getenv("TRAVIS_TAG")
@@ -44,65 +43,65 @@ ext { // set version according to travis/git
 mainClassName = "com.github.gjum.minecraft.botlin.Main"
 jar.manifest.attributes('Main-Class': mainClassName)
 runShadow.main = mainClassName
+shadowJar.classifier = 'full'
 
 repositories {
-    mavenLocal()
-    mavenCentral()
-    jcenter()
-    maven { url "https://oss.sonatype.org/content/repositories/snapshots" }
+	mavenLocal()
+	mavenCentral()
+	jcenter()
+	maven { url "https://oss.sonatype.org/content/repositories/snapshots" }
 }
 
 dependencies {
-    implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
-    implementation "org.jetbrains.kotlin:kotlin-reflect:$kotlin_version"
-    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:1.0.1"
-    implementation "com.github.Gjum:MCProtocolLib-1.12.2-LTS:1.0.0"
-    implementation "org.jline:jline:3.11.0"
-    implementation "org.yaml:snakeyaml:1.18"
+	implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
+	implementation "org.jetbrains.kotlin:kotlin-reflect:$kotlin_version"
+	implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:1.0.1"
+	implementation "com.github.Gjum:MCProtocolLib-1.12.2-LTS:1.0.0"
+	implementation "org.jline:jline:3.11.0"
 
-    testImplementation 'org.junit.jupiter:junit-jupiter:5.5.2'
-    testImplementation "io.mockk:mockk:1.9.3"
-    testCompile 'io.kotest:kotest-runner-junit5:4.0.2798-SNAPSHOT'
+	testImplementation 'org.junit.jupiter:junit-jupiter:5.5.2'
+	testImplementation "io.mockk:mockk:1.9.3"
+	testCompile 'io.kotest:kotest-runner-junit5:4.0.2798-SNAPSHOT'
 }
 
 test {
-  useJUnitPlatform()
+	useJUnitPlatform()
 }
 
 task sourcesJar(type: Jar, dependsOn: classes) {
-    classifier = 'sources'
-    from sourceSets.main.allSource
+	classifier = 'sources'
+	from sourceSets.main.allSource
 }
 
 task javadocJar(type: Jar, dependsOn: javadoc) {
-    classifier = 'javadoc'
-    from javadoc.destinationDir
+	classifier = 'javadoc'
+	from javadoc.destinationDir
 }
 
 artifacts {
-    archives sourcesJar
-    archives javadocJar
+	archives sourcesJar
+	archives javadocJar
 }
 
 publishing {
-    publications {
-        javaAndSrcDoc(MavenPublication) {
-            from components.java
-            artifact sourcesJar
-            artifact javadocJar
-        }
-    }
+	publications {
+		javaAndSrcDoc(MavenPublication) {
+			from components.java
+			artifact sourcesJar
+			artifact javadocJar
+		}
+	}
 }
 
 bintray {
-    publications = ['javaAndSrcDoc']
-    pkg {
-        version { name = project.version }
-        name = project.name
-        repo = 'minecraft'
-        licenses = ['MPL-2.0']
-        vcsUrl = 'https://github.com/Gjum/Botlin.git'
-    }
-    user = 'gjum'
-    key = System.getenv('BINTRAY_APIKEY')
+	publications = ['javaAndSrcDoc']
+	pkg {
+		version.name = project.version
+		name = project.name
+		repo = 'minecraft'
+		licenses = ['MPL-2.0']
+		vcsUrl = 'https://github.com/Gjum/Botlin.git'
+	}
+	user = 'gjum'
+	key = System.getenv('BINTRAY_APIKEY')
 }
