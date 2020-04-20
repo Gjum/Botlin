@@ -2,6 +2,8 @@ package com.github.gjum.minecraft.botlin.api
 
 import com.github.steveice10.packetlib.packet.Packet
 
+class Kicked(message: String) : RuntimeException(message)
+
 interface ClientConnection {
 	/**
 	 * Normalized to format "host:port".
@@ -24,7 +26,7 @@ interface ClientConnection {
 	 */
 	suspend fun connect(serverAddress: String, waitForSpawn: Boolean = true)
 
-	fun disconnect(reason: String? = null, cause: Throwable? = null)
+	fun disconnect(reason: String, cause: Throwable? = null)
 
 	fun sendPacket(packet: Packet)
 }

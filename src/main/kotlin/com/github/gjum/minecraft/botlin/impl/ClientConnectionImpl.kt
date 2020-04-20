@@ -1,11 +1,9 @@
 package com.github.gjum.minecraft.botlin.impl
 
-import com.github.gjum.minecraft.botlin.api.AvatarEvent
-import com.github.gjum.minecraft.botlin.api.ClientConnection
-import com.github.gjum.minecraft.botlin.api.EventBoard
-import com.github.gjum.minecraft.botlin.api.postAsync
+import com.github.gjum.minecraft.botlin.api.*
 import com.github.gjum.minecraft.botlin.util.AuthenticationProvider
 import com.github.gjum.minecraft.botlin.util.normalizeServerAddress
+import com.github.gjum.minecraft.botlin.util.race
 import com.github.gjum.minecraft.botlin.util.splitHostPort
 import com.github.steveice10.mc.protocol.packet.ingame.client.ClientPluginMessagePacket
 import com.github.steveice10.mc.protocol.packet.ingame.server.ServerJoinGamePacket
@@ -13,6 +11,8 @@ import com.github.steveice10.packetlib.Session
 import com.github.steveice10.packetlib.event.session.*
 import com.github.steveice10.packetlib.packet.Packet
 import com.github.steveice10.packetlib.tcp.TcpSessionFactory
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import java.util.logging.Level
 import java.util.logging.Logger
 
@@ -46,19 +46,30 @@ class ClientConnectionImpl(
 		connection = client.session
 		avatar.reset()
 		client.session.addListener(this)
-		// XXX suspend until connection success/failure event; if error, throw
-		client.session.connect(/* wait = */true)
-		if (waitForSpawn) eventBoard.receiveSingle(AvatarEvent.Spawned::class.java)
+		val connectionResult = coroutineScope {
+			val successDeferred = async {
+				if (waitForSpawn) eventBoard.receiveSingle(AvatarEvent.Spawned::class.java)
+				else eventBoard.receiveSingle(AvatarEvent.Connected::class.java)
+			}
+			val disconnectedDeferred = async { eventBoard.receiveSingle(AvatarEvent.Disconnected::class.java) }
+
+			client.session.connect(/* wait = */true)
+
+			race(successDeferred, disconnectedDeferred)
+		}
+		if (connectionResult is AvatarEvent.Disconnected) {
+			throw Kicked(connectionResult.reason)
+		}
 	}
 
-	override fun disconnect(reason: String?, cause: Throwable?) {
-		val c = connection ?: return
+	override fun disconnect(reason: String, cause: Throwable?) {
+		val conn = connection ?: return
 		synchronized(avatar) {
 			if (endReason == null) {
-				eventBoard.postAsync(AvatarEvent.Disconnected(c, reason, cause))
+				eventBoard.postAsync(AvatarEvent.Disconnected(conn, reason, cause))
 			}
 			// avatar.reset() // remember the fail state
-			endReason = reason ?: "Intentionally disconnected"
+			endReason = reason
 		}
 		// TODO submit upstream patch for TcpClientSession overriding all TcpSession#disconnect
 		connection?.disconnect(reason, cause, /* wait = */false)
@@ -76,11 +87,11 @@ class ClientConnectionImpl(
 	}
 
 	override fun disconnecting(event: DisconnectingEvent) {
-		event.apply { disconnect(reason, cause) }
+		event.apply { disconnect(reason ?: "Disconnecting", cause) }
 	}
 
 	override fun disconnected(event: DisconnectedEvent) {
-		event.apply { disconnect(reason, cause) }
+		event.apply { disconnect(reason ?: "Disconnected", cause) }
 	}
 
 	override fun packetSending(event: PacketSendingEvent) = Unit

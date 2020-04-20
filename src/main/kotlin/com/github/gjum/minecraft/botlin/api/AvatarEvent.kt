@@ -15,7 +15,7 @@ sealed class AvatarEvent {
 	 * when the server disconnects the client, when a network error occurs, etc.
 	 * Check the reason/cause to differentiate between these.
 	 */
-	data class Disconnected(val connection: Session, val reason: String?, val cause: Any?) : AvatarEvent()
+	data class Disconnected(val connection: Session, val reason: String, val cause: Any?) : AvatarEvent()
 
 	/** [Avatar.ingame] switched from false to true. */
 	data class Spawned(val entity: Entity) : AvatarEvent()
