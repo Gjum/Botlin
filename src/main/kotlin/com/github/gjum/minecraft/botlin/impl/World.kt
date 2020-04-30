@@ -1,6 +1,7 @@
 package com.github.gjum.minecraft.botlin.impl
 
 import com.github.gjum.minecraft.botlin.api.*
+import com.github.gjum.minecraft.jmcdata.math.*
 import com.github.steveice10.mc.auth.data.GameProfile
 import com.github.steveice10.mc.protocol.data.game.chunk.Chunk
 import com.github.steveice10.mc.protocol.data.game.chunk.Column
@@ -100,8 +101,9 @@ class MutableWorld(override val dimension: Int) : World {
 
 	private fun indexBlockInSection(x: Int, y: Int, z: Int) = (y.mod16 shl 8) or (z.mod16 shl 4) or x.mod16
 
-	override fun getBlockState(pos: Vec3i): BlockState? = pos.run {
+	override fun getBlockId(pos: Vec3i): Int? = pos.run {
 		getSectionForBlock(x, y, z)?.blocks?.get(x.mod16, y.mod16, z.mod16)
+			?.run { id * 16 + data }
 	}
 
 	private fun getColumnForBlock(x: Int, z: Int): Column? {

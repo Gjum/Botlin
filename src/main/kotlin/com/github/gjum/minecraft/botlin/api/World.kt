@@ -1,5 +1,9 @@
 package com.github.gjum.minecraft.botlin.api
 
+import com.github.gjum.minecraft.jmcdata.math.ChunkPos
+import com.github.gjum.minecraft.jmcdata.math.Look
+import com.github.gjum.minecraft.jmcdata.math.Vec3d
+import com.github.gjum.minecraft.jmcdata.math.Vec3i
 import com.github.steveice10.mc.auth.data.GameProfile
 import com.github.steveice10.mc.protocol.data.game.chunk.Column
 import com.github.steveice10.mc.protocol.data.game.entity.metadata.EntityMetadata
@@ -97,5 +101,5 @@ interface World {
 	 * Get the [BlockState] at the [pos] (absolute world coordinates).
 	 * @return null if not loaded or outside world
 	 */
-	fun getBlockState(pos: Vec3i): BlockState?
+	fun getBlockId(pos: Vec3i): Int?
 }

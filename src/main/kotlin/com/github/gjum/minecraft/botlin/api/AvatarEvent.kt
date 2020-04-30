@@ -1,5 +1,7 @@
 package com.github.gjum.minecraft.botlin.api
 
+import com.github.gjum.minecraft.jmcdata.math.Look
+import com.github.gjum.minecraft.jmcdata.math.Vec3d
 import com.github.steveice10.mc.protocol.data.message.Message
 import com.github.steveice10.packetlib.Session
 import com.github.steveice10.packetlib.packet.Packet

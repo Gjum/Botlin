@@ -1,4 +1,4 @@
-@file:DependsOn("com.github.Gjum:Botlin:0.2.1")
+@file:DependsOn("com.github.Gjum:Botlin:0.3.0-SNAPSHOT")
 
 import com.github.gjum.minecraft.botlin.api.*
 

@@ -1,5 +1,8 @@
 package com.github.gjum.minecraft.botlin.api
 
+import com.github.gjum.minecraft.jmcdata.math.Box
+import com.github.gjum.minecraft.jmcdata.math.Vec3d
+
 const val DRAG = 0.98 // y velocity multiplicator per tick when not on ground
 const val GRAVITY = 0.08 // m/t²; subtracted from y velocity per tick when not on ground
 const val JUMP_FORCE = 0.42 // m/t; applied to velocity when starting a jump

@@ -1,12 +1,14 @@
 package com.github.gjum.minecraft.botlin.api
 
-import com.github.gjum.minecraft.botlin.data.BlockStateInfo
-import com.github.gjum.minecraft.botlin.data.MinecraftData
 import com.github.gjum.minecraft.botlin.impl.ClientConnectionImpl
 import com.github.gjum.minecraft.botlin.impl.EventBoardImpl
 import com.github.gjum.minecraft.botlin.impl.MutableAvatar
 import com.github.gjum.minecraft.botlin.impl.MutableBot
 import com.github.gjum.minecraft.botlin.util.AuthenticationProvider
+import com.github.gjum.minecraft.jmcdata.BlockVariant
+import com.github.gjum.minecraft.jmcdata.MinecraftData
+import com.github.gjum.minecraft.jmcdata.math.Cardinal
+import com.github.gjum.minecraft.jmcdata.math.Look
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.runBlocking
 import kotlin.coroutines.coroutineContext
@@ -24,7 +26,7 @@ val Bot.feet get() = playerEntity!!.position!!
 val Bot.inFront get() = feet + forward
 val Bot.behind get() = feet + backward
 
-val BlockStateInfo.isSolid get() = collisionShape.boxes.isNotEmpty()
+val BlockVariant.isSolid get() = collisionShape.boxes.isNotEmpty()
 
 suspend fun setupClient(
 	auth: AuthenticationProvider,
@@ -45,7 +47,7 @@ suspend fun setupClient(
 suspend fun setupBot(
 	username: String = "Botlin",
 	behaviors: List<(ApiBot) -> Behavior> = emptyList(),
-	mcDataDir: String = "mcdata/1.12.2",
+	mcDataDir: String = "1.12.2",
 	parentScopeArg: CoroutineScope? = null
 ): Bot {
 	val parentScope = parentScopeArg ?: CoroutineScope(coroutineContext)
@@ -75,7 +77,7 @@ suspend fun setupBot(
 fun <T> runBotScript(
 	username: String = "Botlin",
 	behaviors: List<(ApiBot) -> Behavior> = emptyList(),
-	mcDataDir: String = "mcdata/1.12.2",
+	mcDataDir: String = "1.12.2",
 	script: suspend Bot.() -> T
 ): T = runBlocking {
 	val bot = setupBot(username, behaviors, mcDataDir, this@runBlocking)

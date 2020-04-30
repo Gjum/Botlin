@@ -1,12 +1,12 @@
 package com.github.gjum.minecraft.botlin
 
-import com.github.gjum.minecraft.botlin.api.Axis
-import com.github.gjum.minecraft.botlin.api.Box
-import com.github.gjum.minecraft.botlin.api.Cardinal
-import com.github.gjum.minecraft.botlin.api.Vec3d
 import com.github.gjum.minecraft.botlin.util.Ray
 import com.github.gjum.minecraft.botlin.util.calculateIntercept
 import com.github.gjum.minecraft.botlin.util.intersectionWithOrthoPlane
+import com.github.gjum.minecraft.jmcdata.math.Axis
+import com.github.gjum.minecraft.jmcdata.math.Box
+import com.github.gjum.minecraft.jmcdata.math.Cardinal
+import com.github.gjum.minecraft.jmcdata.math.Vec3d
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 

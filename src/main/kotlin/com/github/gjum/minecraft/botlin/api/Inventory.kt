@@ -1,6 +1,6 @@
 package com.github.gjum.minecraft.botlin.api
 
-import com.github.gjum.minecraft.botlin.data.ItemInfo
+import com.github.gjum.minecraft.jmcdata.ItemInfo
 import com.github.steveice10.mc.protocol.data.game.entity.metadata.ItemStack
 import com.github.steveice10.mc.protocol.data.game.window.WindowType
 import com.github.steveice10.opennbt.tag.builtin.CompoundTag

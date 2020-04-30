@@ -2,8 +2,10 @@ package com.github.gjum.minecraft.botlin.cli
 
 import com.github.gjum.minecraft.botlin.api.*
 import com.github.gjum.minecraft.botlin.util.toAnsi
+import com.github.gjum.minecraft.jmcdata.math.Vec3d
+import com.github.gjum.minecraft.jmcdata.math.Vec3i
+import com.github.gjum.minecraft.jmcdata.math.floor
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeout
 import java.util.regex.Pattern
@@ -105,47 +107,47 @@ fun registerUsefulCommands(commands: CommandRegistry, bot: Bot, parentScope: Cor
 	) { _, context ->
 		val blocksWithDY = bot.world!!.run {
 			val feetY = bot.feet.y.floor
-			fun getBlockRel(delta: Vec3i) = getBlockState(bot.feet.floored() + delta)
+			fun getBlockRel(delta: Vec3i) = getBlockId(bot.feet.floored() + delta)
 			(-3..3).map { dz ->
 				(-3..3).map { dx ->
 					var dy = 0 // start at bot feet
-					var block = getBlockRel(Vec3i(dx, dy, dz))
+					var blockId = getBlockRel(Vec3i(dx, dy, dz))
 					// find first empty block above player feet
-					while (block != null && block.id != 0) {
-						block = getBlockRel(Vec3i(dx, ++dy, dz))
+					while (blockId != null && blockId != 0) {
+						blockId = getBlockRel(Vec3i(dx, ++dy, dz))
 					}
 					// find highest non-empty block from there
-					while ((block == null || block.id == 0)
+					while ((blockId == null || blockId == 0)
 						&& feetY + dy >= 0) {
-						block = getBlockRel(Vec3i(dx, --dy, dz))
+						blockId = getBlockRel(Vec3i(dx, --dy, dz))
 					}
-					Pair(block, dy + 1) // +1 so floor is 0, as it is -1 from feet
+					Pair(blockId, dy + 1) // +1 so floor is 0, as it is -1 from feet
 				}
 			}
 		}
 		val blockKey = blocksWithDY.asSequence().flatten().map { it.first }
 			.distinct()
 			.filterNotNull()
-			.sortedBy { it.id }
-			.joinToString("\n") { blockState ->
-				val displayName = bot.mcData.blocks[blockState]
+			.sorted()
+			.joinToString("\n") { blockId ->
+				val displayName = bot.mcData.blocks[blockId]
 					?.block?.displayName
-					?: error("Unknown block id $blockState")
-				val idPadded = blockState.id.toString().padStart(4)
+					?: error("Unknown block id $blockId")
+				val idPadded = blockId.toString().padStart(4)
 				"$idPadded $displayName"
 			}
 		val dyKey = "${dy2ansi(-2)}--$ansiReset ${dy2ansi(-1)}-1$ansiReset ${dy2ansi(0)}0$ansiReset ${dy2ansi(1)}+1$ansiReset ${dy2ansi(2)}++$ansiReset"
 		var i = 7 * 7 / 2 + 1 // index to mark as player pos
 		val blocksText = blocksWithDY.joinToString("$ansiReset\n") { blocksInLine ->
-			val blocksStr = blocksInLine.joinToString(ansiReset) { (block, dy) ->
-				var padded = (block?.id?.toString() ?: "?").padStart(4)
+			val blocksStr = blocksInLine.joinToString(ansiReset) { (blockId, dy) ->
+				var padded = (blockId?.toString() ?: "?").padStart(4)
 				if (i == 1) padded = "[" + padded.substring(1)
 				if (i == 0) padded = "]" + padded.substring(1)
 				i--
 				dy2ansi(dy) + padded
 			}
 			i += 7
-			val yStr = blocksInLine.joinToString(ansiReset) { (block, dy) ->
+			val yStr = blocksInLine.joinToString(ansiReset) { (_, dy) ->
 				var padded = dy.toString().padStart(4)
 				if (i == 1) padded = "[" + padded.substring(1)
 				if (i == 0) padded = "]" + padded.substring(1)
@@ -302,7 +304,7 @@ fun registerUsefulCommands(commands: CommandRegistry, bot: Bot, parentScope: Cor
 	}
 }
 
-/** Build an ANSI escape sequence fro mthe given numbers. */
+/** Build an ANSI escape sequence from the given numbers. */
 fun ansi(vararg n: Int) = n.joinToString(
 	prefix = "\u001B[", separator = ";", postfix = "m")
 

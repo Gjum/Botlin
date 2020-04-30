@@ -1,9 +1,9 @@
 package com.github.gjum.minecraft.botlin.util
 
-import com.github.gjum.minecraft.botlin.api.Axis
-import com.github.gjum.minecraft.botlin.api.Box
-import com.github.gjum.minecraft.botlin.api.Cardinal
-import com.github.gjum.minecraft.botlin.api.Vec3d
+import com.github.gjum.minecraft.jmcdata.math.Axis
+import com.github.gjum.minecraft.jmcdata.math.Box
+import com.github.gjum.minecraft.jmcdata.math.Cardinal
+import com.github.gjum.minecraft.jmcdata.math.Vec3d
 
 data class Ray(val start: Vec3d, val delta: Vec3d)
 

@@ -3,12 +3,14 @@ package com.github.gjum.minecraft.botlin.impl
 import com.github.gjum.minecraft.botlin.api.Slot
 import com.github.gjum.minecraft.botlin.api.Stack
 import com.github.gjum.minecraft.botlin.api.Window
-import com.github.gjum.minecraft.botlin.data.ItemInfo
-import com.github.gjum.minecraft.botlin.data.MinecraftData
-import com.github.gjum.minecraft.botlin.data.WindowInfo
+import com.github.gjum.minecraft.jmcdata.ItemInfo
+import com.github.gjum.minecraft.jmcdata.MinecraftData
+import com.github.gjum.minecraft.jmcdata.WindowInfo
 import com.github.steveice10.mc.protocol.data.game.entity.metadata.ItemStack
 import com.github.steveice10.mc.protocol.data.game.window.WindowType
 import com.github.steveice10.opennbt.tag.builtin.CompoundTag
+
+val emptyItem = ItemInfo(-1, "(empty)", "Empty", 0, emptyMap(), null)
 
 open class MutableStack(
 	itemInitially: ItemInfo,
@@ -19,13 +21,13 @@ open class MutableStack(
 	override var item = itemInitially
 		set(value) {
 			field = value
-			if (value.idNr == 0 && amount != 0) amount = 0 // empty slot
+			if (value.idNr <= 0 && amount != 0) amount = 0 // empty slot
 		}
 
 	override var amount = amountInitially
 		set(value) {
 			field = value
-			if (value <= 0 && item.idNr != 0) item = ItemInfo.AIR // empty slot
+			if (value <= 0 && item.idNr != -1) item = emptyItem // empty slot
 		}
 
 	override fun toString() = "Stack{${amount}x $item $nbtData}"
@@ -57,7 +59,7 @@ open class MutableStack(
 
 	fun updateFromStack(itemStack: ItemStack?, mcData: MinecraftData) {
 		if (itemStack == null) {
-			item = ItemInfo.AIR
+			item = emptyItem
 			meta = 0
 			amount = 0
 			nbtData = null
@@ -97,7 +99,7 @@ class MutableSlot(
 
 fun Slot.copy() = MutableSlot(index, item, meta, amount, nbtData)
 
-fun makeEmptySlot(index: Int) = MutableSlot(index, ItemInfo.AIR, 0, 0, null)
+fun makeEmptySlot(index: Int) = MutableSlot(index, emptyItem, 0, 0, null)
 
 const val PLAYER_WINDOW_ID = 0
 const val CURSOR_WINDOW_ID = -1

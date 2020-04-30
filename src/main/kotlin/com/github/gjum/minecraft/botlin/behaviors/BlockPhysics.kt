@@ -8,6 +8,7 @@ import com.github.gjum.minecraft.botlin.api.*
 import com.github.gjum.minecraft.botlin.impl.Physics
 import com.github.gjum.minecraft.botlin.util.Ray
 import com.github.gjum.minecraft.botlin.util.calculateIntercept
+import com.github.gjum.minecraft.jmcdata.math.*
 import com.github.steveice10.mc.protocol.packet.ingame.client.player.ClientPlayerMovementPacket
 import com.github.steveice10.mc.protocol.packet.ingame.client.player.ClientPlayerPositionPacket
 import com.github.steveice10.mc.protocol.packet.ingame.client.player.ClientPlayerPositionRotationPacket
@@ -154,10 +155,10 @@ class BlockPhysics(private val bot: ApiBot) : ChildScope(bot), Physics {
 		for (z in movementBox.min.z.floor..movementBox.max.z.floor) {
 			for (x in movementBox.min.x.floor..movementBox.max.x.floor) {
 				for (y in movementBox.min.y.floor..movementBox.max.y.floor) {
-					val blockState = avatar.world?.getBlockState(Vec3i(x, y, z))
+					val blockId = avatar.world?.getBlockId(Vec3i(x, y, z))
 						?: continue // outside world or outside loaded chunks
-					val blockStateInfo = bot.mcData.blocks[blockState]
-						?: error("Unknown block state $blockState")
+					val blockStateInfo = bot.mcData.blocks[blockId]
+						?: error("Unknown block id $blockId")
 					val boxes = blockStateInfo.collisionShape.boxes
 					// move boxes to their position in the world
 					val movedBoxes = boxes.map { it + Vec3i(x, y, z).asVec3d }

@@ -1,6 +1,8 @@
 package com.github.gjum.minecraft.botlin.api
 
-import com.github.gjum.minecraft.botlin.data.MinecraftData
+import com.github.gjum.minecraft.jmcdata.MinecraftData
+import com.github.gjum.minecraft.jmcdata.math.Vec3d
+import com.github.gjum.minecraft.jmcdata.math.Vec3i
 import com.github.steveice10.mc.protocol.data.game.entity.player.Hand
 import com.github.steveice10.mc.protocol.data.game.world.block.BlockFace
 

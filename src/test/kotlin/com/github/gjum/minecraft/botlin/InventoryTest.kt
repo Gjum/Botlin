@@ -1,8 +1,8 @@
 package com.github.gjum.minecraft.botlin
 
 import com.github.gjum.minecraft.botlin.api.AvatarEvent
-import com.github.gjum.minecraft.botlin.data.MinecraftData
 import com.github.gjum.minecraft.botlin.impl.*
+import com.github.gjum.minecraft.jmcdata.MinecraftData
 import com.github.steveice10.mc.auth.data.GameProfile
 import com.github.steveice10.mc.protocol.data.game.entity.metadata.ItemStack
 import com.github.steveice10.mc.protocol.data.game.window.WindowType
@@ -15,7 +15,7 @@ import org.junit.jupiter.api.Test
 import java.util.UUID
 
 class InventoryTest {
-	val mcData = MinecraftData("mcdata/1.12.2")
+	val mcData = MinecraftData("1.12.2")
 	val gameProfile = GameProfile(UUID.randomUUID(), "Test")
 
 	@Test

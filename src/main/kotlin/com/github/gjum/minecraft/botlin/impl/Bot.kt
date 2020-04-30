@@ -3,8 +3,9 @@ package com.github.gjum.minecraft.botlin.impl
 import com.github.gjum.minecraft.botlin.api.*
 import com.github.gjum.minecraft.botlin.behaviors.BlockPhysics
 import com.github.gjum.minecraft.botlin.behaviors.ClientTicker
-import com.github.gjum.minecraft.botlin.data.MinecraftData
 import com.github.gjum.minecraft.botlin.util.race
+import com.github.gjum.minecraft.jmcdata.MinecraftData
+import com.github.gjum.minecraft.jmcdata.math.Vec3d
 import com.github.steveice10.mc.protocol.data.game.ClientRequest
 import com.github.steveice10.mc.protocol.data.game.entity.metadata.Position
 import com.github.steveice10.mc.protocol.data.game.entity.player.Hand

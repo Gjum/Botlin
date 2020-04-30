@@ -1,8 +1,16 @@
 package com.github.gjum.minecraft.botlin.impl
 
-import com.github.gjum.minecraft.botlin.api.*
-import com.github.gjum.minecraft.botlin.data.MinecraftData
+import com.github.gjum.minecraft.botlin.api.Avatar
+import com.github.gjum.minecraft.botlin.api.AvatarEvent
+import com.github.gjum.minecraft.botlin.api.Experience
+import com.github.gjum.minecraft.botlin.api.postAsync
+import com.github.gjum.minecraft.jmcdata.MinecraftData
+import com.github.gjum.minecraft.jmcdata.math.Look
+import com.github.gjum.minecraft.jmcdata.math.Vec3d
+import com.github.gjum.minecraft.jmcdata.math.Vec3i
+import com.github.gjum.minecraft.jmcdata.math.radFromDeg
 import com.github.steveice10.mc.auth.data.GameProfile
+import com.github.steveice10.mc.protocol.data.MagicValues
 import com.github.steveice10.mc.protocol.data.game.PlayerListEntryAction
 import com.github.steveice10.mc.protocol.data.game.entity.player.GameMode
 import com.github.steveice10.mc.protocol.data.game.entity.player.Hand
@@ -75,7 +83,7 @@ class MutableAvatar(
 		return player
 	}
 
-	private fun makePlayerWindow() = MutableWindow(PLAYER_WINDOW_ID, null, "Player", 0, mcData.windows[null]!!)
+	private fun makePlayerWindow() = MutableWindow(PLAYER_WINDOW_ID, null, "Player", 0, mcData.windows[""]!!)
 
 	fun handleClientPacket(packet: Packet) = synchronized(this) {
 		// XXX
@@ -334,7 +342,8 @@ class MutableAvatar(
 			}
 			is ServerOpenWindowPacket -> {
 				val oldWindow = window
-				val windowInfo = mcData.windows[packet.type]
+				val windowName = MagicValues.value(String::class.java, packet.type)
+				val windowInfo = mcData.windows[windowName]
 					?: error("Unknown window type ${packet.type}")
 				window = MutableWindow(packet.windowId, packet.type, packet.name, packet.slots, windowInfo)
 				emit(AvatarEvent.WindowClosed(oldWindow))

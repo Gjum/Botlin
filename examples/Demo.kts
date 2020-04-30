@@ -1,5 +1,5 @@
 #!/usr/bin/env kscript
-@file:DependsOn("com.github.Gjum:Botlin:0.2.1")
+@file:DependsOn("com.github.Gjum:Botlin:0.3.0-SNAPSHOT")
 
 import com.github.gjum.minecraft.botlin.api.*
 import com.github.steveice10.mc.protocol.data.game.entity.player.Hand
@@ -21,7 +21,7 @@ runBotScript(args.getOrNull(1) ?: "Botlin") {
 		if (slot.empty) return@holdItem false
 		val block = slot.item.block
 			?: return@holdItem false // item is not a block
-		return@holdItem block.states[0].isSolid
+		return@holdItem block.variants[0].isSolid
 	}.getOrThrow()
 
 	delay(1000)
