@@ -11,13 +11,16 @@ fun Double.round(places: Int): Double {
 }
 
 fun Int.euclideanDiv(denominator: Int): Int =
-	(this / denominator).let { if (this < 0) it - 1 else it }
+	if (this >= 0) this / denominator
+	else (this + 1) / denominator - 1
 
 fun Int.euclideanMod(denominator: Int): Int =
-	(this % denominator).let { if (this < 0) it + denominator else it }
+	if (this >= 0 || this % denominator == 0) this % denominator
+	else denominator + (this % denominator)
 
 fun Double.euclideanMod(denominator: Double): Double =
-	(this % denominator).let { if (this < 0) it + denominator else it }
+	if (this >= 0) this % denominator
+	else denominator + ((this + 1) % denominator) - 1
 
 val Int.div16 get() = this shr 4
 val Int.mod16 get() = this and 0xf
