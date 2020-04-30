@@ -66,6 +66,7 @@ class AuthenticationProvider(
 		}
 
 		if ('@' !in username) { // fall back to offline mode
+			logger.info("Selecting offline mode with username `$username`")
 			return Result.Success(MinecraftProtocol(username))
 		}
 
@@ -73,6 +74,10 @@ class AuthenticationProvider(
 		val credentials = readCredentialsFile(credentialsPath)
 		if (credentials == null) {
 			logger.info("Failed to authenticate $username: Could not read credentials from $credentialsPath and no password provided via env ($mcPasswordEnv)")
+
+			// create example .credentials file so the user can add their credentials
+			Files.write(Paths.get(credentialsPath), "your-mojang-account@example.com YOUR PASSWORD\n".toByteArray())
+
 			return Result.Failure(RequestException("Failed to authenticate $username: Could not read credentials from $credentialsPath and no password provided via env ($mcPasswordEnv)"))
 		}
 
@@ -100,6 +105,9 @@ class AuthenticationProvider(
 	}
 
 	private suspend fun tryLogin(auth: AuthenticationService): Result<MinecraftProtocol, RequestException> {
+		if (auth.accessToken == null && auth.password != null && auth.username != null) {
+			logger.info("Logging into `${auth.username}` with password")
+		}
 		val error = runOnThread {
 			try {
 				auth.login()
